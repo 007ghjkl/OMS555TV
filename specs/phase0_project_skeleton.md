@@ -6,14 +6,14 @@
 
 - 本机 Qt 6.8.3 MSVC 2022 x64、CMake 和 Ninja。
 - `PROJECT_SPEC.md`、架构草案与本规范。
-- STM32 硬件基线（固件子任务的前置输入）。
+- `docs/hardware_baseline.md` 基线 1.0（固件子任务的已满足输入）。
 
 ## 2. 输出
 
 - 可配置和构建的 Qt Widgets 应用目标。
 - 可由 CTest 运行的 Host 测试目标。
 - Host 模块目录和最小日志 API。
-- 硬件确认后生成的 STM32 HAL 最小工程。
+- 按 NUCLEO-F411RE/STM32F411RET6、HSI/PLL 100 MHz 和已确认引脚生成的 STM32 HAL 最小工程。
 - 真实可复现的构建说明。
 
 ## 3. Host 构建约束
@@ -43,7 +43,8 @@
 ## 7. 错误处理
 
 - CMake 缺少 Qt 组件时必须以明确错误结束。
-- 固件硬件信息不完整时停止生成芯片相关配置，并引用 `TASK-000`。
+- ARM GCC、GDB Server 或 Programmer CLI 路径未验证时，不得声称固件构建、调试或烧录通过。
+- RS485 模块缺失不阻塞 Phase 0；当前通信只验证 USART2 VCP，不得写成 RS485 验证结果。
 - 不通过硬编码路径或复制 SDK 文件规避工具链问题。
 
 ## 8. 验收与文档同步

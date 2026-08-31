@@ -60,14 +60,16 @@
 
 ## 5. STM32 方案
 
-需求允许裸机事件循环和 HAL，适合优先控制工程复杂度。因芯片、开发板、UART、ADC 和 RS485 引脚均未知，目前无法创建可验证的 Cube 工程。
+需求允许裸机事件循环和 HAL，适合优先控制工程复杂度。TASK-000 已确认 NUCLEO-F411RE、STM32F411RET6、三路 DHTC12 I2C、PA0/ADC1 光敏输入和 USART2 VCP，可生成唯一的最小 CubeMX 工程。
 
-> 待验证：开发板型号、MCU 型号、晶振、调试器、UART/ADC 引脚、RS485 收发器、Cube 固件包版本。
+本机已确认 STM32CubeMX 6.18.1-RC2、STM32CubeF4 v1.28.3 和 VS Code STM32 扩展，但 ARM GCC、ST-LINK GDB Server 与 Programmer CLI 不在系统 `PATH`。Phase 0 构建前需确认扩展 Bundle Manager 提供的工具路径或补齐项目所需工具链。
+
+当前使用 USART2/ST-LINK VCP 验证 Modbus RTU 协议。RS485 模块尚未采购，其电气层迁移由 TASK-002 管理，不阻塞最小工程和传感器采集开发。
 
 ## 6. Phase 0 退出条件
 
 1. Qt 最小工程可配置、构建并运行测试。
-2. STM32 具体硬件信息已记录，最小工程可独立构建。
+2. STM32 硬件基线已记录，最小工程可独立构建；构建工具路径有真实验证记录。
 3. 通信后端技术验证完成并记录结论。
 4. 仓库目录、日志接口骨架和自动化测试入口建立。
 5. 构建方法和未验证项在 README 中同步。

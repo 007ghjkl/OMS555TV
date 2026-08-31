@@ -18,6 +18,7 @@
 - [项目需求基线](PROJECT_SPEC.md)
 - [产品需求文档](docs/prd.md)
 - [架构设计草案](docs/architecture.md)
+- [硬件与通信基线](docs/hardware_baseline.md)
 - [Modbus 寄存器表草案](docs/modbus_register_map.md)
 - [测试计划](docs/test_plan.md)
 - [测试用例目录](docs/test_cases.md)
@@ -44,17 +45,20 @@ output/           本地日志与报告（内容不提交）
 - C++17
 - Qt 6.8.3 + MSVC 2022 x64（推荐，待 Phase 0 构建验证）
 - CMake + Ninja
-- STM32CubeMX / STM32CubeIDE + HAL（具体芯片和工程参数待硬件确认）
+- NUCLEO-F411RE / STM32F411RET6
+- STM32CubeMX 6.18.1-RC2 + STM32CubeF4 v1.28.3 + HAL
+- 三只 DHTC12（I2C1/2/3）与一路 PA0/ADC1 光敏模拟量
+- 当前通过 ST-LINK VCP/USART2、115200 8N1 开发 Modbus RTU；真实 RS485 待硬件迁移任务
 
-## 开始编码前的门禁
+## 当前开发门禁
 
-以下信息确认前，不创建绑定具体芯片的 STM32 工程：
+硬件与引脚基线已经确认，可以开始 TASK-001 的最小 STM32CubeMX 工程。以下事项仍必须在对应阶段完成：
 
-1. STM32 开发板与 MCU 精确型号；
-2. 可用 UART、RS485 收发使能引脚及电气连接；
-3. ADC/传感器类型与引脚；
-4. 调试器、CubeIDE/CubeMX 版本和固件包；
-5. 默认通信参数最终值。
+1. 通过 VS Code Bundle Manager 或明确路径确认 ARM GCC、GDB Server 和 Programmer CLI；
+2. 首次接线前记录 MB1136 板修订号；
+3. 用实物确认 DHTC12 温度原始值的有符号解释；
+4. 采购 TTL-RS485 模块后完成 `TASK-002`，再验收 RS485 电气层；
+5. 所有未执行的硬件测试继续标记“未在真实硬件环境验证”。
 
 详细未决项见架构与 Phase 0 任务文档。
 

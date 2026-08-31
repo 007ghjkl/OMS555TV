@@ -37,6 +37,16 @@
 
 硬件相关代码与可纯 C 测试的协议/业务逻辑应分离。
 
+### 3.1 硬件实例
+
+- 目标板为 NUCLEO-F411RE / STM32F411RET6，使用 HSI/PLL 100 MHz 和 HAL 裸机事件循环。
+- A/B/C 相 DHTC12 分别使用 I2C1（PB8/PB9）、I2C2（PB10/PB3）和 I2C3（PA8/PC9）。
+- 光敏模块 AO 使用 PA0/ADC1_IN0，3.3 V 供电；数据表示为毫伏，不表示校准照度。
+- 环境温度当前为带状态位的软件模拟源，不能与真实传感器值混淆。
+- 开发阶段 Modbus RTU 帧通过 USART2/ST-LINK VCP；RS485 电气层属于后续迁移任务。
+
+详细接线、电气约束与待验证项以 `docs/hardware_baseline.md` 为准。
+
 ## 4. 上位机模块
 
 | 模块 | 职责 |
@@ -82,7 +92,8 @@ DISCONNECTED → CONNECTED_IDLE → MONITORING
 ## 7. 数据与错误模型
 
 - 传输数据以 `quint16` 寄存器为边界，温度使用有符号定点数 ×0.1℃。
-- 32 位数据的字序固定写入寄存器文档，暂拟高字在高地址或低字在低地址需确认。
+- 32 位数据采用低字在低地址、高字在高地址；单寄存器仍按 Modbus 规范高字节先传输。
+- 光敏模拟电压使用 `uint16` 毫伏值，范围 0～3300。
 - 错误分类至少包括串口、超时、CRC、协议异常、参数、断言、配置和报告错误。
 - 底层返回错误代码、上下文和原始证据；UI 决定展示方式。
 
@@ -93,7 +104,7 @@ DISCONNECTED → CONNECTED_IDLE → MONITORING
 ## 9. 部署与构建
 
 - Host：Windows x64，Qt 6.8.3、MSVC 2022、CMake、Ninja。
-- Firmware：STM32Cube 生成的 HAL 工程，具体工具链待硬件确认。
+- Firmware：NUCLEO-F411RE、STM32CubeMX 6.18.1-RC2、STM32CubeF4 v1.28.3、HAL；ARM 编译/调试工具实际路径须在 TASK-001 验证。
 - 两端独立构建，仓库根目录提供统一说明，不混用构建目录。
 
 ## 10. 安全、可观测性与恢复
@@ -106,6 +117,6 @@ DISCONNECTED → CONNECTED_IDLE → MONITORING
 ## 11. 待确认的架构决策
 
 1. Qt SerialBus 与自建 QSerialPort Modbus 后端的技术验证结果。
-2. STM32 具体型号和工程生成方式。
-3. 32 位寄存器字序、通信默认值、阈值范围与迟滞参数。
+2. DHTC12 温度原始值的有符号解释与实物校准结果。
+3. RS485 模块、USART/DE/RE、终端和偏置方案。
 4. Phase 0 是否只支持 Windows，Linux 仅保留可移植边界。

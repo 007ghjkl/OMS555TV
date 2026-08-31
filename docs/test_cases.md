@@ -9,6 +9,8 @@
 | TC-F003 | 功能 | 读取告警阈值 | read_registers | 自动 | 待实现 |
 | TC-F004 | 功能 | 写入阈值并回读 | write_and_verify | 自动 | 待实现 |
 | TC-F005 | 功能 | 读取固件版本 | read_registers | 自动 | 待实现 |
+| TC-F006 | 功能 | 读取光敏模拟电压 | read_register | 自动 | 待实现 |
+| TC-F007 | 功能 | 环境温度模拟状态位 | read_registers | 自动/Fake | 待实现 |
 | TC-P001 | 协议 | 0x03 正常读取 | read_register | 自动 | 待实现 |
 | TC-P002 | 协议 | 0x06 正常写入 | write_register | 自动 | 待实现 |
 | TC-P003 | 协议 | 非法功能码返回 0x01 | expect_exception | 待定 Raw Frame | 待实现 |
@@ -27,4 +29,4 @@
 | TC-R002 | 恢复 | 设备复位后恢复 | guided_recovery | 半自动 | 待实现 |
 | TC-S001 | 稳定性 | 可配置连续轮询 | stability | 自动 | 待实现 |
 
-当前目录列出 22 个候选用例，不代表已实现或已通过。用例 JSON 应在对应执行器和数据范围确认后逐批落地。
+当前目录列出 24 个候选用例，不代表已实现或已通过。用例 JSON 应在对应执行器和数据范围确认后逐批落地。

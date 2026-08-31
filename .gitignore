@@ -3,6 +3,7 @@
 /build-*/
 /out/
 /cmake-build-*/
+/tmp/
 
 # Qt Creator / IDE 本地状态
 *.user
