@@ -1,0 +1,31 @@
+# 构建产物
+/build/
+/build-*/
+/out/
+/cmake-build-*/
+
+# Qt Creator / IDE 本地状态
+*.user
+*.user.*
+.vs/
+.vscode/
+.idea/
+
+# 编译器与调试产物
+*.obj
+*.o
+*.exe
+*.dll
+*.pdb
+*.ilk
+
+# 运行输出（保留目录说明文件）
+/output/logs/*
+!/output/logs/.gitkeep
+/output/reports/*
+!/output/reports/.gitkeep
+
+# 操作系统文件
+Thumbs.db
+Desktop.ini
+.DS_Store
