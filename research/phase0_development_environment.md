@@ -1,7 +1,7 @@
 # Phase 0 开发环境与技术选型调研
 
-> 状态：初步结论；硬件部分待验证  
-> 日期：2026-08-31
+> 状态：Phase 0 构建验证完成；硬件功能待验证
+> 日期：2026-09-01
 
 ## 1. 已验证的本机环境
 
@@ -15,8 +15,12 @@
 | Qt | 6.8.3 MSVC 2022 x64 已安装 |
 | Qt 兼容环境 | 5.15.2 MSVC 2019 x64 已安装 |
 | Qt Creator | 已安装 |
+| MSVC | Visual Studio 2026 Community，MSVC 19.51，x64 构建已验证 |
+| ARM GCC | STM32Cube bundle 14.3.1，固件构建已验证 |
+| ARM GDB | STM32Cube bundle 15.2.90，版本已确认 |
+| STM32CubeProgrammer | 2.23.0，已只读枚举 NUCLEO-F411RE |
 
-以上仅证明工具存在，尚未通过本项目工程完成编译验证。
+Qt Host 与 STM32 固件均已通过本项目工程完成配置、编译和链接验证。ST-LINK 只完成了探针枚举，未进行擦除、烧录、调试或固件运行验证。
 
 ## 2. Qt 方案比较
 
@@ -25,7 +29,7 @@
 | Qt 6.8.3 + MSVC 2022 | 当前版本、长期维护方向、与本机新工具链匹配 | 若需要旧系统兼容，部署成本可能更高 | 推荐作为唯一开发基线 |
 | Qt 5.15.2 + MSVC 2019 | 兼容成熟旧项目 | 新项目生命周期较短，后续迁移成本 | 仅在明确兼容约束时采用 |
 
-推荐使用 Qt 6.8.3、C++17、CMake 和 Ninja。Phase 0 必须用最小程序实际验证 Core、Widgets、SerialPort 和 Test 组件。
+采用 Qt 6.8.3、C++17、CMake 和 Ninja。Host 已实际链接 Core、Widgets、Test 和 SerialBus，并通过 3 个 CTest 测试；SerialPort 组件在配置阶段已确认可发现。
 
 ## 3. 通信实现方案比较
 
@@ -39,9 +43,9 @@
 - 优点：完全控制 TX/RX、时序、CRC 和故障注入，适合协议验证展示。
 - 缺点：协议状态机、帧间隔和异常处理实现成本与缺陷风险更高。
 
-### 初步建议
+### 验证结论
 
-以抽象接口隔离业务层，MVP 优先选择可快速验证且能取得原始报文的实现。是否采用 Qt SerialBus 需在 Phase 0 做一个小型技术验证；若无法满足原始帧证据要求，再实现受控的 QSerialPort 后端。该选择会影响通信模块实现，验证前不写死上层接口。
+Qt SerialBus 的公开 API 可以发送和接收原始 Modbus PDU，但不公开完整 RTU ADU 字节，也不能构造错误 CRC 后按原样发送。Phase 0 已保留 `IModbusClient` 抽象；后续如验收要求完整 TX/RX 证据和 CRC 故障注入，应使用基于 QSerialPort 的受控后端或传输层旁路采集。详细证据见 `research/qt_serialbus_raw_frame.md`。
 
 ## 4. 线程模型方案比较
 
@@ -62,7 +66,7 @@
 
 需求允许裸机事件循环和 HAL，适合优先控制工程复杂度。TASK-000 已确认 NUCLEO-F411RE、STM32F411RET6、三路 DHTC12 I2C、PA0/ADC1 光敏输入和 USART2 VCP，可生成唯一的最小 CubeMX 工程。
 
-本机已确认 STM32CubeMX 6.18.1-RC2、STM32CubeF4 v1.28.3 和 VS Code STM32 扩展，但 ARM GCC、ST-LINK GDB Server 与 Programmer CLI 不在系统 `PATH`。Phase 0 构建前需确认扩展 Bundle Manager 提供的工具路径或补齐项目所需工具链。
+本机已确认 STM32CubeMX 6.18.1-RC2、STM32CubeF4 v1.28.3 和 STM32Cube bundles。ARM GCC、GDB Server 与 Programmer CLI 不加入系统 `PATH`，通过明确 bundle 路径在项目构建命令中使用。固件已使用 ARM GCC 14.3.1 和 Ninja 1.13.2 完成实际构建。
 
 当前使用 USART2/ST-LINK VCP 验证 Modbus RTU 协议。RS485 模块尚未采购，其电气层迁移由 TASK-002 管理，不阻塞最小工程和传感器采集开发。
 
@@ -73,3 +77,5 @@
 3. 通信后端技术验证完成并记录结论。
 4. 仓库目录、日志接口骨架和自动化测试入口建立。
 5. 构建方法和未验证项在 README 中同步。
+
+以上退出条件已于 2026-09-01 满足。硬件功能验证不属于 Phase 0 构建结论。

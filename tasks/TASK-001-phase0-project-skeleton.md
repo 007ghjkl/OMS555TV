@@ -47,4 +47,13 @@
 
 ## 当前状态
 
-待开始。正式实现以 `specs/phase0_project_skeleton.md` 为准。
+已完成（2026-09-01）。
+
+验证记录：
+
+- Host 使用 Qt 6.8.3、MSVC 19.51、CMake 和 Ninja 配置及构建成功；
+- CTest 发现并通过 3 个测试：日志模型、Qt SerialBus 原始 PDU 技术验证、应用 offscreen 启动烟雾测试；
+- STM32CubeMX 按 NUCLEO-F411RE、HSI/PLL 100 MHz、ADC1、I2C1/2/3 和 USART2 基线生成工程；
+- 固件使用 ARM GCC 14.3.1 构建成功，Flash 使用 10,376 B，RAM 使用 1,976 B；
+- STM32CubeProgrammer 2.23.0 已只读枚举 NUCLEO-F411RE 和 ST-LINK V2J38M27；
+- 未执行烧录、固件运行、传感器接线或通信功能测试，相关结论仍标记为未在真实硬件环境验证。

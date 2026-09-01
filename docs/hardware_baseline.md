@@ -34,8 +34,13 @@
 | STM32CubeF4 | v1.28.3，`C:\Users\rainbow\STM32Cube\Repository\STM32Cube_FW_F4_V1.28.3` |
 | VS Code STM32 扩展 | `stmicroelectronics.stm32-vscode-extension-3.10.0` 及配套 1.4.0 组件 |
 | 工程模型 | STM32CubeMX + HAL，裸机事件循环，第一阶段不使用 FreeRTOS |
+| ARM GCC | bundle `gnu-tools-for-stm32\14.3.1+st.2`，14.3.1，已完成固件构建 |
+| ARM GDB | bundle `gnu-gdb-for-stm32\14.3.1+st.2`，15.2.90 |
+| CMake / Ninja | bundle CMake 4.3.1、Ninja 1.13.2，已完成固件构建 |
+| Programmer | bundle STM32CubeProgrammer 2.23.0，已枚举开发板 |
+| GDB Server | bundle ST-LINK GDB Server 7.14.0 |
 
-`arm-none-eabi-gcc`、ST-LINK GDB Server 和 STM32CubeProgrammer CLI 当前不在系统 `PATH`。这不阻塞 CubeMX 工程生成，但 TASK-001 在声称“固件可构建”前必须通过 VS Code Bundle Manager 或明确安装路径确认实际编译/调试工具链。
+以上 bundle 位于 `C:\Users\rainbow\AppData\Local\stm32cube\bundles`，不修改系统 `PATH`；构建命令只在当前 PowerShell 进程内追加所需目录。2026-09-01 已完成交叉编译和链接，未执行烧录或调试。
 
 ## 4. 时钟与基础工程配置
 
@@ -108,6 +113,7 @@ PLLQ 对应的 48 MHz 域在当前阶段不使用，由 CubeMX 按未启用 USB/
 | 参数 | 值 |
 |---|---|
 | 当前物理通道 | ST-LINK USB Virtual COM Port + USART2 TTL |
+| 当前 Windows 端口 | COM5（2026-09-01 枚举结果，重新插拔后可能变化） |
 | 上层帧格式 | Modbus RTU |
 | Slave ID | 1 |
 | Baud rate | 115200 |
@@ -150,10 +156,10 @@ PLLQ 对应的 48 MHz 域在当前阶段不使用，由 CubeMX 按未启用 USB/
 | `hardware_info/光敏传感器/光敏电阻传感器模块使用说明书4线制.pdf` | 3.3～5 V 供电、AO/DO 定义和端子顺序 |
 | `hardware_info/光敏传感器/光敏电阻传感器模块电路图.pdf` | AO 分压与 LM393 DO 电路 |
 
-## 11. 尚未进行的验证
+## 11. 实物观察与尚未进行的验证
 
 - 未记录实物 MB1136 `C-xx` 修订号。
-- 未核对 ST-LINK 当前固件版本和 Windows COM 端口号。
+- 已只读枚举 ST-LINK：V2J38M27、NUCLEO-F411RE、COM5；未烧录或运行固件。
 - 未进行三路 I2C 接线、上拉阻值实测或地址应答测试。
 - 未确认 DHTC12 温度原始值的有符号解释。
 - 未测量 ADC 零点、满量程或光照-电压关系。
