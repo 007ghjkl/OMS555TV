@@ -81,4 +81,10 @@
 
 ## 当前状态
 
-待编写并评审 Technical Spec；尚未开始实现。
+已完成（2026-09-01）。
+
+- Technical Spec 已输出并评审，见 `specs/host_device_model_register_codec.md`。
+- Host `device` 模块已实现强类型设备模型、PDU 地址、五个连续读块、寄存器解码、阈值编码和结构化错误。
+- 已新增不依赖串口或硬件的 Qt Test，并在全新 `build-host-task004` 目录完成配置和构建。
+- CTest 共 4 个测试目标，4 个全部通过；现有测试保持通过。
+- 已完成实现对照评审，未发现必须修复项；UI、通信后端和真实硬件验证仍按本任务非范围处理。
