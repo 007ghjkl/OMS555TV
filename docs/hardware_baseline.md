@@ -19,6 +19,7 @@
 | 开发板 | NUCLEO-F411RE，参考板 MB1136 |
 | MCU | STM32F411RET6，LQFP64，512 KiB Flash，128 KiB SRAM |
 | 调试器 | 板载 ST-LINK/V2-1，SWD 调试与虚拟串口 |
+| 实物板标识 | 贴纸 `MB1136-F411RE-C04`，编号 `A232203276`（2026-09-03 记录） |
 | 温湿度传感器 | DHTC12 ×3，固定 7 位 I2C 地址 `0x44` |
 | 模拟传感器 | 4 线制光敏电阻模块，使用 AO，DO 暂不连接 |
 | 供电 | NUCLEO 由 ST-LINK USB 供电；所有外接模块使用板载 3.3 V 与公共 GND |
@@ -67,12 +68,12 @@ PLLQ 对应的 48 MHz 域在当前阶段不使用，由 CubeMX 按未启用 USB/
 |---|---|---|---|---|
 | USART2_TX | PA2 | ST-LINK VCP，默认 SB13/SB14 ON | USART2 Asynchronous | 115200 8N1 |
 | USART2_RX | PA3 | ST-LINK VCP，默认 SB13/SB14 ON | USART2 Asynchronous | 无流控 |
-| A 相 DHTC12 SCK | PB8 | Arduino D15 / CN10-3 | I2C1_SCL AF4 | 100 kHz |
-| A 相 DHTC12 SDA | PB9 | Arduino D14 / CN10-5 | I2C1_SDA AF4 | 100 kHz |
-| B 相 DHTC12 SCK | PB10 | Arduino D6 / CN10-25 | I2C2_SCL AF4 | 100 kHz |
-| B 相 DHTC12 SDA | PB3 | Arduino D3 / CN10-31 | I2C2_SDA AF9 | 100 kHz |
-| C 相 DHTC12 SCK | PA8 | Arduino D7 / CN10-23 | I2C3_SCL AF4 | 100 kHz |
-| C 相 DHTC12 SDA | PC9 | ST morpho CN10-1 | I2C3_SDA AF4 | 100 kHz |
+| A 相 DHTC12 SCK | PB8 | Arduino D15（CN5-10）或 ST morpho CN10-3 | I2C1_SCL AF4 | 50 kHz |
+| A 相 DHTC12 SDA | PB9 | Arduino D14（CN5-9）或 ST morpho CN10-5 | I2C1_SDA AF4 | 50 kHz |
+| B 相 DHTC12 SCK | PB10 | Arduino D6（CN9-7）或 ST morpho CN10-25 | I2C2_SCL AF4 | 50 kHz |
+| B 相 DHTC12 SDA | PB3 | Arduino D3（CN9-4）或 ST morpho CN10-31 | I2C2_SDA AF9 | 50 kHz |
+| C 相 DHTC12 SCK | PA8 | Arduino D7（CN9-8）或 ST morpho CN10-23 | I2C3_SCL AF4 | 50 kHz |
+| C 相 DHTC12 SDA | PC9 | ST morpho CN10-1 | I2C3_SDA AF4 | 50 kHz |
 | 光敏 AO | PA0 | Arduino A0 / CN8-1 | ADC1_IN0 | 12 bit |
 
 三只 DHTC12 地址均固定为 `0x44`，因此不能并联在同一 I2C 总线上。上述分配使每只传感器独占一个硬件 I2C 控制器。
@@ -88,7 +89,7 @@ PLLQ 对应的 48 MHz 域在当前阶段不使用，由 CubeMX 按未启用 USB/
 - VDD 接 3.3 V，GND 接公共地。
 - 每只传感器的 SDA 和 SCK 分别使用 4.7 kΩ 上拉到 3.3 V。
 - 每只传感器 VDD/GND 近端放置 100 nF 去耦电容。
-- I2C 时钟为 100 kHz；7 位地址为 `0x44`。
+- I2C 时钟为 50 kHz；7 位地址为 `0x44`。DHTC12 手册将 100 kHz 列为最大 SCK 频率，并要求 SCK 高、低电平时间最小均为 5 us；50 kHz 用于给真实连线的上升沿和器件容差留出裕量。
 - 使用 `0x2C10` 同时测量温湿度；每个 16 位结果后校验 CRC-8。
 - CRC-8 多项式为 `0x31`，初值为 `0xFF`，不反转。
 - 产品手册给出的采样周期为 2 s，固件对同一只传感器的主动测量间隔不得小于 2 s。
@@ -113,7 +114,7 @@ PLLQ 对应的 48 MHz 域在当前阶段不使用，由 CubeMX 按未启用 USB/
 | 参数 | 值 |
 |---|---|
 | 当前物理通道 | ST-LINK USB Virtual COM Port + USART2 TTL |
-| 当前 Windows 端口 | COM5（2026-09-01 枚举结果，重新插拔后可能变化） |
+| 当前 Windows 端口 | COM3（2026-09-03 枚举结果，重新插拔后可能变化） |
 | 上层帧格式 | Modbus RTU |
 | Slave ID | 1 |
 | Baud rate | 115200 |
@@ -158,10 +159,13 @@ PLLQ 对应的 48 MHz 域在当前阶段不使用，由 CubeMX 按未启用 USB/
 
 ## 11. 实物观察与尚未进行的验证
 
-- 未记录实物 MB1136 `C-xx` 修订号。
-- 已只读枚举 ST-LINK：V2J38M27、NUCLEO-F411RE、COM5；未烧录或运行固件。
-- 未进行三路 I2C 接线、上拉阻值实测或地址应答测试。
-- 未确认 DHTC12 温度原始值的有符号解释。
-- 未测量 ADC 零点、满量程或光照-电压关系。
-- 未在真实硬件环境构建、烧录或运行固件。
+- 实物贴纸标识已记录为 `MB1136-F411RE-C04`，对应 C04 修订；贴纸编号为 `A232203276`。
+- 2026-09-02 已枚举并使用 ST-LINK：V2J38M27、NUCLEO-F411RE、COM5；固件烧录、校验、软件复位和 USART2 日志均成功。
+- 2026-09-02 首次诊断记录中，三路 DHTC12 共发生 45 次 `I2C_TRIGGER` 失败，均未获得原始帧。SWD 只读 GPIO 输入寄存器显示 I2C1/2/3 的 SCL（PB8/PB10/PA8）为高电平，SDA（PB9/PB3/PC9）均持续为低电平。进一步临时关闭 I2C 并把六根线改为带内部上拉的普通输入后，三路 SDA 仍为低电平，排除了 MCU 推挽输出或错误复用主动拉低；外部引脚顺序、接线、传感器状态和供电路径仍待逐路隔离验证。
+- 摘除 B/C 传感器、仅连接 A 后，PB3 恢复为高电平，PB9 仍为低电平；把 PB8/PB9 单独改为带内部上拉的普通输入后现象不变。故障已隔离到 A 路外部连接或当前 A 传感器，不应通过反插传感器测试。
+- 更换 A 传感器后现象不变。断开 CN10-5 后，传感器侧 SDA 实测为 3.29 V，PB9 在普通输入和内部上拉模式下也恢复高电平；两侧静态均正常，连接并开始通信后才锁低。实测确认 `0x30A2`、`0x2C10` 写入成功，根因是 5 ms 高频读取使 DHTC12 持续 NACK；改为首次等待/轮询 50 ms 后，A 路 13 个连续周期均在 70 ms 取得温度、湿度双 CRC 有效帧。总线恢复、软件复位和失败后重新初始化均已验证。
+- DHTC12 温度原始值的有符号解释已确认：空调设定 26 ℃、低风速作为现场参考时，A/B/C 原始值分别约为 `0xF238`、`0xF1FE`、`0xF1EC`，按大端 `int16_t` 和 `T = 40 + St / 256` 换算为 26.2/26.0/25.9 ℃；连续 18 帧双 CRC 全部通过。
+- 光敏 ADC 在 3.3 V 配置下完成明暗方向测试：普通环境 993～999 mV（raw 1233～1240），完全遮光 2883～2898 mV（raw 3578～3597），手机手电筒近距离照射 130～132 mV（raw 162～165）。三组均连续有效，确认光越强 AO 电压越低；这些电压是未校准 ADC 结果，不表示照度。
+- B 路 SDA（PB3/CN10-31）断开实测：第 1、2 次失败时 `invalid=1/2`、状态字 `0x0021`，第 3 次失败时 `invalid=3`、状态字 `0x0025`；A/C 不受影响。运行中重连后 B 路首次捕获的有效帧为 26.3 ℃，`invalid=0`、`error=NONE`，状态字恢复为 `0x0021`。
+- 正式固件运行证据保存于 `output/logs/task003-abc-confirmed-10cycles.log`：三路各 12 个周期，共 36 帧均为 `valid=1`、`error=NONE`，状态字为 `0x0021`。光敏证据保存于 `output/logs/task003-light-covered.log` 和 `output/logs/task003-light-illuminated.log`；断线恢复证据保存于 `output/logs/task003-b-sda-disconnected-boot.log` 和 `output/logs/task003-b-sda-reconnected.log`。历史诊断日志仍保留在 `output/logs/`，均不进入 Git。
 - 未采购或验证 RS485 收发器、终端电阻、偏置和 DE/RE 时序。

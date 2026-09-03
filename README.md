@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001` Phase 0 工程骨架已完成。Qt Host 与 STM32 固件均已在本机实际构建；Host 的 3 个 CTest 测试已通过。尚未烧录固件，也未进行传感器或通信功能的真实硬件验证。
+当前状态：`TASK-001` Phase 0 工程骨架和 `TASK-003` Firmware Phase 1 基础采集与设备模型均已完成。Qt Host 与 STM32 固件均已在本机实际构建；Host 的 3 个 CTest 测试已通过；STM32 固件已烧录并完成三路 DHTC12、光敏明暗方向及传感器断线恢复验证。
 
 ## 项目目标
 
@@ -26,6 +26,8 @@
 - [Qt SerialBus 原始帧能力验证](research/qt_serialbus_raw_frame.md)
 - [Phase 0 任务](tasks/TASK-001-phase0-project-skeleton.md)
 - [Phase 0 技术规范](specs/phase0_project_skeleton.md)
+- [TASK-003 Firmware Phase 1 基础采集与设备模型](tasks/TASK-003-firmware-phase1-basic-acquisition.md)
+- [Firmware Phase 1 基础采集技术规范](specs/firmware_phase1_acquisition.md)
 
 ## 仓库结构
 
@@ -77,16 +79,15 @@ $env:Path = "$bundleRoot\gnu-tools-for-stm32\14.3.1+st.2\bin;$bundleRoot\ninja\1
 & "$bundleRoot\cmake\4.3.1+st.1\bin\cmake.exe" --build "$projectRoot\build-firmware" --parallel
 ```
 
-2026-09-01 的实际构建结果：`oms555tv_firmware.elf` 链接成功，Flash 使用 10,376 B，RAM 使用 1,976 B。该结果只证明代码可交叉编译和链接，不代表固件已烧录或硬件功能已通过。
+2026-09-03 的 TASK-003 最终结果：`oms555tv_firmware.elf` 链接成功，Flash 使用 27,260 B，RAM 使用 2,624 B；22 个本机测试通过，固件已通过 ST-LINK 烧录、校验并运行。GATE-01～04 均已关闭，三路 DHTC12 正式固件各完成 12 个连续有效周期，温度为 25.9～26.2 ℃，36 帧双 CRC 全部通过；光敏 AO 已确认由强光 130～132 mV 上升至完全遮光 2883～2898 mV；B 路断线三周期置位与运行中重连恢复均已验证。实物板标识为 `MB1136-F411RE-C04`、贴纸编号 `A232203276`，TASK-003 已完成。
 
 ## 当前开发门禁
 
-硬件与引脚基线已经确认，可以开始 TASK-001 的最小 STM32CubeMX 工程。以下事项仍必须在对应阶段完成：
+硬件与引脚基线以及 TASK-003 功能验证已经完成。以下事项仍必须在对应阶段完成：
 
-1. 首次传感器接线前记录 MB1136 板修订号；
-2. 用实物确认 DHTC12 温度原始值的有符号解释；
-3. 采购 TTL-RS485 模块后完成 `TASK-002`，再验收 RS485 电气层；
-4. 所有未执行的硬件测试继续标记“未在真实硬件环境验证”。
+1. 采购 TTL-RS485 模块后完成 `TASK-002`，再验收 RS485 电气层；
+2. Phase 2 启用 Modbus RTU 二进制帧前，关闭或迁移 USART2 ASCII 调试日志；
+3. 所有未执行的硬件测试继续标记“未在真实硬件环境验证”。
 
 详细未决项见架构与 Phase 0 任务文档。
 
