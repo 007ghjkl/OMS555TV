@@ -122,6 +122,5 @@ DISCONNECTED → CONNECTED_IDLE → MONITORING
 
 ## 12. 待确认的架构决策
 
-1. DHTC12 温度原始值的有符号解释与实物校准结果。
-2. RS485 模块、USART/DE/RE、终端和偏置方案。
-3. Phase 0 是否只支持 Windows，Linux 仅保留可移植边界。
+1. RS485 模块、USART/DE/RE、终端和偏置方案。
+2. 是否只支持 Windows，Linux 仅保留可移植边界。
