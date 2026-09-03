@@ -104,4 +104,17 @@ PRD 和架构要求 UI 非阻塞、同一串口只有一个请求执行器、监
 
 ## 当前状态
 
-待实施。任务文档已于 2026-09-03 创建，尚未派发；必须等待 TASK-007 完成后再开始。
+**已完成（2026-09-03）。**
+
+- 已实现应用线程 `QSerialPortModbusClient` Facade、单 `CommunicationWorker` 线程、线程内 `QSerialPortTransport`、有界 FIFO、单在途、异步打开/关闭、所有权交接、0x03/0x06、取消、超时、静默期和重新同步；
+- 已实现完整 TX/RX、CRC、UTC 时间、queue delay、RTT 和结构化错误证据；完整 ADU 被 `write()` 接受后才启动响应计时，部分写立即失败；
+- 已增加可控传输替身的生产后端测试，覆盖线程归属、分片、FIFO、QueueFull、queued/in-flight 取消、超时与恢复、部分写、串口错误、CRC、尾随字节、交接、关闭和快速生命周期；
+- Qt 6.8.3/MSVC 19.51 全新配置、构建成功，Host CTest 9/9 通过；
+- 运行时枚举当前 ST-LINK VCP 为 COM3，SN `0671FF555185754867222928`，以 115200 8N1、Slave ID 1 完成真实联调；
+- 五个合法读块及 TASK-004 完整快照解码通过，Firmware 版本 0.2、状态和原始寄存器一致；
+- 四路阈值完成 Host 校验、0x06 回显、0x03 回读和基线恢复，最终值为 `[600, 600, 600, 400]`；
+- 0x02/0x03 被识别为结构化 RemoteException；500 次连续 0x03 为 500/500 成功，RTT 最小/平均/最大 3.348/5.674/6.941 ms，Firmware 通信错误计数 0→0；
+- 使用错误 Slave ID 制造无响应后得到明确 ResponseTimeout，显式关闭并按 Slave ID 1 重开后恢复版本读取；
+- 最终 Review 无必须修复项。完整证据见 `docs/test_results/task008_host_vcp_modbus_integration.md`。
+
+范围限制：以上结论是 **VCP/UART 协议验证**。实时监控 UI、TestEngine、报告和真实 RS485 不属于本任务；`TASK-002` 继续延期，RS485 电气层仍未实施、未验证。

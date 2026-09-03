@@ -13,6 +13,15 @@ include(CTest)
 
 add_subdirectory(src)
 
+add_executable(task008_vcp_integration
+    tools/task008_vcp_integration.cpp
+)
+target_link_libraries(task008_vcp_integration PRIVATE
+    oms555tv_core
+    Qt6::Core
+    Qt6::SerialPort
+)
+
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

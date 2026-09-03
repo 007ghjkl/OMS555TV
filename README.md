@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`、`TASK-003`～`TASK-007` 均已完成。Firmware Phase 2 Modbus RTU Slave 已通过 VCP/UART 实机验证；Host 已实现无硬件 Modbus RTU 核心、完整异步通信契约和确定性 Fake，但真实 QSerialPort 工作线程尚未实现。下一步计划为 `TASK-008` QSerialPort 后端与 VCP 联调；`TASK-002` 真实 RS485 硬件迁移继续延期。
+当前状态：`TASK-001`、`TASK-003`～`TASK-008` 均已完成。Firmware Phase 2 Slave 与 Host Phase 3 QSerialPort Master 已通过 ST-LINK VCP/UART 实机闭环；Host 可稳定读取 STM32、写入并恢复阈值，并保存完整 RTU 证据。下一阶段可进入 Phase 4 监控/TestEngine 任务；`TASK-002` 真实 RS485 硬件迁移继续延期。
 
 ## 项目目标
 
@@ -38,6 +38,7 @@
 - [Host Phase 3 Modbus 异步通信技术规范](specs/host_phase3_modbus_communication.md)
 - [TASK-007 Host Modbus RTU 核心、通信契约与 Fake](tasks/TASK-007-host-phase3-modbus-core-and-fake.md)
 - [TASK-008 Host QSerialPort 异步后端与 VCP 联调](tasks/TASK-008-host-phase3-qserialport-backend-vcp-integration.md)
+- [TASK-008 Host VCP/UART 联调记录](docs/test_results/task008_host_vcp_modbus_integration.md)
 
 ## 仓库结构
 
@@ -95,13 +96,24 @@ $env:Path = "$bundleRoot\gnu-tools-for-stm32\14.3.1+st.2\bin;$bundleRoot\ninja\1
 
 2026-09-03 的 TASK-007 最终结果：Host 全新配置、构建和 8/8 CTest 通过。新增测试覆盖通信模型、CRC16、0x03/0x06 完整 RTU ADU、正常与异常响应、错误判定优先级、任意分片、确定性 Fake、FIFO、QueueFull、单在途、取消、关闭、所有权交接和恰好一次终态。该结果仅为无串口、无硬件验证，不代表 QSerialPort、VCP/UART 或 RS485 已通过。
 
+2026-09-03 的 TASK-008 最终结果：Host 全新配置、构建和 9/9 CTest 通过；生产 `QSerialPortModbusClient` 使用单通信线程、有界 FIFO、异步完成、受控取消/关闭/交接和完整 TX/RX/CRC/RTT 证据。运行时枚举 ST-LINK VCP 为 COM3，全部合法读块、TASK-004 快照解码、四路阈值写入/回读/恢复、远端 0x02/0x03 和错误 Slave ID 超时后的关闭/重开恢复均通过。500 次连续 0x03 为 500/500 成功，RTT 最小/平均/最大 3.348/5.674/6.941 ms，Firmware 通信错误计数 0→0。该结论仅限 VCP/UART；RS485 电气层仍未验证。
+
+实板联调工具会运行时枚举 ST-LINK，不写死 COM 号：
+
+```powershell
+$env:Path = "D:\Dev\Qt\6.8.3\msvc2022_64\bin;$env:Path"
+& .\build-host\task008_vcp_integration.exe --stress-count 500
+```
+
+如存在多个候选串口，可根据工具打印的枚举结果显式增加 `--port COMx`。工具会在阈值测试前保存基线，并在结束时逐路恢复和整块回读；退出码为 0 且输出 `RESULT=PASS` 才表示全部联调步骤通过。
+
 ## 当前开发门禁
 
 硬件与引脚基线、Firmware Phase 1/2 功能验证以及 Host Modbus 后端决策已经完成。以下事项仍必须在对应阶段完成：
 
 1. 采购 TTL-RS485 模块后完成 `TASK-002`，再验收 RS485 电气层；
-2. `TASK-007` 的无硬件通信核心与 Fake 已完成；由 `TASK-008` 实现 QSerialPort 后端并执行 Host VCP 联调；
-3. Host Phase 4 监控、TestEngine 和报告必须等待 Phase 3 通信验收，不得提前把技术探针视为生产通信能力；
+2. `TASK-008` 已完成 QSerialPort 后端和 Host VCP/UART 联调；后续监控与 TestEngine 必须复用 `IModbusClient`，不得直接操作 QSerialPort；
+3. Host Phase 4 监控、TestEngine 和报告尚未实现，不得把 Phase 3 通信工具视为最终业务 UI；
 4. 所有未执行的 RS485 和系统级硬件测试继续标记“未在真实 RS485 环境验证”。
 
 详细未决项见架构与 Phase 0 任务文档。

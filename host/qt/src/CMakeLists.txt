@@ -3,13 +3,20 @@ add_library(oms555tv_core STATIC
     logging/LogEntry.h
     communication/CommunicationTypes.cpp
     communication/CommunicationTypes.h
+    communication/CommunicationWorker.cpp
+    communication/CommunicationWorker.h
     communication/FakeModbusClient.cpp
     communication/FakeModbusClient.h
     communication/IModbusClient.h
     communication/ManualScheduler.cpp
     communication/ManualScheduler.h
+    communication/QSerialPortModbusClient.cpp
+    communication/QSerialPortModbusClient.h
+    communication/QSerialPortTransport.cpp
+    communication/QSerialPortTransport.h
     communication/RtuCodec.cpp
     communication/RtuCodec.h
+    communication/SerialTransport.h
     device/DeviceTypes.h
     device/RegisterCodec.cpp
     device/RegisterCodec.h
@@ -17,7 +24,7 @@ add_library(oms555tv_core STATIC
 )
 
 target_include_directories(oms555tv_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(oms555tv_core PUBLIC Qt6::Core)
+target_link_libraries(oms555tv_core PUBLIC Qt6::Core Qt6::SerialPort)
 
 add_executable(oms555tv_host WIN32
     app/main.cpp
