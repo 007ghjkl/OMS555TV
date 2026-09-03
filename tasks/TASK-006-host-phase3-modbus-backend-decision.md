@@ -98,4 +98,11 @@ Phase 0 技术验证已确认 Qt SerialBus 的公开 Raw API 只暴露 PDU，不
 
 ## 当前状态
 
-待开始。该任务是生产通信实现前的架构与规范门禁，不授权直接实现完整后端；`TASK-002` 保持延期。
+已完成（2026-09-03）：
+
+- 用户已确认采用“QSerialPort 受控 RTU 后端 + 单通信工作线程 + 单串行请求队列”，未来 Raw/错误注入复用同一后端。
+- ADR：`docs/decisions/2026-09-03-Host-Modbus后端.md`。
+- Technical Spec：`specs/host_phase3_modbus_communication.md`。
+- 已在 Qt 6.8.3/MSVC 19.51 下完成全新 Host 配置和构建，CTest 5/5 通过；未访问真实串口或硬件。
+- `docs/architecture.md` 已同步后端决策；本任务未实现生产通信后端，后续必须由独立实现任务执行。
+- `TASK-002` 保持延期，RS485 电气层仍未验证。

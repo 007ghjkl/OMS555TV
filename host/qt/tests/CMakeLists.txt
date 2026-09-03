@@ -10,6 +10,12 @@ add_executable(tst_qtserialbus_probe
 target_link_libraries(tst_qtserialbus_probe PRIVATE Qt6::Core Qt6::Test Qt6::SerialBus)
 add_test(NAME host.technical.qtserialbus_raw_pdu COMMAND tst_qtserialbus_probe)
 
+add_executable(tst_qserialport_rtu_probe
+    communication/tst_qserialport_rtu_probe.cpp
+)
+target_link_libraries(tst_qserialport_rtu_probe PRIVATE Qt6::Core Qt6::Test Qt6::SerialPort)
+add_test(NAME host.technical.qserialport_rtu_public_api COMMAND tst_qserialport_rtu_probe)
+
 add_executable(tst_registercodec
     device/tst_registercodec.cpp
 )
@@ -20,6 +26,7 @@ add_test(NAME host.application.smoke COMMAND oms555tv_host --smoke-test)
 set_tests_properties(
     host.logging.logentry
     host.technical.qtserialbus_raw_pdu
+    host.technical.qserialport_rtu_public_api
     host.device.registercodec
     host.application.smoke
     PROPERTIES
