@@ -5,12 +5,29 @@
 #include <string.h>
 
 #include "main.h"
+#include "modbus_rtu_rx.h"
+
+#ifndef PHASE1_DEBUG_LOG
+#define PHASE1_DEBUG_LOG 0
+#endif
+
+#define MODBUS_TX_TIMEOUT_MS 10u
 
 extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c1;
 extern I2C_HandleTypeDef hi2c2;
 extern I2C_HandleTypeDef hi2c3;
 extern UART_HandleTypeDef huart2;
+
+typedef struct {
+    ModbusRtuReceiver receiver;
+    uint8_t rx_chunk[MODBUS_RTU_MAX_ADU];
+    volatile uint16_t pending_uart_errors;
+    volatile bool rearm_required;
+    volatile bool started;
+} Stm32ModbusState;
+
+static Stm32ModbusState g_modbus;
 
 typedef struct {
     I2C_HandleTypeDef *handle;
@@ -235,6 +252,7 @@ static PlatformStatus stm32_adc_read(void *context,
     return PLATFORM_OK;
 }
 
+#if PHASE1_DEBUG_LOG
 static PlatformStatus stm32_debug_write(void *context,
                                         const uint8_t *data,
                                         size_t length)
@@ -250,6 +268,7 @@ static PlatformStatus stm32_debug_write(void *context,
         ? PLATFORM_OK
         : PLATFORM_IO_ERROR;
 }
+#endif
 
 static uint32_t stm32_millis(void *context)
 {
@@ -269,7 +288,149 @@ bool platform_stm32_create(Phase1Platform *platform)
     platform->dht_read = stm32_dht_read;
     platform->adc_start = stm32_adc_start;
     platform->adc_read = stm32_adc_read;
+#if PHASE1_DEBUG_LOG
     platform->debug_write = stm32_debug_write;
+#endif
     platform->millis = stm32_millis;
     return true;
+}
+
+static bool arm_modbus_receive(Stm32ModbusState *state)
+{
+    return HAL_UARTEx_ReceiveToIdle_IT(&huart2,
+                                      state->rx_chunk,
+                                      sizeof(state->rx_chunk)) == HAL_OK;
+}
+
+static bool stm32_modbus_start(void *context)
+{
+    Stm32ModbusState *state = context;
+
+    if (state == NULL) {
+        return false;
+    }
+    modbus_rtu_rx_init(&state->receiver);
+    state->pending_uart_errors = 0u;
+    state->rearm_required = false;
+    state->started = true;
+    if (!arm_modbus_receive(state)) {
+        state->started = false;
+        return false;
+    }
+    return true;
+}
+
+static void lock_usart2_irq(void)
+{
+    HAL_NVIC_DisableIRQ(USART2_IRQn);
+    __DSB();
+    __ISB();
+}
+
+static void unlock_usart2_irq(void)
+{
+    HAL_NVIC_EnableIRQ(USART2_IRQn);
+}
+
+static ModbusPortEvent stm32_modbus_poll(void *context,
+                                        uint32_t now_ms,
+                                        uint8_t *frame,
+                                        size_t capacity,
+                                        size_t *frame_length)
+{
+    Stm32ModbusState *state = context;
+    ModbusPortEvent event = {MODBUS_PORT_EVENT_NONE, 0u};
+    ModbusRxResult rx_result;
+
+    if (state == NULL || frame == NULL || frame_length == NULL) {
+        return event;
+    }
+    *frame_length = 0u;
+
+    lock_usart2_irq();
+    if (state->rearm_required) {
+        (void)HAL_UART_AbortReceive(&huart2);
+        state->rearm_required = !arm_modbus_receive(state);
+    }
+    if (state->pending_uart_errors != 0u) {
+        event.type = MODBUS_PORT_EVENT_UART_ERROR;
+        event.uart_error_count = state->pending_uart_errors;
+        state->pending_uart_errors = 0u;
+        unlock_usart2_irq();
+        return event;
+    }
+
+    rx_result = modbus_rtu_rx_poll(&state->receiver,
+                                   now_ms,
+                                   frame,
+                                   capacity,
+                                   frame_length);
+    unlock_usart2_irq();
+    if (rx_result == MODBUS_RX_FRAME_READY) {
+        event.type = MODBUS_PORT_EVENT_FRAME;
+    } else if (rx_result == MODBUS_RX_OVERFLOW) {
+        event.type = MODBUS_PORT_EVENT_OVERFLOW;
+    }
+    return event;
+}
+
+static PlatformStatus stm32_modbus_transmit(void *context,
+                                            const uint8_t *data,
+                                            size_t length)
+{
+    (void)context;
+    if (data == NULL || length == 0u || length > UINT16_MAX) {
+        return PLATFORM_INVALID_ARGUMENT;
+    }
+    return HAL_UART_Transmit(&huart2,
+                             (uint8_t *)data,
+                             (uint16_t)length,
+                             MODBUS_TX_TIMEOUT_MS) == HAL_OK
+        ? PLATFORM_OK
+        : PLATFORM_IO_ERROR;
+}
+
+bool platform_stm32_create_modbus(ModbusPlatform *platform)
+{
+    if (platform == NULL) {
+        return false;
+    }
+    memset(&g_modbus, 0, sizeof(g_modbus));
+    memset(platform, 0, sizeof(*platform));
+    platform->context = &g_modbus;
+    platform->start = stm32_modbus_start;
+    platform->poll = stm32_modbus_poll;
+    platform->transmit = stm32_modbus_transmit;
+    return true;
+}
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
+{
+    uint32_t now_ms;
+    uint16_t index;
+
+    if (huart != &huart2 || !g_modbus.started) {
+        return;
+    }
+    now_ms = HAL_GetTick();
+    for (index = 0u; index < size; ++index) {
+        modbus_rtu_rx_push_byte(&g_modbus.receiver,
+                                g_modbus.rx_chunk[index],
+                                now_ms);
+    }
+    if (!arm_modbus_receive(&g_modbus)) {
+        g_modbus.rearm_required = true;
+    }
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+    if (huart != &huart2 || !g_modbus.started) {
+        return;
+    }
+    if (g_modbus.pending_uart_errors < UINT16_MAX) {
+        ++g_modbus.pending_uart_errors;
+    }
+    modbus_rtu_rx_discard(&g_modbus.receiver);
+    g_modbus.rearm_required = true;
 }

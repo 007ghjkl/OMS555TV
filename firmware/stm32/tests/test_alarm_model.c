@@ -30,7 +30,7 @@ static void model_initializes_deterministically(void)
     TEST_ASSERT_EQ(STATUS_AMBIENT_SIMULATED, model.status_bits);
     TEST_ASSERT_EQ(0, model.alarm_bits);
     TEST_ASSERT_EQ(0, model.firmware_version_major);
-    TEST_ASSERT_EQ(1, model.firmware_version_minor);
+    TEST_ASSERT_EQ(2, model.firmware_version_minor);
 }
 
 static void temperature_failure_sets_fault_on_third_cycle_and_recovers(void)

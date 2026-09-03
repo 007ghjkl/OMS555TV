@@ -15,6 +15,10 @@ add_library(phase1_core STATIC
     "${APP_ROOT}/device_model/device_model.c"
     "${APP_ROOT}/acquisition/dhtc12_codec.c"
     "${APP_ROOT}/acquisition/acquisition.c"
+    "${APP_ROOT}/modbus/modbus_crc.c"
+    "${APP_ROOT}/modbus/modbus_rtu_rx.c"
+    "${APP_ROOT}/modbus/register_map.c"
+    "${APP_ROOT}/modbus/modbus_slave.c"
 )
 
 target_include_directories(phase1_core PUBLIC
@@ -22,6 +26,7 @@ target_include_directories(phase1_core PUBLIC
     "${APP_ROOT}/device_model"
     "${APP_ROOT}/acquisition"
     "${APP_ROOT}/platform"
+    "${APP_ROOT}/modbus"
 )
 
 if(MSVC)
@@ -35,6 +40,9 @@ add_executable(phase1_unit_tests
     test_alarm_model.c
     test_codec.c
     test_acquisition.c
+    test_modbus_crc_rx.c
+    test_register_map.c
+    test_modbus_slave.c
 )
 
 target_link_libraries(phase1_unit_tests PRIVATE phase1_core)

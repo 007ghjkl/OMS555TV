@@ -5,10 +5,16 @@
 #include <stdio.h>
 
 #include "acquisition.h"
+#include "modbus_rtu_rx.h"
+#include "modbus_slave.h"
 #include "platform_stm32.h"
 
 #ifndef DHTC12_TEMPERATURE_CONVERSION_CONFIRMED
 #define DHTC12_TEMPERATURE_CONVERSION_CONFIRMED 0
+#endif
+
+#ifndef PHASE1_DEBUG_LOG
+#define PHASE1_DEBUG_LOG 0
 #endif
 
 #define LOG_BUFFER_SIZE 256u
@@ -17,6 +23,9 @@ typedef struct {
     DeviceModel model;
     AcquisitionContext acquisition;
     Phase1Platform platform;
+    ModbusPlatform modbus;
+    uint8_t modbus_request[MODBUS_RTU_MAX_ADU];
+    uint8_t modbus_response[MODBUS_RTU_MAX_ADU];
     uint32_t last_uptime_tick_ms;
     uint16_t uptime_remainder_ms;
     bool initialized;
@@ -24,6 +33,7 @@ typedef struct {
 
 static AppContext g_app;
 
+#if PHASE1_DEBUG_LOG
 static void debug_line(const char *line, int length)
 {
     if (line == NULL || length <= 0 || g_app.platform.debug_write == NULL) {
@@ -167,6 +177,7 @@ static void log_boot(uint32_t now_ms)
         (unsigned int)g_app.model.status_bits);
     debug_line(line, length);
 }
+#endif
 
 static void update_uptime(uint32_t now_ms)
 {
@@ -181,11 +192,49 @@ static void update_uptime(uint32_t now_ms)
     g_app.model.uptime_seconds += seconds;
 }
 
+static void service_modbus(uint32_t now_ms)
+{
+    ModbusPortEvent port_event;
+    size_t request_length = 0u;
+
+    port_event = g_app.modbus.poll(g_app.modbus.context,
+                                   now_ms,
+                                   g_app.modbus_request,
+                                   sizeof(g_app.modbus_request),
+                                   &request_length);
+    if (port_event.type == MODBUS_PORT_EVENT_UART_ERROR) {
+        device_model_add_communication_errors(
+            &g_app.model, port_event.uart_error_count);
+        return;
+    }
+    if (port_event.type == MODBUS_PORT_EVENT_OVERFLOW) {
+        device_model_add_communication_errors(&g_app.model, 1u);
+        return;
+    }
+    if (port_event.type == MODBUS_PORT_EVENT_FRAME) {
+        const ModbusProcessOutcome result = modbus_slave_process_adu(
+            &g_app.model,
+            g_app.modbus_request,
+            request_length,
+            g_app.modbus_response,
+            sizeof(g_app.modbus_response));
+
+        if (result.result == MODBUS_PROCESS_COMMUNICATION_ERROR) {
+            device_model_add_communication_errors(&g_app.model, 1u);
+        } else if (result.result == MODBUS_PROCESS_RESPONSE_READY) {
+            (void)g_app.modbus.transmit(g_app.modbus.context,
+                                        g_app.modbus_response,
+                                        result.response_length);
+        }
+    }
+}
+
 bool app_init(void)
 {
     uint32_t now_ms;
 
     if (!platform_stm32_create(&g_app.platform) ||
+        !platform_stm32_create_modbus(&g_app.modbus) ||
         g_app.platform.millis == NULL) {
         return false;
     }
@@ -195,10 +244,19 @@ bool app_init(void)
     if (!acquisition_init(
             &g_app.acquisition,
             &g_app.platform,
+#if PHASE1_DEBUG_LOG
             acquisition_observer,
+#else
+            NULL,
+#endif
             NULL,
             DHTC12_TEMPERATURE_CONVERSION_CONFIRMED != 0,
             now_ms)) {
+        return false;
+    }
+    if (g_app.modbus.start == NULL || g_app.modbus.poll == NULL ||
+        g_app.modbus.transmit == NULL ||
+        !g_app.modbus.start(g_app.modbus.context)) {
         return false;
     }
 
@@ -206,7 +264,9 @@ bool app_init(void)
     g_app.uptime_remainder_ms = 0u;
     g_app.initialized = true;
     device_model_set_running(&g_app.model, true);
+#if PHASE1_DEBUG_LOG
     log_boot(now_ms);
+#endif
     return true;
 }
 
@@ -220,6 +280,7 @@ void app_service(void)
 
     now_ms = g_app.platform.millis(g_app.platform.context);
     update_uptime(now_ms);
+    service_modbus(now_ms);
     acquisition_service(&g_app.acquisition, &g_app.model, now_ms);
 }
 

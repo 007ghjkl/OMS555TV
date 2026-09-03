@@ -74,7 +74,7 @@ void device_model_init(DeviceModel *model)
     model->temperatures[TEMP_CHANNEL_AMBIENT].last_error = ACQ_ERROR_NONE;
     model->status_bits = STATUS_AMBIENT_SIMULATED;
     model->firmware_version_major = 0u;
-    model->firmware_version_minor = 1u;
+    model->firmware_version_minor = 2u;
     update_alarm(model, TEMP_CHANNEL_AMBIENT);
 }
 
@@ -191,6 +191,21 @@ void device_model_fail_light(DeviceModel *model, AcquisitionError error)
     model->light.last_error = error;
     model->status_bits |= STATUS_LIGHT_ADC_FAULT;
     model->status_bits |= STATUS_AMBIENT_SIMULATED;
+}
+
+void device_model_add_communication_errors(DeviceModel *model,
+                                           uint16_t count)
+{
+    const uint32_t total = model != NULL
+        ? (uint32_t)model->communication_error_count + count
+        : 0u;
+
+    if (model == NULL) {
+        return;
+    }
+    model->communication_error_count = total > UINT16_MAX
+        ? UINT16_MAX
+        : (uint16_t)total;
 }
 
 const char *acquisition_error_name(AcquisitionError error)

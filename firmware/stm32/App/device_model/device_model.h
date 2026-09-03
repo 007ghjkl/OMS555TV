@@ -101,6 +101,9 @@ bool device_model_publish_light(DeviceModel *model,
 
 void device_model_fail_light(DeviceModel *model, AcquisitionError error);
 
+void device_model_add_communication_errors(DeviceModel *model,
+                                           uint16_t count);
+
 const char *acquisition_error_name(AcquisitionError error);
 const char *temperature_channel_name(TemperatureChannel channel);
 

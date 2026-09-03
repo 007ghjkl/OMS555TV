@@ -35,6 +35,9 @@ int main(void)
     register_alarm_model_tests();
     register_codec_tests();
     register_acquisition_tests();
+    register_modbus_crc_rx_tests();
+    register_register_map_tests();
+    register_modbus_slave_tests();
 
     printf("SUMMARY cases=%d failures=%d\n", g_test_cases, g_test_failures);
     return g_test_failures == 0 ? 0 : 1;

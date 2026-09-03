@@ -44,5 +44,8 @@ void test_fail(const char *file,
 void register_alarm_model_tests(void);
 void register_codec_tests(void);
 void register_acquisition_tests(void);
+void register_modbus_crc_rx_tests(void);
+void register_register_map_tests(void);
+void register_modbus_slave_tests(void);
 
 #endif

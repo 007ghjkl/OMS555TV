@@ -48,6 +48,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/device_model/device_model.c
     App/acquisition/dhtc12_codec.c
     App/acquisition/acquisition.c
+    App/modbus/modbus_crc.c
+    App/modbus/modbus_rtu_rx.c
+    App/modbus/register_map.c
+    App/modbus/modbus_slave.c
     App/platform/platform_stm32.c
     App/app/app.c
 )
@@ -57,6 +61,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     App/alarm
     App/device_model
     App/acquisition
+    App/modbus
     App/platform
     App/app
 )
@@ -64,6 +69,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     DHTC12_TEMPERATURE_CONVERSION_CONFIRMED=1
+    PHASE1_DEBUG_LOG=0
 )
 
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
