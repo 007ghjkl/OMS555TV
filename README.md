@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001` Phase 0 工程骨架和 `TASK-003` Firmware Phase 1 基础采集与设备模型均已完成。Qt Host 与 STM32 固件均已在本机实际构建；Host 的 3 个 CTest 测试已通过；STM32 固件已烧录并完成三路 DHTC12、光敏明暗方向及传感器断线恢复验证。
+当前状态：`TASK-001` Phase 0 工程骨架、`TASK-003` Firmware Phase 1 基础采集与设备模型、`TASK-004` Host 设备模型与寄存器编解码均已完成。Qt Host 与 STM32 固件均已在本机实际构建；STM32 固件已烧录并完成三路 DHTC12、光敏明暗方向及传感器断线恢复验证。
 
 ## 项目目标
 
@@ -28,6 +28,8 @@
 - [Phase 0 技术规范](specs/phase0_project_skeleton.md)
 - [TASK-003 Firmware Phase 1 基础采集与设备模型](tasks/TASK-003-firmware-phase1-basic-acquisition.md)
 - [Firmware Phase 1 基础采集技术规范](specs/firmware_phase1_acquisition.md)
+- [Host 设备模型与寄存器编解码任务](tasks/TASK-004-host-device-model-register-codec.md)
+- [Host 设备模型与寄存器编解码技术规范](specs/host_device_model_register_codec.md)
 
 ## 仓库结构
 
