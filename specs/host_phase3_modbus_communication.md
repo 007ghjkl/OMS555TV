@@ -1,7 +1,7 @@
 # Host Phase 3 Modbus 异步通信技术规范
 
 > 状态：已评审，ADR 已确认，可作为后续实现基线
-> 版本：1.0
+> 版本：1.1
 > 日期：2026-09-03
 > 对应任务：`TASK-006 Host Phase 3 Modbus 后端决策与异步通信规范`
 > 对应 ADR：`docs/decisions/2026-09-03-Host-Modbus后端.md`
@@ -418,6 +418,7 @@ struct RtuTransactionEvidence {
     std::optional<quint16> calculatedRxCrc;
     QDateTime enqueuedUtc;
     std::optional<QDateTime> txStartedUtc;
+    std::optional<QDateTime> txAcceptedUtc;
     std::optional<QDateTime> firstRxUtc;
     QDateTime completedUtc;
     std::optional<std::chrono::nanoseconds> queueDelay;
@@ -426,6 +427,8 @@ struct RtuTransactionEvidence {
 ```
 
 还必须保存与请求类型对应的 PDU 地址、数量或写入值，建议放在不可变 `RequestDescriptor` 变体中。
+
+版本 1.1 在证据示例中补入 `txAcceptedUtc`。版本 1.0 的 6.2 节已经要求记录 `txAcceptedAt`，但 13 节结构体示例遗漏了对应字段；本次仅修正示例与既有语义的不一致，不改变超时、RTT 或线程架构。
 
 证据规则：
 

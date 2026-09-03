@@ -93,4 +93,23 @@
 
 ## 当前状态
 
-待实施。任务文档已于 2026-09-03 创建，尚未派发。
+已完成（2026-09-03）。
+
+## 实施结果
+
+- 已将 `IModbusClient` 扩展为 Qt `QObject` 异步 Facade 契约，覆盖打开、关闭、所有权、0x03、0x06、取消、状态与终态信号。
+- 已新增串口/连接配置、稳定 ID、请求描述、提交结果、不可变终态结果、RTU 证据和结构化错误模型；所有跨线程公共信号参数均已声明 Qt 元类型。
+- 已实现 Modbus CRC16、0x03/0x06 请求 ADU、正常/异常响应解析、错误优先级与分片友好的候选帧解析。
+- 已实现 `ManualScheduler` 和确定性 `FakeModbusClient`，覆盖严格脚本匹配、FIFO、单在途、QueueFull、虚拟延迟、成功、远端异常、超时、CRC、协议、串口、Pending、取消、关闭及两种所有权交接。
+- 未实现 QSerialPort、通信工作线程、VCP/UART 或 RS485 访问；这些内容仍属于 TASK-008/TASK-002。
+
+## 验证结果
+
+- 在 Qt 6.8.3、MSVC 19.51、Ninja 环境执行全新 CMake 配置和构建成功。
+- Host CTest 8/8 通过，包括既有设备编解码与应用 smoke test。
+- 新增测试未使用 `sleep()`，未访问串口或真实硬件。
+- 最终 Review 未发现必须修复项；Firmware、监控 UI、TestEngine 与 TASK-002 均未修改。
+
+## Spec 对齐说明
+
+实施时发现 Spec 6.2 已要求记录 `txAcceptedAt`，但 13 节证据结构示例遗漏对应 UTC 字段。已将 Spec 更新为 1.1 并补入 `txAcceptedUtc`；这是对既有要求的示例修正，不改变已批准架构。

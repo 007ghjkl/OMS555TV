@@ -1,7 +1,15 @@
 add_library(oms555tv_core STATIC
     logging/LogEntry.cpp
     logging/LogEntry.h
+    communication/CommunicationTypes.cpp
+    communication/CommunicationTypes.h
+    communication/FakeModbusClient.cpp
+    communication/FakeModbusClient.h
     communication/IModbusClient.h
+    communication/ManualScheduler.cpp
+    communication/ManualScheduler.h
+    communication/RtuCodec.cpp
+    communication/RtuCodec.h
     device/DeviceTypes.h
     device/RegisterCodec.cpp
     device/RegisterCodec.h

@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`、`TASK-003`～`TASK-006` 均已完成。Firmware Phase 2 Modbus RTU Slave 已通过 VCP/UART 实机验证；Host 已确认 QSerialPort 受控 RTU 后端架构，但生产通信代码尚未实现。下一步计划为 `TASK-007` 无硬件通信核心与 Fake、`TASK-008` QSerialPort 后端与 VCP 联调；两项仅完成文档拆分，尚未派发。`TASK-002` 真实 RS485 硬件迁移继续延期。
+当前状态：`TASK-001`、`TASK-003`～`TASK-007` 均已完成。Firmware Phase 2 Modbus RTU Slave 已通过 VCP/UART 实机验证；Host 已实现无硬件 Modbus RTU 核心、完整异步通信契约和确定性 Fake，但真实 QSerialPort 工作线程尚未实现。下一步计划为 `TASK-008` QSerialPort 后端与 VCP 联调；`TASK-002` 真实 RS485 硬件迁移继续延期。
 
 ## 项目目标
 
@@ -93,12 +93,14 @@ $env:Path = "$bundleRoot\gnu-tools-for-stm32\14.3.1+st.2\bin;$bundleRoot\ninja\1
 
 2026-09-03 的 TASK-005 最终结果：35/35 纯 C 测试和 ARM 干净构建通过，Flash 使用 29,124 B，RAM 使用 3,272 B；固件已通过 VCP/UART 完成 0x03、0x06、0x01/0x02/0x03、错误 CRC、短帧和阈值恢复验证。连续 500 次 0x03 请求为 500/500 成功，响应时间最小/平均/最大为 6.045/7.868/9.708 ms。该结果仅证明 USART2/ST-LINK VCP 协议行为，不代表 RS485 电气层已经验证。
 
+2026-09-03 的 TASK-007 最终结果：Host 全新配置、构建和 8/8 CTest 通过。新增测试覆盖通信模型、CRC16、0x03/0x06 完整 RTU ADU、正常与异常响应、错误判定优先级、任意分片、确定性 Fake、FIFO、QueueFull、单在途、取消、关闭、所有权交接和恰好一次终态。该结果仅为无串口、无硬件验证，不代表 QSerialPort、VCP/UART 或 RS485 已通过。
+
 ## 当前开发门禁
 
 硬件与引脚基线、Firmware Phase 1/2 功能验证以及 Host Modbus 后端决策已经完成。以下事项仍必须在对应阶段完成：
 
 1. 采购 TTL-RS485 模块后完成 `TASK-002`，再验收 RS485 电气层；
-2. 先完成 `TASK-007` 的无硬件通信核心与 Fake，再由 `TASK-008` 实现 QSerialPort 后端并执行 Host VCP 联调；
+2. `TASK-007` 的无硬件通信核心与 Fake 已完成；由 `TASK-008` 实现 QSerialPort 后端并执行 Host VCP 联调；
 3. Host Phase 4 监控、TestEngine 和报告必须等待 Phase 3 通信验收，不得提前把技术探针视为生产通信能力；
 4. 所有未执行的 RS485 和系统级硬件测试继续标记“未在真实 RS485 环境验证”。
 

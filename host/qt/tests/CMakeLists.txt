@@ -22,12 +22,34 @@ add_executable(tst_registercodec
 target_link_libraries(tst_registercodec PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.device.registercodec COMMAND tst_registercodec)
 
+add_executable(tst_communicationtypes
+    communication/tst_communicationtypes.cpp
+)
+target_link_libraries(tst_communicationtypes PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.communication.types COMMAND tst_communicationtypes)
+
+add_executable(tst_rtucodec
+    communication/tst_rtucodec.cpp
+)
+target_link_libraries(tst_rtucodec PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.communication.rtu_codec COMMAND tst_rtucodec)
+
+add_executable(tst_fakemodbusclient
+    communication/IModbusClientContract.h
+    communication/tst_fakemodbusclient.cpp
+)
+target_link_libraries(tst_fakemodbusclient PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.communication.fake_contract COMMAND tst_fakemodbusclient)
+
 add_test(NAME host.application.smoke COMMAND oms555tv_host --smoke-test)
 set_tests_properties(
     host.logging.logentry
     host.technical.qtserialbus_raw_pdu
     host.technical.qserialport_rtu_public_api
     host.device.registercodec
+    host.communication.types
+    host.communication.rtu_codec
+    host.communication.fake_contract
     host.application.smoke
     PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
