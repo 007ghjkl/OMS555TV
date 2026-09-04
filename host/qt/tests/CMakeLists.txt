@@ -55,6 +55,12 @@ add_executable(tst_monitoringcore
 target_link_libraries(tst_monitoringcore PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.monitoring.core COMMAND tst_monitoringcore)
 
+add_executable(tst_monitoringui
+    ui/tst_monitoringui.cpp
+)
+target_link_libraries(tst_monitoringui PRIVATE oms555tv_widgets Qt6::Test)
+add_test(NAME host.monitoring.ui COMMAND tst_monitoringui)
+
 add_test(NAME host.application.smoke COMMAND oms555tv_host --smoke-test)
 set_tests_properties(
     host.logging.logentry
@@ -66,11 +72,13 @@ set_tests_properties(
     host.communication.fake_contract
     host.communication.qserialport_backend
     host.monitoring.core
+    host.monitoring.ui
     host.application.smoke
     PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
 )
 set_tests_properties(
+    host.monitoring.ui
     host.application.smoke
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )

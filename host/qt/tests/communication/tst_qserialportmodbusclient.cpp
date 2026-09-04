@@ -173,6 +173,10 @@ void openAndOwn(QSerialPortModbusClient &client,
                                     HandoffMode::FinishInFlight).accepted());
     QTRY_COMPARE_WITH_TIMEOUT(client.activeOwner(), CommunicationOwner::Testing, 1000);
     QCOMPARE(ownership.count(), 1);
+    QCOMPARE(controls.count(), 2);
+    const auto ownershipControl = qvariant_cast<ControlResult>(controls.at(1).at(0));
+    QCOMPARE(ownershipControl.kind, ControlKind::AcquireOwnership);
+    QVERIFY(ownershipControl.succeeded);
 }
 
 void enqueueAction(const std::shared_ptr<TransportState> &state,
@@ -274,6 +278,15 @@ void QSerialPortModbusClientTest::workerThreadFragmentedReadAndEvidence()
     QVERIFY(result.evidence.queueDelay.has_value());
     QVERIFY(result.evidence.rtt.has_value());
     QCOMPARE(completionThread, QThread::currentThread());
+
+    QSignalSpy controls(&client, &IModbusClient::controlCompleted);
+    QVERIFY(client.releaseOwnership(CommunicationOwner::Testing,
+                                    HandoffMode::FinishInFlight).accepted());
+    QTRY_COMPARE_WITH_TIMEOUT(client.activeOwner(), CommunicationOwner::None, 1000);
+    QCOMPARE(controls.count(), 1);
+    const auto releaseControl = qvariant_cast<ControlResult>(controls.at(0).at(0));
+    QCOMPARE(releaseControl.kind, ControlKind::ReleaseOwnership);
+    QVERIFY(releaseControl.succeeded);
 }
 
 void QSerialPortModbusClientTest::fifoQueueFullCancellationAndRecovery()

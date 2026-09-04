@@ -30,18 +30,27 @@ add_library(oms555tv_core STATIC
     monitor/MonitorService.h
     monitor/MonitorTypes.cpp
     monitor/MonitorTypes.h
+    ui/MonitoringViewModel.cpp
+    ui/MonitoringViewModel.h
+    ui/SerialPortCatalog.cpp
+    ui/SerialPortCatalog.h
 )
 
 target_include_directories(oms555tv_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(oms555tv_core PUBLIC Qt6::Core Qt6::SerialPort)
 
-add_executable(oms555tv_host WIN32
-    app/main.cpp
+add_library(oms555tv_widgets STATIC
     app/MainWindow.cpp
     app/MainWindow.h
 )
 
-target_link_libraries(oms555tv_host PRIVATE
+target_link_libraries(oms555tv_widgets PUBLIC
     oms555tv_core
     Qt6::Widgets
 )
+
+add_executable(oms555tv_host WIN32
+    app/main.cpp
+)
+
+target_link_libraries(oms555tv_host PRIVATE oms555tv_widgets)

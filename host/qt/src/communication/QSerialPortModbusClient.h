@@ -8,6 +8,8 @@
 #include <QSet>
 #include <QThread>
 
+#include <optional>
+
 namespace oms555tv::communication {
 
 // 应用线程 Facade。所有串口、计时器和协议状态只存在于 workerThread_。
@@ -70,6 +72,7 @@ private:
     QSet<quint64> cancellationRequested_;
     qsizetype queuedCount_ = 0;
     bool ownershipTransition_ = false;
+    std::optional<ControlKind> pendingOwnershipControlKind_;
     bool acceptingRequests_ = false;
 };
 

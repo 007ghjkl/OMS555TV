@@ -1,6 +1,6 @@
 # 系统架构设计草案
 
-> 状态：评审草案 0.4，Host 后端、RS485 物理接口与 Phase 4 监控核心已确认
+> 状态：评审草案 0.5，Host 后端、RS485 物理接口与 Phase 4 实时监控已确认
 > 日期：2026-09-04
 
 ## 1. 架构目标
@@ -86,12 +86,14 @@ DISCONNECTED → CONNECTED_IDLE → MONITORING
                       ▼
                    TESTING → STOPPING → CONNECTED_IDLE
 
-任意活动状态发生不可恢复错误 → ERROR → DISCONNECTED/CONNECTED_IDLE
+任意活动状态发生不可恢复错误 → ERROR → DISCONNECTED
 ```
 
 状态迁移必须集中管理；未连接禁止监控和测试，测试与监控互斥。
 
 TASK-011 已实现 `AppStateController` 与 `MonitorService`：控制命令采用同步接受/拒绝和异步终态通知；Monitor owner 获取成功后，按 `deviceSnapshotReadBlocks` 严格串行读取五块，只有整批成功并经 `RegisterCodec` 解码后才发布快照。连续三批失败判定 Offline，停止时受控取消唯一请求并在释放 owner 后返回 `CONNECTED_IDLE`。周期、错误、统计和恢复细节以 `specs/host_phase4_monitoring_core.md` 为准。
+
+TASK-012 已实现 `MonitoringViewModel`、`QtSerialPortCatalog` 和 Qt Widgets `MainWindow`。窗口只绑定展示模型；串口打开、所有权、轮询和领域解码仍由既有层负责。展示模型统一派生按钮门禁、字段单位、模拟源、最后成功时间和陈旧状态，失败批次不覆盖成功快照。生产组装、offscreen UI 测试、30 分钟真实 RS485 和设备复位显式恢复均已通过，细节以 `specs/host_phase4_monitoring_ui.md` 和对应测试记录为准。
 
 ## 7. 数据与错误模型
 

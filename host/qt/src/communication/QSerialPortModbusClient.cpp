@@ -220,6 +220,7 @@ ControlSubmission QSerialPortModbusClient::acquireOwnership(CommunicationOwner o
         return rejectControl(ErrorCategory::InternalState, ErrorCode::IdExhausted);
     }
     ownershipTransition_ = true;
+    pendingOwnershipControlKind_ = ControlKind::AcquireOwnership;
     acceptingRequests_ = false;
     QMetaObject::invokeMethod(worker_,
                               [worker = worker_, operationId = *id, owner, mode] {
@@ -252,6 +253,7 @@ ControlSubmission QSerialPortModbusClient::releaseOwnership(CommunicationOwner o
         return rejectControl(ErrorCategory::InternalState, ErrorCode::IdExhausted);
     }
     ownershipTransition_ = true;
+    pendingOwnershipControlKind_ = ControlKind::ReleaseOwnership;
     acceptingRequests_ = false;
     QMetaObject::invokeMethod(worker_,
                               [worker = worker_, operationId = *id, owner, mode] {
@@ -375,6 +377,7 @@ void QSerialPortModbusClient::onWorkerConnectionStateChanged(ConnectionState sta
         acceptingRequests_ = false;
         owner_ = CommunicationOwner::None;
         ownershipTransition_ = false;
+        pendingOwnershipControlKind_.reset();
     }
 }
 
@@ -387,13 +390,19 @@ void QSerialPortModbusClient::onWorkerControlCompleted(const ControlResult &resu
         owner_ = CommunicationOwner::None;
         acceptingRequests_ = false;
         ownershipTransition_ = false;
+        pendingOwnershipControlKind_.reset();
     }
     emit controlCompleted(result);
 }
 
 void QSerialPortModbusClient::onWorkerOwnershipChanged(const OwnershipResult &result)
 {
+    const ControlKind controlKind = pendingOwnershipControlKind_.value_or(
+        result.owner == CommunicationOwner::None
+            ? ControlKind::ReleaseOwnership
+            : ControlKind::AcquireOwnership);
     ownershipTransition_ = false;
+    pendingOwnershipControlKind_.reset();
     if (result.succeeded) {
         owner_ = result.owner;
     }
@@ -401,6 +410,8 @@ void QSerialPortModbusClient::onWorkerOwnershipChanged(const OwnershipResult &re
         && owner_ != CommunicationOwner::None
         && state_ == ConnectionState::Connected;
     emit ownershipChanged(result);
+    emit controlCompleted({result.operationId, controlKind,
+                           result.succeeded, result.error});
 }
 
 void QSerialPortModbusClient::onWorkerRequestStateChanged(RequestId id,

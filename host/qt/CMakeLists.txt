@@ -16,6 +16,15 @@ add_subdirectory(src)
 add_executable(task008_vcp_integration
     tools/task008_vcp_integration.cpp
 )
+
+add_executable(task012_rs485_ui_validation
+    tools/task012_rs485_ui_validation.cpp
+)
+target_link_libraries(task012_rs485_ui_validation PRIVATE
+    oms555tv_widgets
+    Qt6::Widgets
+    Qt6::SerialPort
+)
 target_link_libraries(task008_vcp_integration PRIVATE
     oms555tv_core
     Qt6::Core
