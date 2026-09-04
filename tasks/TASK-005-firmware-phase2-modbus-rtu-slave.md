@@ -6,7 +6,7 @@
 
 ## 背景
 
-`TASK-003` 已完成三路 DHTC12、光敏 ADC、设备模型、告警和故障状态验证。根据 PRD、架构和开发阶段规划，下一步应进入 Phase 2，将设备模型映射到 `docs/modbus_register_map.md`，并先通过 VCP/UART 验证协议行为。真实 RS485 电气层仍由延期的 `TASK-002` 管理。
+`TASK-003` 已完成三路 DHTC12、光敏 ADC、设备模型、告警和故障状态验证。根据 PRD、架构和开发阶段规划，下一步应进入 Phase 2，将设备模型映射到 `docs/modbus_register_map.md`，并先通过 VCP/UART 验证协议行为。执行本任务时，真实 RS485 电气层由延期的 `TASK-002` 管理；该门禁后来已于 2026-09-04 关闭。
 
 ## 范围
 
@@ -39,7 +39,7 @@
 - `docs/modbus_register_map.md` 当前基线。
 - `docs/hardware_baseline.md` 当前 UART 参数和硬件记录。
 - 可用的 ST-LINK VCP；端口号必须运行时枚举，不能继续假设为 COM5 或 COM3。
-- `TASK-002` 明确延期，不阻塞本任务。
+- 本任务实施时 `TASK-002` 明确延期，不阻塞本任务。
 
 ## 实现门禁
 
@@ -114,7 +114,7 @@ Technical Spec 已输出至 `specs/firmware_phase2_modbus_rtu_slave.md` 并完�
 
 本任务状态：**已完成（2026-09-03）**。
 
-完整证据见 `docs/test_results/task005_vcp_uart_modbus_validation.md`。所有实测结论均明确限定为 VCP/UART 协议验证；`TASK-002` 保持延期，RS485 电气层未实施、未验证。
+完整证据见 `docs/test_results/task005_vcp_uart_modbus_validation.md`。所有本任务实测结论均明确限定为 VCP/UART 协议验证；RS485 电气层后来由 `TASK-002/009/010` 独立验收，不归入本任务结果。
 
 ## 最终 Review（2026-09-03）
 

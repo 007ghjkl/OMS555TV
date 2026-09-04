@@ -39,7 +39,7 @@ Phase 0 技术验证已确认 Qt SerialBus 的公开 Raw API 只暴露 PDU，不
 - `docs/prd.md`、`docs/architecture.md`、`docs/test_plan.md`。
 - `research/qt_serialbus_raw_frame.md` 的已验证能力边界。
 - `TASK-005` 不阻塞本任务的设计和评审，但后续真实联调依赖可用的 Modbus Slave。
-- `TASK-002` 保持延期，不属于本任务。
+- 本任务实施时 `TASK-002` 保持延期，不属于本任务。
 
 ## 必须评审的方案
 
@@ -105,4 +105,4 @@ Phase 0 技术验证已确认 Qt SerialBus 的公开 Raw API 只暴露 PDU，不
 - Technical Spec：`specs/host_phase3_modbus_communication.md`。
 - 已在 Qt 6.8.3/MSVC 19.51 下完成全新 Host 配置和构建，CTest 5/5 通过；未访问真实串口或硬件。
 - `docs/architecture.md` 已同步后端决策；本任务未实现生产通信后端，后续必须由独立实现任务执行。
-- `TASK-002` 保持延期，RS485 电气层仍未验证。
+- 本任务结论不包含 RS485；RS485 电气层后来由 `TASK-002/009/010` 于 2026-09-04 独立验收。

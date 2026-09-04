@@ -99,17 +99,17 @@ TASK-002 只有在 TASK-009 和 TASK-010 均通过、文档完成同步后才标
 
 ## 当前状态
 
-迁移条件已部分具备，计划已更新，尚未派发（2026-09-04）。
+已完成，RS485 迁移总门禁已关闭（2026-09-04）。
 
-已确认：
+- 硬件接口已唯一确定：MAX13487EESA 系列自动换向 TTL-RS485、5 V、PA9→RXD、PA10←TXD，不使用 PC8；
+- 总线为 A↔T/R+、B↔T/R-、GND↔GND，约 20 cm 点对点三线，R16 未短接；
+- DTECH USB-RS485 当前枚举为 COM6、MacroSilicon `345F:3020`；COM 号仅为运行时观察值；
+- `specs/rs485_hardware_interface.md` 已评审通过；
+- TASK-009 已通过 Firmware 双构建、35/35 回归、第三方 Master 和 500 次连续请求；
+- TASK-010 已通过 Host 9/9 CTest、全量读写、500 次连续请求、物理断线恢复和设备复位恢复；
+- 文档已同步，最终 Review 无必须修复项。
 
-- TASK-005 与 TASK-008 已完成，协议两端具备迁移基础；
-- USART1 到 COM6 的持续单向发送已由用户验证；
-- 当前 COM6 的 Windows 枚举身份已记录。
+证据见：
 
-实施前仍必须补齐：
-
-- TTL-RS485 模块和 USB-RS485 转换器的准确型号/丝印与资料；
-- 115200 8N1 等现有原始链路测试参数和原始记录；
-- 外部 DE/RE 或自动换向方式；
-- USART1 RX、终端、偏置、线长和拓扑证据。
+- `docs/test_results/task009_firmware_rs485_transport_validation.md`；
+- `docs/test_results/task010_host_rs485_system_integration.md`。

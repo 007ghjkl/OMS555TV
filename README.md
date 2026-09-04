@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`、`TASK-003`～`TASK-008` 均已完成。Firmware Phase 2 Slave 与 Host Phase 3 QSerialPort Master 已通过 ST-LINK VCP/UART 实机闭环。2026-09-04 已确认 USART1 向当前 COM6 的持续单向发送链路可达，RS485 迁移不再延期；TASK-002 已更新为总验收门禁，并拆分 TASK-009 Firmware 迁移、TASK-010 Host 真实 RS485 联调。三项目前只完成计划，尚未派发。
+当前状态：`TASK-001`～`TASK-010`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环。2026-09-04 完成 TASK-002/009/010：自动换向硬件基线、Firmware 迁移、Host 全量联调、500 次连续请求、物理断线恢复和设备复位恢复均通过，RS485 迁移总门禁已关闭。
 
 ## 项目目标
 
@@ -40,8 +40,12 @@
 - [TASK-008 Host QSerialPort 异步后端与 VCP 联调](tasks/TASK-008-host-phase3-qserialport-backend-vcp-integration.md)
 - [TASK-008 Host VCP/UART 联调记录](docs/test_results/task008_host_vcp_modbus_integration.md)
 - [TASK-002 RS485 硬件基线与迁移验收总任务](tasks/TASK-002-rs485-hardware-migration.md)
+- [RS485 硬件接口技术规范](specs/rs485_hardware_interface.md)
 - [TASK-009 Firmware USART1/RS485 传输迁移](tasks/TASK-009-firmware-usart1-rs485-transport-migration.md)
+- [Firmware USART1/RS485 传输迁移技术规范](specs/firmware_rs485_transport_migration.md)
+- [TASK-009 Firmware RS485 验证记录](docs/test_results/task009_firmware_rs485_transport_validation.md)
 - [TASK-010 Host 真实 RS485 系统联调与迁移验收](tasks/TASK-010-host-rs485-system-integration.md)
+- [TASK-010 Host RS485 联调记录](docs/test_results/task010_host_rs485_system_integration.md)
 
 ## 仓库结构
 
@@ -65,7 +69,7 @@ output/           本地日志与报告（内容不提交）
 - NUCLEO-F411RE / STM32F411RET6
 - STM32CubeMX 6.18.1-RC2 + STM32CubeF4 v1.28.3 + HAL
 - 三只 DHTC12（I2C1/2/3）与一路 PA0/ADC1 光敏模拟量
-- 当前生产协议已通过 ST-LINK VCP/USART2、115200 8N1 验证；USART1→COM6 单向原始链路已验证，真实 RS485 双向 Modbus 迁移按 TASK-002/009/010 计划执行
+- 当前生产协议已通过 ST-LINK VCP/USART2 和真实 RS485/USART1 两条路径验证；RS485 使用自动换向模块、115200 8N1、Slave ID 1
 
 ## 构建 Host
 
@@ -101,6 +105,10 @@ $env:Path = "$bundleRoot\gnu-tools-for-stm32\14.3.1+st.2\bin;$bundleRoot\ninja\1
 
 2026-09-03 的 TASK-008 最终结果：Host 全新配置、构建和 9/9 CTest 通过；生产 `QSerialPortModbusClient` 使用单通信线程、有界 FIFO、异步完成、受控取消/关闭/交接和完整 TX/RX/CRC/RTT 证据。运行时枚举 ST-LINK VCP 为 COM3，全部合法读块、TASK-004 快照解码、四路阈值写入/回读/恢复、远端 0x02/0x03 和错误 Slave ID 超时后的关闭/重开恢复均通过。500 次连续 0x03 为 500/500 成功，RTT 最小/平均/最大 3.348/5.674/6.941 ms，Firmware 通信错误计数 0→0。该结论仅限 VCP/UART；RS485 电气层仍未验证。
 
+2026-09-04 的 TASK-009 最终结果：USART2 VCP 与 USART1 RS485 两种 ARM 构建、35/35 纯 C 测试和 RS485 烧录均通过。第三方 Master 经 COM6 完成全量读写、0x01/0x02/0x03、坏 CRC、短帧、阈值恢复和采集并行验证；500 次连续 0x03 为 500/500 成功，RTT 最小/平均/最大 13.312/16.036/18.446 ms。
+
+2026-09-04 的 TASK-010 最终结果：Host 全新构建和 9/9 CTest 通过，生产 `QSerialPortModbusClient` 经真实 RS485 完成全量闭环；500 次连续 0x03 为 500/500 成功，Host API RTT 最小/平均/最大 26.311/32.477/46.087 ms。断开/重连 T/R+ 与保持/释放设备 RESET 的失败和显式恢复均已实测通过。该结论仅限当前约 20 cm 安全低压点对点台架。
+
 实板联调工具会运行时枚举 ST-LINK，不写死 COM 号：
 
 ```powershell
@@ -112,13 +120,12 @@ $env:Path = "D:\Dev\Qt\6.8.3\msvc2022_64\bin;$env:Path"
 
 ## 当前开发门禁
 
-硬件与引脚基线、Firmware Phase 1/2 功能验证以及 Host Modbus 后端决策已经完成。以下事项仍必须在对应阶段完成：
+硬件与引脚基线、Firmware Phase 1/2、Host Modbus 后端以及 RS485 迁移总验收已经完成。后续阶段必须保持以下门禁：
 
-1. 先在 `TASK-002` 补齐两个转换模块的准确身份、逻辑电平、接线、方向方式、终端和偏置，并评审 RS485 硬件接口 Spec；
-2. 再按顺序执行 `TASK-009` Firmware USART1/RS485 迁移和 `TASK-010` Host 真实 RS485 闭环；当前 USART1→COM6 持续输出不能替代双向 Modbus 验收；
-3. `TASK-008` 已完成 QSerialPort 后端和 Host VCP/UART 联调；后续 RS485、监控与 TestEngine 必须复用 `IModbusClient`，不得直接操作 QSerialPort；
-4. Host Phase 4 监控、TestEngine 和报告尚未实现，不得把 Phase 3 通信工具视为最终业务 UI；
-5. 所有未执行的 RS485 和系统级硬件测试继续标记“未在真实 RS485 环境验证”。
+1. `TASK-002/009/010` 已关闭；改变模块、供电、方向方式、线长、终端或偏置时必须重新评审硬件接口和对应测试范围；
+2. 后续监控与 TestEngine 必须复用 `IModbusClient`，不得直接操作 QSerialPort；
+3. Host Phase 4 监控、TestEngine 和报告尚未实现，不得把 Phase 3 通信工具视为最终业务 UI；
+4. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
 
 详细未决项见架构与 Phase 0 任务文档。
 

@@ -41,7 +41,7 @@ PRD 和架构要求 UI 非阻塞、同一串口只有一个请求执行器、监
 - `TASK-007` 已完成并提供 RTU Codec、公共类型、Fake 和合同测试。
 - `TASK-004` 的寄存器读块与领域编解码可复用。
 - ST-LINK VCP 可用；COM 端口必须运行时枚举，不能写死 COM3、COM5 或历史端口号。
-- `TASK-002` 保持延期，不阻塞本任务。
+- 本任务实施时 `TASK-002` 保持延期，不阻塞本任务。
 
 ## 实现门禁
 
@@ -99,7 +99,7 @@ PRD 和架构要求 UI 非阻塞、同一串口只有一个请求执行器、监
 - 创建 `docs/test_results/task008_host_vcp_modbus_integration.md` 保存真实联调证据。
 - 将 Host 构建、测试和 VCP 使用方法同步到 README。
 - 若发现缺陷，按 Host/Firmware 归属登记到 `docs/bug_records.md`，包含复现、证据、根因和回归结果。
-- 完成后将本任务标记为已完成，并明确 `TASK-002`/RS485 仍延期。
+- 完成后将本任务标记为已完成，并明确本任务不包含当时仍延期的 `TASK-002`/RS485。
 - 不得提前声称 Phase 4 监控、TestEngine 或报告已经实现。
 
 ## 当前状态
@@ -117,4 +117,4 @@ PRD 和架构要求 UI 非阻塞、同一串口只有一个请求执行器、监
 - 使用错误 Slave ID 制造无响应后得到明确 ResponseTimeout，显式关闭并按 Slave ID 1 重开后恢复版本读取；
 - 最终 Review 无必须修复项。完整证据见 `docs/test_results/task008_host_vcp_modbus_integration.md`。
 
-范围限制：以上结论是 **VCP/UART 协议验证**。实时监控 UI、TestEngine、报告和真实 RS485 不属于本任务；`TASK-002` 继续延期，RS485 电气层仍未实施、未验证。
+范围限制：以上结论是 **VCP/UART 协议验证**。实时监控 UI、TestEngine、报告和真实 RS485 不属于本任务；RS485 电气层后来已由 `TASK-002/009/010` 于 2026-09-04 独立验收，不归入本任务结果。

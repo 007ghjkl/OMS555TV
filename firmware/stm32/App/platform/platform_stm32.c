@@ -17,7 +17,40 @@ extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c1;
 extern I2C_HandleTypeDef hi2c2;
 extern I2C_HandleTypeDef hi2c3;
+extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
+
+#if defined(OMS555TV_MODBUS_USART1_RS485) && \
+    defined(OMS555TV_MODBUS_USART2_VCP)
+#error "Select exactly one Modbus transport"
+#elif defined(OMS555TV_MODBUS_USART1_RS485)
+static UART_HandleTypeDef *modbus_uart(void)
+{
+    return &huart1;
+}
+
+static IRQn_Type modbus_uart_irq(void)
+{
+    return USART1_IRQn;
+}
+#elif defined(OMS555TV_MODBUS_USART2_VCP)
+static UART_HandleTypeDef *modbus_uart(void)
+{
+    return &huart2;
+}
+
+static IRQn_Type modbus_uart_irq(void)
+{
+    return USART2_IRQn;
+}
+#else
+#error "A Modbus transport must be selected by CMake"
+#endif
+
+static bool is_modbus_uart(const UART_HandleTypeDef *handle)
+{
+    return handle == modbus_uart();
+}
 
 typedef struct {
     ModbusRtuReceiver receiver;
@@ -297,7 +330,7 @@ bool platform_stm32_create(Phase1Platform *platform)
 
 static bool arm_modbus_receive(Stm32ModbusState *state)
 {
-    return HAL_UARTEx_ReceiveToIdle_IT(&huart2,
+    return HAL_UARTEx_ReceiveToIdle_IT(modbus_uart(),
                                       state->rx_chunk,
                                       sizeof(state->rx_chunk)) == HAL_OK;
 }
@@ -320,16 +353,16 @@ static bool stm32_modbus_start(void *context)
     return true;
 }
 
-static void lock_usart2_irq(void)
+static void lock_modbus_uart_irq(void)
 {
-    HAL_NVIC_DisableIRQ(USART2_IRQn);
+    HAL_NVIC_DisableIRQ(modbus_uart_irq());
     __DSB();
     __ISB();
 }
 
-static void unlock_usart2_irq(void)
+static void unlock_modbus_uart_irq(void)
 {
-    HAL_NVIC_EnableIRQ(USART2_IRQn);
+    HAL_NVIC_EnableIRQ(modbus_uart_irq());
 }
 
 static ModbusPortEvent stm32_modbus_poll(void *context,
@@ -347,16 +380,16 @@ static ModbusPortEvent stm32_modbus_poll(void *context,
     }
     *frame_length = 0u;
 
-    lock_usart2_irq();
+    lock_modbus_uart_irq();
     if (state->rearm_required) {
-        (void)HAL_UART_AbortReceive(&huart2);
+        (void)HAL_UART_AbortReceive(modbus_uart());
         state->rearm_required = !arm_modbus_receive(state);
     }
     if (state->pending_uart_errors != 0u) {
         event.type = MODBUS_PORT_EVENT_UART_ERROR;
         event.uart_error_count = state->pending_uart_errors;
         state->pending_uart_errors = 0u;
-        unlock_usart2_irq();
+        unlock_modbus_uart_irq();
         return event;
     }
 
@@ -365,7 +398,7 @@ static ModbusPortEvent stm32_modbus_poll(void *context,
                                    frame,
                                    capacity,
                                    frame_length);
-    unlock_usart2_irq();
+    unlock_modbus_uart_irq();
     if (rx_result == MODBUS_RX_FRAME_READY) {
         event.type = MODBUS_PORT_EVENT_FRAME;
     } else if (rx_result == MODBUS_RX_OVERFLOW) {
@@ -382,7 +415,7 @@ static PlatformStatus stm32_modbus_transmit(void *context,
     if (data == NULL || length == 0u || length > UINT16_MAX) {
         return PLATFORM_INVALID_ARGUMENT;
     }
-    return HAL_UART_Transmit(&huart2,
+    return HAL_UART_Transmit(modbus_uart(),
                              (uint8_t *)data,
                              (uint16_t)length,
                              MODBUS_TX_TIMEOUT_MS) == HAL_OK
@@ -409,7 +442,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
     uint32_t now_ms;
     uint16_t index;
 
-    if (huart != &huart2 || !g_modbus.started) {
+    if (!is_modbus_uart(huart) || !g_modbus.started) {
         return;
     }
     now_ms = HAL_GetTick();
@@ -425,7 +458,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
-    if (huart != &huart2 || !g_modbus.started) {
+    if (!is_modbus_uart(huart) || !g_modbus.started) {
         return;
     }
     if (g_modbus.pending_uart_errors < UINT16_MAX) {

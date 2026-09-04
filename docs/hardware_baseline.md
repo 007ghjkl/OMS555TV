@@ -1,16 +1,16 @@
 # 硬件与通信基线
 
-> 状态：基线 1.1，已同步 USART1→COM6 单向链路证据与 RS485 迁移计划
+> 状态：基线 1.2，真实 RS485 双向 Modbus 与恢复验收已通过
 >
 > 日期：2026-09-04
 >
-> 验证范围：传感器、VCP/UART Modbus 和 Host Phase 3 已完成实机验证；USART1→COM6 单向原始链路已由用户验证，真实 RS485 双向 Modbus、方向控制、终端和偏置仍待 TASK-002/009/010 验收。
+> 验证范围：传感器、VCP/UART Modbus、USART1/真实 RS485 Firmware、Host 全量联调、物理断线恢复和设备复位恢复均已完成实机验证。
 
 ## 1. 基线结论
 
 当前硬件足以生成唯一的 STM32CubeMX 工程并开展 Phase 0/Phase 1：使用 NUCLEO-F411RE、STM32F411RET6、板载 ST-LINK/V2-1、三路独立 I2C 的 DHTC12，以及一路 PA0/ADC1 光敏模拟量。
 
-当前已接入一条使用 USART1 和 COM6 的候选外部链路，并由用户通过持续发送确认 STM32→COM6 单向可达。仓库尚未记录 TTL-RS485 收发器和 USB-RS485 转换器的准确型号、接线、方向控制、终端与偏置，因此不能把该结果描述为真实 RS485 双向 Modbus 已通过。迁移由 TASK-002/009/010 分阶段管理。
+真实 RS485 基线使用 USART1、自动换向 MAX13487EESA 系列 TTL-RS485 模块和 DTECH USB-RS485 转换器。第三方 Master 与 Host 生产后端均已通过 COM6 完成双向 Modbus、连续请求、断线和复位恢复；TASK-002/009/010 已关闭。该结论仅适用于当前约 20 cm 的安全低压点对点台架。
 
 ## 2. 硬件清单
 
@@ -22,8 +22,8 @@
 | 实物板标识 | 贴纸 `MB1136-F411RE-C04`，编号 `A232203276`（2026-09-03 记录） |
 | 温湿度传感器 | DHTC12 ×3，固定 7 位 I2C 地址 `0x44` |
 | 模拟传感器 | 4 线制光敏电阻模块，使用 AO，DO 暂不连接 |
-| 供电 | NUCLEO 由 ST-LINK USB 供电；所有外接模块使用板载 3.3 V 与公共 GND |
-| RS485 | 候选链路已接入并完成 USART1→COM6 单向持续发送；模块准确身份、电气参数与双向验收待 TASK-002 补齐 |
+| 供电 | NUCLEO 由 ST-LINK USB 供电；传感器使用板载 3.3 V；TTL-RS485 模块使用板载 5 V；全链路公共 GND |
+| RS485 | MAX13487EESA 系列自动换向 TTL-RS485 + DTECH USB-RS485，真实双向 Modbus 与恢复已通过 |
 
 必须在首次接线前记录开发板底部 MB1136 的 `C-xx` 修订号。该信息不阻塞当前工程，因为时钟基线不依赖板载 HSE 焊桥状态。
 
@@ -78,11 +78,11 @@ PLLQ 对应的 48 MHz 域在当前阶段不使用，由 CubeMX 按未启用 USB/
 
 三只 DHTC12 地址均固定为 `0x44`，因此不能并联在同一 I2C 总线上。上述分配使每只传感器独占一个硬件 I2C 控制器。
 
-### 5.2 RS485 迁移资源与当前证据
+### 5.2 RS485 实施基线
 
-迁移计划使用 USART1 的 PA9/PA10，使 USART2 继续承担 ST-LINK VCP 诊断或回归通道。2026-09-04 用户已通过 USART1 持续向 COM6 发送消息并确认接收，说明 PA9/TX 所在单向路径具备继续迁移的基础。
+RS485 使用 USART1 的 PA9/PA10；PA9/USART1_TX 接模块 RXD，PA10/USART1_RX 接模块 TXD。模块使用 5 V 供电并自动换向，Firmware 不使用 PC8 或其他 DE/RE GPIO。USART2 保留为 ST-LINK VCP 回归资源，单个 Firmware 构建只选择一个 Modbus 端点。
 
-PC8 仍只是外部 DE/RE 方案的候选方向 GPIO。若实际模块具备可验证的自动换向电路，则不得添加虚构的 PC8 控制；若模块暴露 DE/`/RE` 且无自动换向，则必须在 TASK-002 Spec 中确认 PC8 引脚冲突、电平含义和 TX 完成后释放时序。
+总线侧连接 A↔T/R+、B↔T/R-、GND↔GND，约 20 cm 点对点三线。TTL 模块 R16 未短接，板载 120 Ω 未接入；资料未披露 USB 端内部终端和偏置阻值，当前不外加偏置。上述配置已通过 500 次连续请求、3 秒空闲监听、物理断线和设备复位恢复测试。
 
 ## 6. 传感器电气与采集约束
 
@@ -115,10 +115,10 @@ PC8 仍只是外部 DE/RE 方案的候选方向 GPIO。若实际模块具备可�
 
 | 参数 | 值 |
 |---|---|
-| 当前物理通道 | ST-LINK USB Virtual COM Port + USART2 TTL |
-| 当前 Windows 端口 | COM3（2026-09-03 枚举结果，重新插拔后可能变化） |
-| RS485 候选端口 | COM6，Windows 枚举为 `MacroSilicon USB Serial Ports`，VID `0x345F`、PID `0x3020`、实例尾号 `A02001JS`（2026-09-04） |
-| RS485 当前证据 | USART1→COM6 持续单向发送已由用户验证；串口参数、测试负载、持续时间和反向链路待补齐 |
+| 生产实测物理通道 | USART1 + 自动换向 TTL-RS485 + 两线 RS485 + USB-RS485 |
+| VCP 回归通道 | ST-LINK USB Virtual COM Port + USART2，2026-09-04 枚举为 COM3 |
+| RS485 端口 | 2026-09-04 枚举为 COM6，`MacroSilicon USB Serial Ports`，VID `0x345F`、PID `0x3020`、实例尾号 `A02001JS`；端口号不固定 |
+| RS485 证据 | 第三方 Master 与 Host 生产后端均完成真实双向读写、异常、连续请求和恢复验证 |
 | 上层帧格式 | Modbus RTU |
 | Slave ID | 1 |
 | Baud rate | 115200 |
@@ -128,7 +128,7 @@ PC8 仍只是外部 DE/RE 方案的候选方向 GPIO。若实际模块具备可�
 | Flow control | None |
 | 响应超时初始值 | 500 ms，由 Host 配置 |
 
-USART2/ST-LINK VCP 链路已验证 Modbus 帧格式、CRC、寄存器映射和 Host Phase 3。USART1→COM6 目前只证明单向原始链路可达，不能代表 RS485 双向请求响应、方向控制或电气层已经验证。所有报告必须区分“VCP/UART 协议验证”“RS485 单向链路验证”和“RS485 双向 Modbus 实物验证”。
+USART2/ST-LINK VCP 是历史协议与回归通道；USART1/RS485 是本次真实物理链路。报告必须继续区分两者，不能把约 20 cm 台架结果外推为长线、隔离或 EMC 结论。
 
 ## 8. 阈值、迟滞与故障策略
 
@@ -160,6 +160,9 @@ USART2/ST-LINK VCP 链路已验证 Modbus 帧格式、CRC、寄存器映射和 H
 | `hardware_info/温湿度传感器/DHTC12.pdf` | 供电、I2C 地址、时序、命令、CRC 与测量范围 |
 | `hardware_info/光敏传感器/光敏电阻传感器模块使用说明书4线制.pdf` | 3.3～5 V 供电、AO/DO 定义和端子顺序 |
 | `hardware_info/光敏传感器/光敏电阻传感器模块电路图.pdf` | AO 分压与 LM393 DO 电路 |
+| `hardware_info/TTL转485/TTL转485模块.jpg` | 自动换向、5 V 供电、3.3/5 V 逻辑兼容和 R16 终端说明 |
+| `hardware_info/USB转485/IOT5081 Manual.pdf` | DTECH 两线 RS485 的 T/R+、T/R-、GND 接线和自动换向 |
+| Analog Devices MAX13487E/MAX13488E Rev.3 数据手册 | MAX13487E 的 5 V、AutoDirection、500 kbps 和 DI 门限 |
 
 ## 11. 实物观察与尚未进行的验证
 
@@ -172,5 +175,7 @@ USART2/ST-LINK VCP 链路已验证 Modbus 帧格式、CRC、寄存器映射和 H
 - 光敏 ADC 在 3.3 V 配置下完成明暗方向测试：普通环境 993～999 mV（raw 1233～1240），完全遮光 2883～2898 mV（raw 3578～3597），手机手电筒近距离照射 130～132 mV（raw 162～165）。三组均连续有效，确认光越强 AO 电压越低；这些电压是未校准 ADC 结果，不表示照度。
 - B 路 SDA（PB3/CN10-31）断开实测：第 1、2 次失败时 `invalid=1/2`、状态字 `0x0021`，第 3 次失败时 `invalid=3`、状态字 `0x0025`；A/C 不受影响。运行中重连后 B 路首次捕获的有效帧为 26.3 ℃，`invalid=0`、`error=NONE`，状态字恢复为 `0x0021`。
 - 正式固件运行证据保存于 `output/logs/task003-abc-confirmed-10cycles.log`：三路各 12 个周期，共 36 帧均为 `valid=1`、`error=NONE`，状态字为 `0x0021`。光敏证据保存于 `output/logs/task003-light-covered.log` 和 `output/logs/task003-light-illuminated.log`；断线恢复证据保存于 `output/logs/task003-b-sda-disconnected-boot.log` 和 `output/logs/task003-b-sda-reconnected.log`。历史诊断日志仍保留在 `output/logs/`，均不进入 Git。
-- 2026-09-04 用户已完成 USART1→COM6 持续单向发送验证；本机只读枚举确认 COM6 为 `MacroSilicon USB Serial Ports`，实例 ID `USB\VID_345F&PID_3020\A02001JS`。
-- 尚未在仓库记录 TTL-RS485 收发器和 USB-RS485 转换器的准确型号/丝印、串口参数、测试负载、线长、终端、偏置、公共地/隔离和 DE/RE 或自动换向方式；USART1 RX 与双向 Modbus 仍未验证。
+- 2026-09-04 用户确认 TTL-RS485 模块 VCC=5 V、PA9→RXD、PA10←TXD、R16 未短接、三线约 20 cm，芯片丝印目视为 `MAX13487 ESA LMW 504`；模块按 MAX13487EESA 系列自动换向方案实施。
+- 2026-09-04 第三方 Master 经 COM6 完成全量读写、0x01/0x02/0x03、坏 CRC、短帧、500 次连续请求与采集并行验证；500/500 成功，通信错误计数在合法压力测试中保持 2→2。
+- 2026-09-04 Host 生产 `QSerialPortModbusClient` 经 COM6 完成全量闭环；500/500 成功，Host API RTT 为 26.311/32.477/46.087 ms。
+- 2026-09-04 用户配合断开/重连 T/R+ 和保持/释放 RESET：断线与复位期间均为约 500 ms 可控超时，恢复后两次 20/20 请求均成功。

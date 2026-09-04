@@ -1,7 +1,7 @@
 # 系统架构设计草案
 
-> 状态：评审草案 0.2，Host Modbus 后端已确认，其余未决项仍按任务门禁处理
-> 日期：2026-09-03
+> 状态：评审草案 0.3，Host 后端与 RS485 物理接口已确认
+> 日期：2026-09-04
 
 ## 1. 架构目标
 
@@ -43,7 +43,7 @@
 - A/B/C 相 DHTC12 分别使用 I2C1（PB8/PB9）、I2C2（PB10/PB3）和 I2C3（PA8/PC9）。
 - 光敏模块 AO 使用 PA0/ADC1_IN0，3.3 V 供电；数据表示为毫伏，不表示校准照度。
 - 环境温度当前为带状态位的软件模拟源，不能与真实传感器值混淆。
-- 已验证的开发基线通过 USART2/ST-LINK VCP 传输 Modbus RTU；RS485 迁移计划使用 USART1 PA9/PA10，方向 GPIO 是否需要及其引脚必须由实际模块在 TASK-002 中确认。Firmware 迁移和 Host 闭环分别由 TASK-009、TASK-010 执行。
+- 生产实测链路使用 USART1 PA9/PA10 和 MAX13487EESA 系列自动换向 TTL-RS485 模块，不使用 DE/RE GPIO；USART2/ST-LINK VCP 保留为编译期可选回归通道。单个 Firmware 镜像只启用一个 Modbus 端点。TASK-002/009/010 的真实 RS485 闭环与恢复验收已通过。
 
 详细接线、电气约束与待验证项以 `docs/hardware_baseline.md` 为准。
 
@@ -119,8 +119,8 @@ DISCONNECTED → CONNECTED_IDLE → MONITORING
 ## 11. 已确认的架构决策
 
 1. Host Modbus 生产后端采用 QSerialPort 受控 RTU；标准业务和未来经批准的 Raw/错误注入必须复用同一工作线程、串行队列、串口和证据模型。确认日期：2026-09-03。
+2. Firmware Modbus 物理端点采用编译期互斥选择；真实 RS485 使用 USART1 PA9/PA10 和模块自动换向，不使用 PC8/DE/RE。确认日期：2026-09-04。
 
 ## 12. 待确认的架构决策
 
-1. RS485 模块、USART/DE/RE、终端和偏置方案。
-2. 是否只支持 Windows，Linux 仅保留可移植边界。
+1. 是否只支持 Windows，Linux 仅保留可移植边界。

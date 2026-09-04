@@ -86,4 +86,13 @@
 
 ## 当前状态
 
-待实施。任务文档已于 2026-09-04 创建，尚未派发；必须等待 TASK-002 硬件接口 Spec 评审通过。
+已完成（2026-09-04）。
+
+- `specs/rs485_hardware_interface.md` 与 `specs/firmware_rs485_transport_migration.md` 均已评审通过；
+- USART1/PA9/PA10、自动换向 RS485 和互斥构建选择已实现，未使用 PC8/DE/RE；
+- USART2 VCP 与 USART1 RS485 两种 ARM 构建均通过，非法构建值按预期拒绝；
+- 既有纯 C 测试 35/35 通过，RS485 固件已烧录、校验并运行；
+- 第三方 Master 完成全量读写、0x01/0x02/0x03、坏 CRC、短帧、500 次连续请求和采集并行验证；
+- 测试后的四路阈值已恢复为 600/600/600/400。
+
+详细证据见 `docs/test_results/task009_firmware_rs485_transport_validation.md`。最终 Review 无必须修复项，允许进入 TASK-010。
