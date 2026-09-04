@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`～`TASK-013`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。30 分钟监控、设备复位显式恢复以及四路阈值真实 RS485 写回读与原值恢复均验收通过。
+当前状态：`TASK-001`～`TASK-013`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。30 分钟监控、设备复位显式恢复以及四路阈值真实 RS485 写回读与原值恢复均验收通过。Host Phase 5 已制定 `TASK-014`～`TASK-016`，当前仅完成任务规划，尚未派发或实施。
 
 ## 项目目标
 
@@ -55,6 +55,9 @@
 - [TASK-013 Host 参数配置、通信调试与会话日志](tasks/TASK-013-host-configuration-communication-diagnostics.md)
 - [Host Phase 4 参数配置、通信诊断与会话日志技术规范](specs/host_phase4_configuration_and_diagnostics.md)
 - [TASK-013 参数配置、通信诊断与真实 RS485 验证记录](docs/test_results/task013_configuration_diagnostics_rs485.md)
+- [TASK-014 Host Phase 5 测试用例模型、JSON Schema 与断言](tasks/TASK-014-host-phase5-testcase-schema-loader.md)
+- [TASK-015 Host Phase 5 TestEngine 执行核心](tasks/TASK-015-host-phase5-test-engine-core.md)
+- [TASK-016 Host Phase 5 自动化测试 UI 与真实 RS485 验收](tasks/TASK-016-host-phase5-automation-ui-rs485-validation.md)
 
 ## 仓库结构
 
@@ -147,8 +150,9 @@ $env:Path = "D:\Dev\Qt\6.8.3\msvc2022_64\bin;$env:Path"
 1. `TASK-002/009/010` 已关闭；改变模块、供电、方向方式、线长、终端或偏置时必须重新评审硬件接口和对应测试范围；
 2. TASK-011/012/013 已关闭；配置和调试日志复用状态/监控核心与 `IModbusClient`，后续功能仍不得在 QWidget 直接操作 QSerialPort；
 3. Phase 4 的实时监控、30 分钟台架、参数配置、通信调试和会话日志已通过；TestEngine 与报告仍未实施，不得把 TASK-013 结果扩展为自动测试和报告能力已完成；
-4. TestEngine 和报告必须等待 Phase 4 状态与所有权行为稳定后再拆分，不得把 Phase 3 通信工具视为最终业务 UI；
-5. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
+4. Phase 5 按 `TASK-014` 测试输入契约、`TASK-015` TestEngine 核心、`TASK-016` 自动化测试 UI 与至少 5 条真实 RS485 用例的顺序推进，前置任务未验收时不得跨层临时实现；
+5. `TASK-014`～`TASK-016` 当前仅已制定、尚未派发；Phase 6 的完整 20 条套件、Phase 7 半自动测试和 Phase 8 HTML 报告继续留待后续拆分；
+6. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
 
 详细未决项见架构与 Phase 0 任务文档。
 
