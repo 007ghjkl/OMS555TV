@@ -87,6 +87,21 @@ add_executable(tst_configurationdiagnosticsui
 target_link_libraries(tst_configurationdiagnosticsui PRIVATE oms555tv_widgets Qt6::Test)
 add_test(NAME host.configuration_diagnostics.ui COMMAND tst_configurationdiagnosticsui)
 
+add_executable(tst_testcaseloader
+    testing/tst_testcaseloader.cpp
+)
+target_compile_definitions(tst_testcaseloader PRIVATE
+    OMS555TV_TESTCASES_DIR="${CMAKE_SOURCE_DIR}/../../testcases"
+)
+target_link_libraries(tst_testcaseloader PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.testing.testcase_loader COMMAND tst_testcaseloader)
+
+add_executable(tst_testassertions
+    testing/tst_testassertions.cpp
+)
+target_link_libraries(tst_testassertions PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.testing.assertions COMMAND tst_testassertions)
+
 add_test(NAME host.application.smoke COMMAND oms555tv_host --smoke-test)
 set_tests_properties(
     host.logging.logentry
@@ -103,6 +118,8 @@ set_tests_properties(
     host.monitoring.core
     host.monitoring.ui
     host.configuration_diagnostics.ui
+    host.testing.testcase_loader
+    host.testing.assertions
     host.application.smoke
     PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"

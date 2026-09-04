@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "id": "all-types",
+  "name": "全部基础类型",
+  "description": "覆盖五种声明类型和规范化语义",
+  "tags": ["fixture", "中文"],
+  "metadata": { "purpose": "unit-test" },
+  "cases": [
+    {
+      "id": "read-one",
+      "name": "读取单寄存器",
+      "category": "functional",
+      "type": "read_register",
+      "request": { "function": 3, "address": 0, "count": 1 },
+      "expected": { "type": "range", "min": -400, "max": 1250, "representation": "int16", "unit": "0.1℃" }
+    },
+    {
+      "id": "read-many",
+      "name": "读取寄存器序列",
+      "category": "functional",
+      "type": "read_registers",
+      "request": { "function": 3, "address": 39, "count": 2 },
+      "expected": { "type": "register_sequence", "values": [1, 2] },
+      "timeout": { "request_ms": 250, "case_ms": 750 },
+      "retry": { "max_retries": 2, "on_errors": ["timeout", "crc"] }
+    },
+    {
+      "id": "write-one",
+      "name": "写单寄存器",
+      "category": "functional",
+      "type": "write_register",
+      "enabled": false,
+      "request": { "function": 6, "address": 9, "value": 600 },
+      "expected": { "type": "equals", "value": 600 }
+    },
+    {
+      "id": "write-verify",
+      "name": "写入回读并恢复",
+      "category": "functional",
+      "type": "write_and_verify",
+      "request": {
+        "function": 6,
+        "verify_function": 3,
+        "address": 9,
+        "value": 601,
+        "read_before_write": true,
+        "restore_original": true
+      },
+      "expected": { "type": "equals", "value": 601 },
+      "timeout": { "request_ms": 500, "case_ms": 3000 }
+    },
+    {
+      "id": "expect-read-exception",
+      "name": "期望读异常",
+      "category": "protocol",
+      "type": "expect_exception",
+      "request": { "function": 3, "address": 50000, "count": 1 },
+      "expected": { "type": "modbus_exception", "code": 2 }
+    },
+    {
+      "id": "expect-write-exception",
+      "name": "期望写异常",
+      "category": "protocol",
+      "type": "expect_exception",
+      "request": { "function": 6, "address": 50000, "value": 65535 },
+      "expected": { "type": "modbus_exception", "code": 3 }
+    }
+  ]
+}

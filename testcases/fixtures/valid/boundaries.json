@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "boundaries",
+  "name": "边界值",
+  "cases": [
+    {
+      "id": "last-address",
+      "name": "地址末端",
+      "category": "boundary",
+      "type": "read_register",
+      "request": { "function": 3, "address": 65535, "count": 1 },
+      "expected": { "type": "equals", "value": 65535 },
+      "timeout": { "request_ms": 1, "case_ms": 1 }
+    },
+    {
+      "id": "max-count",
+      "name": "最大读取数量",
+      "category": "boundary",
+      "type": "read_registers",
+      "request": { "function": 3, "address": 65411, "count": 125 },
+      "expected": {
+        "type": "register_sequence",
+        "values": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 65535]
+      },
+      "timeout": { "request_ms": 60000, "case_ms": 300000 },
+      "retry": { "max_retries": 3, "on_errors": ["timeout", "connection", "serial", "crc", "protocol"] }
+    }
+  ]
+}

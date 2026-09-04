@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "id": "phase5-schema-example",
+  "name": "Phase 5 中文示例套件（非正式用例）",
+  "description": "用于演示 TASK-014 输入契约，不计入 Phase 6 正式 20 条测试用例。",
+  "tags": ["示例", "不执行"],
+  "metadata": {
+    "author": "OMS555TV",
+    "purpose": "schema-example"
+  },
+  "cases": [
+    {
+      "id": "EX-READ-ONE",
+      "name": "读取 A 相温度",
+      "category": "functional",
+      "type": "read_register",
+      "request": { "function": 3, "address": 0, "count": 1 },
+      "expected": {
+        "type": "range",
+        "min": -400,
+        "max": 1250,
+        "representation": "int16",
+        "unit": "0.1℃"
+      }
+    },
+    {
+      "id": "EX-WRITE-VERIFY",
+      "name": "阈值写入、独立回读并恢复",
+      "category": "functional",
+      "type": "write_and_verify",
+      "enabled": false,
+      "request": {
+        "function": 6,
+        "verify_function": 3,
+        "address": 9,
+        "value": 600,
+        "read_before_write": true,
+        "restore_original": true
+      },
+      "expected": { "type": "equals", "value": 600, "unit": "raw" },
+      "timeout": { "request_ms": 500, "case_ms": 3000 },
+      "retry": { "max_retries": 1, "on_errors": ["timeout", "crc"] }
+    },
+    {
+      "id": "EX-EXCEPTION",
+      "name": "非法地址异常",
+      "category": "protocol",
+      "type": "expect_exception",
+      "request": { "function": 3, "address": 50000, "count": 1 },
+      "expected": { "type": "modbus_exception", "code": 2 },
+      "timeout": { "request_ms": 500 }
+    }
+  ]
+}

@@ -37,6 +37,12 @@ add_library(oms555tv_core STATIC
     monitor/MonitorService.h
     monitor/MonitorTypes.cpp
     monitor/MonitorTypes.h
+    testing/TestAssertions.cpp
+    testing/TestAssertions.h
+    testing/TestCaseLoader.cpp
+    testing/TestCaseLoader.h
+    testing/TestCaseTypes.cpp
+    testing/TestCaseTypes.h
     ui/MonitoringViewModel.cpp
     ui/MonitoringViewModel.h
     ui/SerialPortCatalog.cpp

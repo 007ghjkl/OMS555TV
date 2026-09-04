@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "id": "duplicate",
+  "name": "重复 ID",
+  "cases": [
+    {"id":"same","name":"一","category":"x","type":"read_register","request":{"function":3,"address":0,"count":1},"expected":{"type":"equals","value":0}},
+    {"id":"same","name":"二","category":"x","type":"read_register","request":{"function":3,"address":1,"count":1},"expected":{"type":"equals","value":0}}
+  ]
+}

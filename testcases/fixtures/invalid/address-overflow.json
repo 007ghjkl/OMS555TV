@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "id": "overflow",
+  "name": "地址溢出",
+  "cases": [
+    {"id":"bad","name":"越界","category":"boundary","type":"read_registers","request":{"function":3,"address":65535,"count":2},"expected":{"type":"register_sequence","values":[0,0]}}
+  ]
+}

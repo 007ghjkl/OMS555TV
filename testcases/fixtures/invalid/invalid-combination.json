@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "id": "combination",
+  "name": "错误组合",
+  "cases": [
+    {"id":"bad","name":"恢复但不预读","category":"x","type":"write_and_verify","request":{"function":6,"verify_function":3,"address":9,"value":600,"read_before_write":false,"restore_original":true},"expected":{"type":"equals","value":600},"timeout":{"request_ms":500,"case_ms":2000}}
+  ]
+}

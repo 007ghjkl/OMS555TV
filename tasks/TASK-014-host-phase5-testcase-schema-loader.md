@@ -89,4 +89,4 @@ Phase 5 不应直接从 UI 读取任意 JSON 并边执行边猜语义。本任�
 
 ## 当前状态
 
-待实施。任务文档已于 2026-09-04 创建，尚未派发。
+已完成（2026-09-04）。Technical Spec、v1 JSON Schema、严格 Loader、规范化模型、纯断言核心、中文示例和有效/无效 fixture 均已实现；全新 Host 配置、构建和 17/17 CTest 通过。测试未访问串口、真实硬件或 QWidget，最终 Review 无必须修复项，TASK-015 可进入实施。详见 `docs/test_results/task014_testcase_schema_loader.md`。
