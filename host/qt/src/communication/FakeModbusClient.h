@@ -15,6 +15,8 @@ struct RequestMatcher {
     CommunicationOwner owner = CommunicationOwner::None;
     RequestDescriptor descriptor;
     std::chrono::milliseconds responseTimeout{500};
+    // 空字符串表示不校验；非空时用于验证上层批次/用例关联语义。
+    QString correlationId;
 };
 
 enum class FakeOutcomeKind {
@@ -70,6 +72,8 @@ public:
     CommandAcceptance cancelRequest(RequestId requestId) override;
 
     void enqueueStep(FakeStep step);
+    // 仅供确定性上层状态测试：下一次已接受的 open 在异步完成阶段失败。
+    void failNextOpen(CommunicationError error);
     [[nodiscard]] bool scriptConsumed() const noexcept;
     [[nodiscard]] bool hasNonTerminalRequests() const noexcept;
     [[nodiscard]] QString verificationError() const;
@@ -139,6 +143,7 @@ private:
     std::optional<PendingRequest> active_;
     std::optional<OwnershipTransition> ownershipTransition_;
     std::optional<CloseTransition> closeTransition_;
+    std::optional<CommunicationError> nextOpenFailure_;
 };
 
 } // namespace oms555tv::communication

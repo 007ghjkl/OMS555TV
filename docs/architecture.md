@@ -1,6 +1,6 @@
 # 系统架构设计草案
 
-> 状态：评审草案 0.3，Host 后端与 RS485 物理接口已确认
+> 状态：评审草案 0.4，Host 后端、RS485 物理接口与 Phase 4 监控核心已确认
 > 日期：2026-09-04
 
 ## 1. 架构目标
@@ -90,6 +90,8 @@ DISCONNECTED → CONNECTED_IDLE → MONITORING
 ```
 
 状态迁移必须集中管理；未连接禁止监控和测试，测试与监控互斥。
+
+TASK-011 已实现 `AppStateController` 与 `MonitorService`：控制命令采用同步接受/拒绝和异步终态通知；Monitor owner 获取成功后，按 `deviceSnapshotReadBlocks` 严格串行读取五块，只有整批成功并经 `RegisterCodec` 解码后才发布快照。连续三批失败判定 Offline，停止时受控取消唯一请求并在释放 owner 后返回 `CONNECTED_IDLE`。周期、错误、统计和恢复细节以 `specs/host_phase4_monitoring_core.md` 为准。
 
 ## 7. 数据与错误模型
 

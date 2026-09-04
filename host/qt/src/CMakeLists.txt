@@ -1,4 +1,7 @@
 add_library(oms555tv_core STATIC
+    app/AppStateController.cpp
+    app/AppStateController.h
+    app/AppStateTypes.h
     logging/LogEntry.cpp
     logging/LogEntry.h
     communication/CommunicationTypes.cpp
@@ -21,6 +24,12 @@ add_library(oms555tv_core STATIC
     device/RegisterCodec.cpp
     device/RegisterCodec.h
     device/RegisterMap.h
+    monitor/MonitorScheduler.cpp
+    monitor/MonitorScheduler.h
+    monitor/MonitorService.cpp
+    monitor/MonitorService.h
+    monitor/MonitorTypes.cpp
+    monitor/MonitorTypes.h
 )
 
 target_include_directories(oms555tv_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

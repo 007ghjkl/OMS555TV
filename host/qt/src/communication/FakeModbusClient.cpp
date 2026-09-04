@@ -142,6 +142,18 @@ ControlSubmission FakeModbusClient::open(const ModbusConnectionConfig &config)
         if (!self) {
             return;
         }
+        if (self->nextOpenFailure_) {
+            CommunicationError error = std::move(*self->nextOpenFailure_);
+            self->nextOpenFailure_.reset();
+            self->state_ = ConnectionState::Disconnected;
+            error.operationId = id;
+            error.connectionState = self->state_;
+            error.owner = CommunicationOwner::None;
+            emit self->connectionStateChanged(self->state_);
+            emit self->controlCompleted(
+                {id, ControlKind::Open, false, std::move(error)});
+            return;
+        }
         self->state_ = ConnectionState::Connected;
         self->owner_ = CommunicationOwner::None;
         emit self->connectionStateChanged(self->state_);
@@ -314,6 +326,8 @@ bool FakeModbusClient::matcherMatches(const RequestMatcher &matcher,
 {
     return matcher.owner == request.options.owner
         && matcher.responseTimeout == request.timeout
+        && (matcher.correlationId.isEmpty()
+            || matcher.correlationId == request.options.correlationId)
         && descriptorsEqual(matcher.descriptor, request.descriptor);
 }
 
@@ -685,6 +699,11 @@ void FakeModbusClient::finishClose()
 void FakeModbusClient::enqueueStep(FakeStep step)
 {
     script_.push_back(std::move(step));
+}
+
+void FakeModbusClient::failNextOpen(CommunicationError error)
+{
+    nextOpenFailure_ = std::move(error);
 }
 
 bool FakeModbusClient::scriptConsumed() const noexcept

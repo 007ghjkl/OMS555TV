@@ -48,6 +48,13 @@ add_executable(tst_qserialportmodbusclient
 target_link_libraries(tst_qserialportmodbusclient PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.communication.qserialport_backend COMMAND tst_qserialportmodbusclient)
 
+add_executable(tst_monitoringcore
+    monitor/ManualMonitorScheduler.h
+    monitor/tst_monitoringcore.cpp
+)
+target_link_libraries(tst_monitoringcore PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.monitoring.core COMMAND tst_monitoringcore)
+
 add_test(NAME host.application.smoke COMMAND oms555tv_host --smoke-test)
 set_tests_properties(
     host.logging.logentry
@@ -58,6 +65,7 @@ set_tests_properties(
     host.communication.rtu_codec
     host.communication.fake_contract
     host.communication.qserialport_backend
+    host.monitoring.core
     host.application.smoke
     PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
