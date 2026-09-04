@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`～`TASK-010`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环。2026-09-04 完成 TASK-002/009/010：自动换向硬件基线、Firmware 迁移、Host 全量联调、500 次连续请求、物理断线恢复和设备复位恢复均通过，RS485 迁移总门禁已关闭。
+当前状态：`TASK-001`～`TASK-010`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环，RS485 迁移总门禁已关闭。下一阶段按 Phase 4 拆分为 TASK-011 应用状态与监控核心、TASK-012 实时监控 UI 与 30 分钟 RS485 验收、TASK-013 参数配置与通信调试日志；三项目前只完成计划，尚未派发。
 
 ## 项目目标
 
@@ -46,6 +46,9 @@
 - [TASK-009 Firmware RS485 验证记录](docs/test_results/task009_firmware_rs485_transport_validation.md)
 - [TASK-010 Host 真实 RS485 系统联调与迁移验收](tasks/TASK-010-host-rs485-system-integration.md)
 - [TASK-010 Host RS485 联调记录](docs/test_results/task010_host_rs485_system_integration.md)
+- [TASK-011 Host Phase 4 应用状态与监控核心](tasks/TASK-011-host-phase4-monitoring-core.md)
+- [TASK-012 Host Phase 4 实时监控 UI 与 RS485 长时验证](tasks/TASK-012-host-phase4-monitoring-ui-rs485-validation.md)
+- [TASK-013 Host 参数配置、通信调试与会话日志](tasks/TASK-013-host-configuration-communication-diagnostics.md)
 
 ## 仓库结构
 
@@ -123,9 +126,10 @@ $env:Path = "D:\Dev\Qt\6.8.3\msvc2022_64\bin;$env:Path"
 硬件与引脚基线、Firmware Phase 1/2、Host Modbus 后端以及 RS485 迁移总验收已经完成。后续阶段必须保持以下门禁：
 
 1. `TASK-002/009/010` 已关闭；改变模块、供电、方向方式、线长、终端或偏置时必须重新评审硬件接口和对应测试范围；
-2. 后续监控与 TestEngine 必须复用 `IModbusClient`，不得直接操作 QSerialPort；
-3. Host Phase 4 监控、TestEngine 和报告尚未实现，不得把 Phase 3 通信工具视为最终业务 UI；
-4. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
+2. 按 TASK-011→TASK-012→TASK-013 完成 Phase 4；状态机、监控、配置和调试日志必须复用 `IModbusClient`，不得直接操作 QSerialPort；
+3. TASK-012 的 30 分钟真实 RS485 监控未执行前，不得声称 Phase 4 已通过；
+4. TestEngine 和报告必须等待 Phase 4 状态与所有权行为稳定后再拆分，不得把 Phase 3 通信工具视为最终业务 UI；
+5. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
 
 详细未决项见架构与 Phase 0 任务文档。
 
