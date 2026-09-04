@@ -1,6 +1,6 @@
 # 测试用例目录
 
-> 状态：Phase 5/6 用例规划基线；TASK-014 已固化 v1 Schema、Loader 与断言语义，正式执行与用例结果仍待 TASK-015/016。
+> 状态：Phase 5/6 用例规划基线；TASK-014/015 已固化输入与执行核心，正式 RS485 用例结果仍待 TASK-016。
 
 | ID | 类别 | 名称 | 类型 | 自动化方式 | 当前状态 |
 |---|---|---|---|---|---|
@@ -29,4 +29,4 @@
 | TC-R002 | 恢复 | 设备复位后恢复 | guided_recovery | 半自动 | 待实现 |
 | TC-S001 | 稳定性 | 可配置连续轮询 | stability | 自动 | 待实现 |
 
-当前目录列出 24 个候选用例，不代表已实现或已通过。TASK-014 已完成输入契约，`testcases/examples/phase5-schema-example.json` 仅为中文 Schema 示例，不计入正式用例；TASK-015/016 仍需实现 TestEngine 和至少 5 条真实 RS485 最小套件。其余候选用例与完整 20 条有效套件仍属于后续 Phase 6，用例 JSON 应在对应执行器和数据范围确认后逐批落地。
+当前目录列出 24 个候选用例，不代表已实现或已通过。TASK-014 已完成输入契约，`testcases/examples/phase5-schema-example.json` 仅为中文 Schema 示例，不计入正式用例；TASK-015 已完成 TestEngine 的 Fake 验证，但没有把本文件候选项标记为实机通过。TASK-016 仍需落地并执行至少 5 条真实 RS485 最小套件。其余候选用例与完整 20 条有效套件仍属于后续 Phase 6，用例 JSON 应在对应执行器和数据范围确认后逐批落地。

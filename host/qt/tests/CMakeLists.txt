@@ -102,6 +102,13 @@ add_executable(tst_testassertions
 target_link_libraries(tst_testassertions PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.testing.assertions COMMAND tst_testassertions)
 
+add_executable(tst_testengine
+    monitor/ManualMonitorScheduler.h
+    testing/tst_testengine.cpp
+)
+target_link_libraries(tst_testengine PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.testing.engine COMMAND tst_testengine)
+
 add_test(NAME host.application.smoke COMMAND oms555tv_host --smoke-test)
 set_tests_properties(
     host.logging.logentry
@@ -120,6 +127,7 @@ set_tests_properties(
     host.configuration_diagnostics.ui
     host.testing.testcase_loader
     host.testing.assertions
+    host.testing.engine
     host.application.smoke
     PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"

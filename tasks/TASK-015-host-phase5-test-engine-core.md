@@ -89,4 +89,4 @@ Phase 4 已完成 `AppStateController`、Monitor owner、Testing owner 预留、
 
 ## 当前状态
 
-待实施。任务文档已于 2026-09-04 创建，尚未派发；必须等待 TASK-014 完成。
+已完成（2026-09-05）。Technical Spec、执行核心、四类基础处理器、不可变结果快照、TEST 日志、timeout/retry、中止、复合恢复和 Testing owner 清理均已实现；全新 Host 构建及 18/18 CTest 通过。验证仅使用 Fake 与虚拟时钟，未访问真实 RS485 或 QWidget；TASK-016 自动化 UI 和至少 5 条真实用例仍未实施。

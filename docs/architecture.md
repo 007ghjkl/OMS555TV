@@ -113,6 +113,8 @@ TASK-013 已实现 `ConfigurationService`、`CommunicationDiagnosticsModel` 与 
 
 TASK-014 已实现上述输入边界：`test-suite-v1.schema.json` 与 C++ Loader 共同拒绝未知版本/字段和非法跨字段组合，配置错误携带稳定错误码、JSON 路径与套件/用例上下文。`read_register` 显式规范化为 `count=1` 的 `ReadRegisters`，模型分别保存单请求/用例总 timeout 和显式 retry；`TestAssertions` 只消费寄存器值或 Modbus 异常，不依赖 `IModbusClient`。测试用例配置与执行状态模型保持分离，详细契约见 `specs/host_phase5_testcase_schema.md`。
 
+TASK-015 已实现无 QWidget 的 `TestEngine`、处理器注册边界和 `TestResultManager`。TASK-016/UI 先通过应用状态机取得 Testing owner，引擎只在 `TESTING` 状态执行，并在终态调用 `stopTesting()` 等待 owner 释放。四类基础处理器分别管理读取、写入、期望异常和写入/独立回读/恢复步骤；中心调度统一负责用例预算、显式 retry、中止、RequestId/完整事务证据与 TEST 日志。结果管理器以复制替换方式发布不可变快照，报告层无需重新解释通信结果。完整状态、错误优先级与清理规则见 `specs/host_phase5_test_engine.md`。
+
 ## 9. 部署与构建
 
 - Host：Windows x64，Qt 6.8.3、MSVC 2022、CMake、Ninja。

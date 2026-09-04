@@ -43,6 +43,14 @@ add_library(oms555tv_core STATIC
     testing/TestCaseLoader.h
     testing/TestCaseTypes.cpp
     testing/TestCaseTypes.h
+    testing/TestCaseHandlers.cpp
+    testing/TestCaseHandlers.h
+    testing/TestEngine.cpp
+    testing/TestEngine.h
+    testing/TestEngineTypes.cpp
+    testing/TestEngineTypes.h
+    testing/TestResultManager.cpp
+    testing/TestResultManager.h
     ui/MonitoringViewModel.cpp
     ui/MonitoringViewModel.h
     ui/SerialPortCatalog.cpp
