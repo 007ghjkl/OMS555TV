@@ -43,7 +43,7 @@
 - A/B/C 相 DHTC12 分别使用 I2C1（PB8/PB9）、I2C2（PB10/PB3）和 I2C3（PA8/PC9）。
 - 光敏模块 AO 使用 PA0/ADC1_IN0，3.3 V 供电；数据表示为毫伏，不表示校准照度。
 - 环境温度当前为带状态位的软件模拟源，不能与真实传感器值混淆。
-- 开发阶段 Modbus RTU 帧通过 USART2/ST-LINK VCP；RS485 电气层属于后续迁移任务。
+- 已验证的开发基线通过 USART2/ST-LINK VCP 传输 Modbus RTU；RS485 迁移计划使用 USART1 PA9/PA10，方向 GPIO 是否需要及其引脚必须由实际模块在 TASK-002 中确认。Firmware 迁移和 Host 闭环分别由 TASK-009、TASK-010 执行。
 
 详细接线、电气约束与待验证项以 `docs/hardware_baseline.md` 为准。
 

@@ -1,16 +1,16 @@
 # 硬件与通信基线
 
-> 状态：基线 1.0，TASK-000 评审结论
+> 状态：基线 1.1，已同步 USART1→COM6 单向链路证据与 RS485 迁移计划
 >
-> 日期：2026-08-31
+> 日期：2026-09-04
 >
-> 验证范围：已核对用户提供的器件资料与本机安装目录；尚未完成接线、固件构建或真实硬件运行验证。
+> 验证范围：传感器、VCP/UART Modbus 和 Host Phase 3 已完成实机验证；USART1→COM6 单向原始链路已由用户验证，真实 RS485 双向 Modbus、方向控制、终端和偏置仍待 TASK-002/009/010 验收。
 
 ## 1. 基线结论
 
 当前硬件足以生成唯一的 STM32CubeMX 工程并开展 Phase 0/Phase 1：使用 NUCLEO-F411RE、STM32F411RET6、板载 ST-LINK/V2-1、三路独立 I2C 的 DHTC12，以及一路 PA0/ADC1 光敏模拟量。
 
-当前没有 TTL-RS485 模块。开发阶段先通过板载 ST-LINK 虚拟串口（USART2）传输 Modbus RTU 帧；RS485 物理层迁移单独由 `TASK-002` 管理，不把尚未购买的收发器型号或接线写成已确认事实。
+当前已接入一条使用 USART1 和 COM6 的候选外部链路，并由用户通过持续发送确认 STM32→COM6 单向可达。仓库尚未记录 TTL-RS485 收发器和 USB-RS485 转换器的准确型号、接线、方向控制、终端与偏置，因此不能把该结果描述为真实 RS485 双向 Modbus 已通过。迁移由 TASK-002/009/010 分阶段管理。
 
 ## 2. 硬件清单
 
@@ -23,7 +23,7 @@
 | 温湿度传感器 | DHTC12 ×3，固定 7 位 I2C 地址 `0x44` |
 | 模拟传感器 | 4 线制光敏电阻模块，使用 AO，DO 暂不连接 |
 | 供电 | NUCLEO 由 ST-LINK USB 供电；所有外接模块使用板载 3.3 V 与公共 GND |
-| RS485 | 当前无实物；后续选择 3.3 V 逻辑兼容的半双工模块 |
+| RS485 | 候选链路已接入并完成 USART1→COM6 单向持续发送；模块准确身份、电气参数与双向验收待 TASK-002 补齐 |
 
 必须在首次接线前记录开发板底部 MB1136 的 `C-xx` 修订号。该信息不阻塞当前工程，因为时钟基线不依赖板载 HSE 焊桥状态。
 
@@ -78,9 +78,11 @@ PLLQ 对应的 48 MHz 域在当前阶段不使用，由 CubeMX 按未启用 USB/
 
 三只 DHTC12 地址均固定为 `0x44`，因此不能并联在同一 I2C 总线上。上述分配使每只传感器独占一个硬件 I2C 控制器。
 
-### 5.2 预留的 RS485 迁移资源
+### 5.2 RS485 迁移资源与当前证据
 
-建议后续优先评估 USART1 的 PA9/PA10，并预留 PC8 作为 DE/RE 控制，使 USART2 继续承担调试日志和 VCP。该方案在 TTL-RS485 模块型号与接线评审前仅是候选，不属于当前已实现基线。
+迁移计划使用 USART1 的 PA9/PA10，使 USART2 继续承担 ST-LINK VCP 诊断或回归通道。2026-09-04 用户已通过 USART1 持续向 COM6 发送消息并确认接收，说明 PA9/TX 所在单向路径具备继续迁移的基础。
+
+PC8 仍只是外部 DE/RE 方案的候选方向 GPIO。若实际模块具备可验证的自动换向电路，则不得添加虚构的 PC8 控制；若模块暴露 DE/`/RE` 且无自动换向，则必须在 TASK-002 Spec 中确认 PC8 引脚冲突、电平含义和 TX 完成后释放时序。
 
 ## 6. 传感器电气与采集约束
 
@@ -115,6 +117,8 @@ PLLQ 对应的 48 MHz 域在当前阶段不使用，由 CubeMX 按未启用 USB/
 |---|---|
 | 当前物理通道 | ST-LINK USB Virtual COM Port + USART2 TTL |
 | 当前 Windows 端口 | COM3（2026-09-03 枚举结果，重新插拔后可能变化） |
+| RS485 候选端口 | COM6，Windows 枚举为 `MacroSilicon USB Serial Ports`，VID `0x345F`、PID `0x3020`、实例尾号 `A02001JS`（2026-09-04） |
+| RS485 当前证据 | USART1→COM6 持续单向发送已由用户验证；串口参数、测试负载、持续时间和反向链路待补齐 |
 | 上层帧格式 | Modbus RTU |
 | Slave ID | 1 |
 | Baud rate | 115200 |
@@ -124,7 +128,7 @@ PLLQ 对应的 48 MHz 域在当前阶段不使用，由 CubeMX 按未启用 USB/
 | Flow control | None |
 | 响应超时初始值 | 500 ms，由 Host 配置 |
 
-当前链路可验证 Modbus 帧格式、CRC、寄存器映射和测试引擎，但不能代表 RS485 电气层已经验证。所有报告必须区分“VCP/UART 协议验证”和“RS485 实物验证”。
+USART2/ST-LINK VCP 链路已验证 Modbus 帧格式、CRC、寄存器映射和 Host Phase 3。USART1→COM6 目前只证明单向原始链路可达，不能代表 RS485 双向请求响应、方向控制或电气层已经验证。所有报告必须区分“VCP/UART 协议验证”“RS485 单向链路验证”和“RS485 双向 Modbus 实物验证”。
 
 ## 8. 阈值、迟滞与故障策略
 
@@ -168,4 +172,5 @@ PLLQ 对应的 48 MHz 域在当前阶段不使用，由 CubeMX 按未启用 USB/
 - 光敏 ADC 在 3.3 V 配置下完成明暗方向测试：普通环境 993～999 mV（raw 1233～1240），完全遮光 2883～2898 mV（raw 3578～3597），手机手电筒近距离照射 130～132 mV（raw 162～165）。三组均连续有效，确认光越强 AO 电压越低；这些电压是未校准 ADC 结果，不表示照度。
 - B 路 SDA（PB3/CN10-31）断开实测：第 1、2 次失败时 `invalid=1/2`、状态字 `0x0021`，第 3 次失败时 `invalid=3`、状态字 `0x0025`；A/C 不受影响。运行中重连后 B 路首次捕获的有效帧为 26.3 ℃，`invalid=0`、`error=NONE`，状态字恢复为 `0x0021`。
 - 正式固件运行证据保存于 `output/logs/task003-abc-confirmed-10cycles.log`：三路各 12 个周期，共 36 帧均为 `valid=1`、`error=NONE`，状态字为 `0x0021`。光敏证据保存于 `output/logs/task003-light-covered.log` 和 `output/logs/task003-light-illuminated.log`；断线恢复证据保存于 `output/logs/task003-b-sda-disconnected-boot.log` 和 `output/logs/task003-b-sda-reconnected.log`。历史诊断日志仍保留在 `output/logs/`，均不进入 Git。
-- 未采购或验证 RS485 收发器、终端电阻、偏置和 DE/RE 时序。
+- 2026-09-04 用户已完成 USART1→COM6 持续单向发送验证；本机只读枚举确认 COM6 为 `MacroSilicon USB Serial Ports`，实例 ID `USB\VID_345F&PID_3020\A02001JS`。
+- 尚未在仓库记录 TTL-RS485 收发器和 USB-RS485 转换器的准确型号/丝印、串口参数、测试负载、线长、终端、偏置、公共地/隔离和 DE/RE 或自动换向方式；USART1 RX 与双向 Modbus 仍未验证。

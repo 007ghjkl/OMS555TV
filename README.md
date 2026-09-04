@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`、`TASK-003`～`TASK-008` 均已完成。Firmware Phase 2 Slave 与 Host Phase 3 QSerialPort Master 已通过 ST-LINK VCP/UART 实机闭环；Host 可稳定读取 STM32、写入并恢复阈值，并保存完整 RTU 证据。下一阶段可进入 Phase 4 监控/TestEngine 任务；`TASK-002` 真实 RS485 硬件迁移继续延期。
+当前状态：`TASK-001`、`TASK-003`～`TASK-008` 均已完成。Firmware Phase 2 Slave 与 Host Phase 3 QSerialPort Master 已通过 ST-LINK VCP/UART 实机闭环。2026-09-04 已确认 USART1 向当前 COM6 的持续单向发送链路可达，RS485 迁移不再延期；TASK-002 已更新为总验收门禁，并拆分 TASK-009 Firmware 迁移、TASK-010 Host 真实 RS485 联调。三项目前只完成计划，尚未派发。
 
 ## 项目目标
 
@@ -39,6 +39,9 @@
 - [TASK-007 Host Modbus RTU 核心、通信契约与 Fake](tasks/TASK-007-host-phase3-modbus-core-and-fake.md)
 - [TASK-008 Host QSerialPort 异步后端与 VCP 联调](tasks/TASK-008-host-phase3-qserialport-backend-vcp-integration.md)
 - [TASK-008 Host VCP/UART 联调记录](docs/test_results/task008_host_vcp_modbus_integration.md)
+- [TASK-002 RS485 硬件基线与迁移验收总任务](tasks/TASK-002-rs485-hardware-migration.md)
+- [TASK-009 Firmware USART1/RS485 传输迁移](tasks/TASK-009-firmware-usart1-rs485-transport-migration.md)
+- [TASK-010 Host 真实 RS485 系统联调与迁移验收](tasks/TASK-010-host-rs485-system-integration.md)
 
 ## 仓库结构
 
@@ -62,7 +65,7 @@ output/           本地日志与报告（内容不提交）
 - NUCLEO-F411RE / STM32F411RET6
 - STM32CubeMX 6.18.1-RC2 + STM32CubeF4 v1.28.3 + HAL
 - 三只 DHTC12（I2C1/2/3）与一路 PA0/ADC1 光敏模拟量
-- 当前通过 ST-LINK VCP/USART2、115200 8N1 开发 Modbus RTU；真实 RS485 待硬件迁移任务
+- 当前生产协议已通过 ST-LINK VCP/USART2、115200 8N1 验证；USART1→COM6 单向原始链路已验证，真实 RS485 双向 Modbus 迁移按 TASK-002/009/010 计划执行
 
 ## 构建 Host
 
@@ -111,10 +114,11 @@ $env:Path = "D:\Dev\Qt\6.8.3\msvc2022_64\bin;$env:Path"
 
 硬件与引脚基线、Firmware Phase 1/2 功能验证以及 Host Modbus 后端决策已经完成。以下事项仍必须在对应阶段完成：
 
-1. 采购 TTL-RS485 模块后完成 `TASK-002`，再验收 RS485 电气层；
-2. `TASK-008` 已完成 QSerialPort 后端和 Host VCP/UART 联调；后续监控与 TestEngine 必须复用 `IModbusClient`，不得直接操作 QSerialPort；
-3. Host Phase 4 监控、TestEngine 和报告尚未实现，不得把 Phase 3 通信工具视为最终业务 UI；
-4. 所有未执行的 RS485 和系统级硬件测试继续标记“未在真实 RS485 环境验证”。
+1. 先在 `TASK-002` 补齐两个转换模块的准确身份、逻辑电平、接线、方向方式、终端和偏置，并评审 RS485 硬件接口 Spec；
+2. 再按顺序执行 `TASK-009` Firmware USART1/RS485 迁移和 `TASK-010` Host 真实 RS485 闭环；当前 USART1→COM6 持续输出不能替代双向 Modbus 验收；
+3. `TASK-008` 已完成 QSerialPort 后端和 Host VCP/UART 联调；后续 RS485、监控与 TestEngine 必须复用 `IModbusClient`，不得直接操作 QSerialPort；
+4. Host Phase 4 监控、TestEngine 和报告尚未实现，不得把 Phase 3 通信工具视为最终业务 UI；
+5. 所有未执行的 RS485 和系统级硬件测试继续标记“未在真实 RS485 环境验证”。
 
 详细未决项见架构与 Phase 0 任务文档。
 
