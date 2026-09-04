@@ -18,7 +18,7 @@ private slots:
     {
         QCOMPARE(logLevelName(LogLevel::Debug), QStringLiteral("DEBUG"));
         QCOMPARE(logLevelName(LogLevel::Info), QStringLiteral("INFO"));
-        QCOMPARE(logLevelName(LogLevel::Warning), QStringLiteral("WARNING"));
+        QCOMPARE(logLevelName(LogLevel::Warning), QStringLiteral("WARN"));
         QCOMPARE(logLevelName(LogLevel::Error), QStringLiteral("ERROR"));
         QCOMPARE(logLevelName(LogLevel::Test), QStringLiteral("TEST"));
     }

@@ -1,6 +1,6 @@
 # 系统架构设计草案
 
-> 状态：评审草案 0.5，Host 后端、RS485 物理接口与 Phase 4 实时监控已确认
+> 状态：评审草案 0.6，Host 后端、RS485 物理接口与 Phase 4 监控/配置/诊断已确认
 > 日期：2026-09-04
 
 ## 1. 架构目标
@@ -55,6 +55,8 @@
 | `communication` | 串口配置、请求队列、Modbus 后端、错误和原始帧 |
 | `device` | 寄存器到领域数据的解析、缩放和写入校验 |
 | `monitor` | 周期轮询、在线状态和通信统计 |
+| `configuration` | 阈值读取、写入、独立回读、部分失败和 owner 生命周期 |
+| `diagnostics` | 消费不可变请求结果，提供有界记录、筛选和完整事务详情 |
 | `testing` | 用例加载、执行、断言、重试、中止和结果模型 |
 | `logging` | 结构化日志、会话归档和 UI 日志模型 |
 | `report` | HTML 报告模型与渲染 |
@@ -94,6 +96,8 @@ DISCONNECTED → CONNECTED_IDLE → MONITORING
 TASK-011 已实现 `AppStateController` 与 `MonitorService`：控制命令采用同步接受/拒绝和异步终态通知；Monitor owner 获取成功后，按 `deviceSnapshotReadBlocks` 严格串行读取五块，只有整批成功并经 `RegisterCodec` 解码后才发布快照。连续三批失败判定 Offline，停止时受控取消唯一请求并在释放 owner 后返回 `CONNECTED_IDLE`。周期、错误、统计和恢复细节以 `specs/host_phase4_monitoring_core.md` 为准。
 
 TASK-012 已实现 `MonitoringViewModel`、`QtSerialPortCatalog` 和 Qt Widgets `MainWindow`。窗口只绑定展示模型；串口打开、所有权、轮询和领域解码仍由既有层负责。展示模型统一派生按钮门禁、字段单位、模拟源、最后成功时间和陈旧状态，失败批次不覆盖成功快照。生产组装、offscreen UI 测试、30 分钟真实 RS485 和设备复位显式恢复均已通过，细节以 `specs/host_phase4_monitoring_ui.md` 和对应测试记录为准。
+
+TASK-013 已实现 `ConfigurationService`、`CommunicationDiagnosticsModel` 与 `SessionLogService`。配置仅在 `CONNECTED_IDLE` 获取 `ManualDebug` owner，写前保存当前值，每路 0x06 后执行独立 0x03 回读，部分失败继续但不发布未验证值，完成/失败/取消均走 owner 清理。诊断与 JSONL 日志共同消费不可变 `requestCompleted` 结果；生产内存分别保留最近 1000/2000 条，单日志文件 10 MiB、单会话最多 100 个分片。MainWindow 只绑定服务和模型，不包含 QSerialPort、RTU/CRC 或硬编码寄存器地址。完整行为见 `specs/host_phase4_configuration_and_diagnostics.md`。
 
 ## 7. 数据与错误模型
 

@@ -89,4 +89,4 @@ TASK-004 已提供阈值编码和范围校验，TASK-008 已提供每个请求�
 
 ## 当前状态
 
-待实施。任务文档已于 2026-09-04 创建，尚未派发；必须等待 TASK-012 完成。
+已完成（2026-09-04）。Technical Spec 已评审并实现；全新 Host 构建和 15/15 CTest 通过。COM6 真实 RS485 完成四路阈值测试前读取、0x06 写入、独立 0x03 回读、原值恢复和最终读取，20/20 请求成功且全部保留 TX/RX 会话证据。最终 Review 无必须修复项，详见 `docs/test_results/task013_configuration_diagnostics_rs485.md`。

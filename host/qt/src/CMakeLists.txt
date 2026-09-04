@@ -2,8 +2,15 @@ add_library(oms555tv_core STATIC
     app/AppStateController.cpp
     app/AppStateController.h
     app/AppStateTypes.h
+    configuration/ConfigurationService.cpp
+    configuration/ConfigurationService.h
+    configuration/ConfigurationTypes.h
+    diagnostics/CommunicationDiagnostics.cpp
+    diagnostics/CommunicationDiagnostics.h
     logging/LogEntry.cpp
     logging/LogEntry.h
+    logging/SessionLogService.cpp
+    logging/SessionLogService.h
     communication/CommunicationTypes.cpp
     communication/CommunicationTypes.h
     communication/CommunicationWorker.cpp

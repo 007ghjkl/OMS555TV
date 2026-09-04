@@ -180,3 +180,4 @@ USART2/ST-LINK VCP 是历史协议与回归通道；USART1/RS485 是本次真实
 - 2026-09-04 Host 生产 `QSerialPortModbusClient` 经 COM6 完成全量闭环；500/500 成功，Host API RTT 为 26.311/32.477/46.087 ms。
 - 2026-09-04 用户配合断开/重连 T/R+ 和保持/释放 RESET：断线与复位期间均为约 500 ms 可控超时，恢复后两次 20/20 请求均成功。
 - 2026-09-04 TASK-012 生产监控 UI 经 COM6 连续运行 1,800,007 ms，17,620/17,620 请求成功、零失败/超时；MCU 正式复位期间 UI 进入 Degraded/Offline 且保持响应，显式断开/重连后恢复 Online，随后 50/50 请求成功。原始哈希与边界见 `docs/test_results/task012_monitoring_rs485_30min.md`。
+- 2026-09-04 TASK-013 经 COM6 完成四路阈值测试前读取、逐路 0x06 写入、独立 0x03 回读、原值恢复和最终整块读取。20/20 请求成功且均保存 TX/RX；最终值恢复为 60.0/60.0/60.0/40.0 ℃。证据边界与日志哈希见 `docs/test_results/task013_configuration_diagnostics_rs485.md`。

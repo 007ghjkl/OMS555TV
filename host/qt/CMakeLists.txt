@@ -20,6 +20,15 @@ add_executable(task008_vcp_integration
 add_executable(task012_rs485_ui_validation
     tools/task012_rs485_ui_validation.cpp
 )
+
+add_executable(task013_rs485_validation
+    tools/task013_rs485_validation.cpp
+)
+target_link_libraries(task013_rs485_validation PRIVATE
+    oms555tv_core
+    Qt6::Core
+    Qt6::SerialPort
+)
 target_link_libraries(task012_rs485_ui_validation PRIVATE
     oms555tv_widgets
     Qt6::Widgets

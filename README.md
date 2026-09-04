@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`～`TASK-012`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心和实时 UI 已完成，30 分钟真实 RS485 与设备复位显式恢复验收通过。下一步为 TASK-013 参数配置、通信调试与会话日志。
+当前状态：`TASK-001`～`TASK-013`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。30 分钟监控、设备复位显式恢复以及四路阈值真实 RS485 写回读与原值恢复均验收通过。
 
 ## 项目目标
 
@@ -53,6 +53,8 @@
 - [Host Phase 4 实时监控 UI 技术规范](specs/host_phase4_monitoring_ui.md)
 - [TASK-012 实时监控与 30 分钟 RS485 验证记录](docs/test_results/task012_monitoring_rs485_30min.md)
 - [TASK-013 Host 参数配置、通信调试与会话日志](tasks/TASK-013-host-configuration-communication-diagnostics.md)
+- [Host Phase 4 参数配置、通信诊断与会话日志技术规范](specs/host_phase4_configuration_and_diagnostics.md)
+- [TASK-013 参数配置、通信诊断与真实 RS485 验证记录](docs/test_results/task013_configuration_diagnostics_rs485.md)
 
 ## 仓库结构
 
@@ -127,6 +129,8 @@ $env:Path = "$bundleRoot\gnu-tools-for-stm32\14.3.1+st.2\bin;$bundleRoot\ninja\1
 
 2026-09-04 的 TASK-012 最终结果：新增运行时串口枚举、`MonitoringViewModel` 和完整 Qt Widgets 实时监控界面；全新 Host 构建和 11/11 CTest 通过，真实后端与 UI 测试各重复 10 轮通过。COM6/真实 RS485 连续运行 1,800,007 ms，3,524/3,524 批次、17,620/17,620 请求成功，零失败、零超时，UI 最大心跳迟到 244 ms。MCU 复位时 UI 明确显示离线和陈旧快照，显式断开/重连后恢复 Online，最终稳定复检 50/50 请求成功。结论仅限当前约 20 cm 安全低压点对点台架。
 
+2026-09-04 的 TASK-013 最终结果：新增四路阈值配置服务、通信诊断模型、会话 JSONL 日志和对应 Qt Widgets 页面；全新 Host 构建和 15/15 CTest 通过。COM6/真实 RS485 测试前值为 60.0/60.0/60.0/40.0 ℃，测试值 60.1/60.1/60.1/40.1 ℃ 的逐路写回读通过，结束后恢复并最终读取为原值。会话内 20/20 请求成功且均保留 TX/RX，最终 Review 无必须修复项。
+
 实板联调工具会运行时枚举 ST-LINK，不写死 COM 号：
 
 ```powershell
@@ -141,8 +145,8 @@ $env:Path = "D:\Dev\Qt\6.8.3\msvc2022_64\bin;$env:Path"
 硬件与引脚基线、Firmware Phase 1/2、Host Modbus 后端以及 RS485 迁移总验收已经完成。后续阶段必须保持以下门禁：
 
 1. `TASK-002/009/010` 已关闭；改变模块、供电、方向方式、线长、终端或偏置时必须重新评审硬件接口和对应测试范围；
-2. TASK-011/012 已关闭；TASK-013 的配置和调试日志必须复用已完成的状态/监控核心与 `IModbusClient`，不得在 QWidget 直接操作 QSerialPort；
-3. Phase 4 的实时监控和 30 分钟台架验收已通过；参数配置、通信调试和会话日志仍须等待 TASK-013，不得把 TASK-012 结果扩展为这些功能已完成；
+2. TASK-011/012/013 已关闭；配置和调试日志复用状态/监控核心与 `IModbusClient`，后续功能仍不得在 QWidget 直接操作 QSerialPort；
+3. Phase 4 的实时监控、30 分钟台架、参数配置、通信调试和会话日志已通过；TestEngine 与报告仍未实施，不得把 TASK-013 结果扩展为自动测试和报告能力已完成；
 4. TestEngine 和报告必须等待 Phase 4 状态与所有权行为稳定后再拆分，不得把 Phase 3 通信工具视为最终业务 UI；
 5. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
 

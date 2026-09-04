@@ -1,6 +1,9 @@
 #include "app/MainWindow.h"
 #include "app/AppStateController.h"
 #include "communication/QSerialPortModbusClient.h"
+#include "configuration/ConfigurationService.h"
+#include "diagnostics/CommunicationDiagnostics.h"
+#include "logging/SessionLogService.h"
 #include "monitor/MonitorScheduler.h"
 #include "monitor/MonitorService.h"
 #include "ui/MonitoringViewModel.h"
@@ -8,7 +11,10 @@
 
 #include <QApplication>
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QTimer>
+
+#include <utility>
 
 int main(int argc, char *argv[])
 {
@@ -23,7 +29,40 @@ int main(int argc, char *argv[])
     oms555tv::ui::QtSerialPortCatalog serialPorts;
     oms555tv::ui::MonitoringViewModel viewModel(controller, monitorService,
                                                 serialPorts);
-    MainWindow window(viewModel);
+    oms555tv::configuration::ConfigurationService configuration(controller, client);
+    oms555tv::diagnostics::CommunicationDiagnosticsModel diagnostics(client);
+    oms555tv::logging::SessionLogService sessionLog(diagnostics);
+    QObject::connect(&controller, &oms555tv::app::AppStateController::stateChanged,
+                     &sessionLog, [&sessionLog](oms555tv::app::AppState state) {
+        oms555tv::logging::LogEntry entry{
+            QDateTime::currentDateTimeUtc(), oms555tv::logging::LogLevel::Info,
+            QStringLiteral("app"),
+            QStringLiteral("应用状态变更为 %1").arg(static_cast<int>(state))};
+        entry.event = QStringLiteral("state_changed");
+        sessionLog.append(std::move(entry));
+    });
+    QObject::connect(
+        &configuration,
+        &oms555tv::configuration::ConfigurationService::operationCompleted,
+        &sessionLog,
+        [&sessionLog](const oms555tv::configuration::ConfigurationOperationResult &result) {
+            oms555tv::logging::LogEntry entry{
+                QDateTime::currentDateTimeUtc(),
+                result.succeeded ? oms555tv::logging::LogLevel::Info
+                                 : oms555tv::logging::LogLevel::Warning,
+                QStringLiteral("configuration"),
+                QStringLiteral("配置操作 %1 %2")
+                    .arg(result.operationId.value)
+                    .arg(result.succeeded ? QStringLiteral("成功")
+                                          : QStringLiteral("失败或取消"))};
+            entry.event = QStringLiteral("operation_completed");
+            entry.metadata.insert(QStringLiteral("operation_id"),
+                                  static_cast<qulonglong>(result.operationId.value));
+            entry.metadata.insert(QStringLiteral("succeeded"), result.succeeded);
+            entry.metadata.insert(QStringLiteral("cancelled"), result.cancelled);
+            sessionLog.append(std::move(entry));
+        });
+    MainWindow window(viewModel, configuration, diagnostics, sessionLog);
     window.show();
 
     if (application.arguments().contains(QStringLiteral("--smoke-test"))) {

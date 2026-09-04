@@ -4,6 +4,12 @@ add_executable(tst_logentry
 target_link_libraries(tst_logentry PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.logging.logentry COMMAND tst_logentry)
 
+add_executable(tst_sessionlog
+    logging/tst_sessionlog.cpp
+)
+target_link_libraries(tst_sessionlog PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.logging.session COMMAND tst_sessionlog)
+
 add_executable(tst_qtserialbus_probe
     communication/tst_qtserialbus_probe.cpp
 )
@@ -41,6 +47,19 @@ add_executable(tst_fakemodbusclient
 target_link_libraries(tst_fakemodbusclient PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.communication.fake_contract COMMAND tst_fakemodbusclient)
 
+add_executable(tst_configuration
+    monitor/ManualMonitorScheduler.h
+    configuration/tst_configuration.cpp
+)
+target_link_libraries(tst_configuration PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.configuration.service COMMAND tst_configuration)
+
+add_executable(tst_diagnostics
+    diagnostics/tst_diagnostics.cpp
+)
+target_link_libraries(tst_diagnostics PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.communication.diagnostics COMMAND tst_diagnostics)
+
 add_executable(tst_qserialportmodbusclient
     communication/IModbusClientContract.h
     communication/tst_qserialportmodbusclient.cpp
@@ -61,24 +80,36 @@ add_executable(tst_monitoringui
 target_link_libraries(tst_monitoringui PRIVATE oms555tv_widgets Qt6::Test)
 add_test(NAME host.monitoring.ui COMMAND tst_monitoringui)
 
+add_executable(tst_configurationdiagnosticsui
+    monitor/ManualMonitorScheduler.h
+    ui/tst_configurationdiagnosticsui.cpp
+)
+target_link_libraries(tst_configurationdiagnosticsui PRIVATE oms555tv_widgets Qt6::Test)
+add_test(NAME host.configuration_diagnostics.ui COMMAND tst_configurationdiagnosticsui)
+
 add_test(NAME host.application.smoke COMMAND oms555tv_host --smoke-test)
 set_tests_properties(
     host.logging.logentry
+    host.logging.session
     host.technical.qtserialbus_raw_pdu
     host.technical.qserialport_rtu_public_api
     host.device.registercodec
     host.communication.types
     host.communication.rtu_codec
     host.communication.fake_contract
+    host.configuration.service
+    host.communication.diagnostics
     host.communication.qserialport_backend
     host.monitoring.core
     host.monitoring.ui
+    host.configuration_diagnostics.ui
     host.application.smoke
     PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
 )
 set_tests_properties(
     host.monitoring.ui
+    host.configuration_diagnostics.ui
     host.application.smoke
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )

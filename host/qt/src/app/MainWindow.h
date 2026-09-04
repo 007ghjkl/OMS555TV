@@ -3,25 +3,48 @@
 #include <QMainWindow>
 
 class QComboBox;
+class QDoubleSpinBox;
 class QLabel;
+class QLineEdit;
+class QPlainTextEdit;
 class QPushButton;
 class QSpinBox;
+class QTableWidget;
 
-namespace oms555tv::ui {
-class MonitoringViewModel;
-}
+namespace oms555tv::configuration { class ConfigurationService; }
+namespace oms555tv::diagnostics { class CommunicationDiagnosticsModel; }
+namespace oms555tv::logging { class SessionLogService; }
+namespace oms555tv::ui { class MonitoringViewModel; }
 
 class MainWindow final : public QMainWindow
 {
 public:
     explicit MainWindow(oms555tv::ui::MonitoringViewModel &viewModel,
                         QWidget *parent = nullptr);
+    MainWindow(oms555tv::ui::MonitoringViewModel &viewModel,
+               oms555tv::configuration::ConfigurationService &configuration,
+               oms555tv::diagnostics::CommunicationDiagnosticsModel &diagnostics,
+               oms555tv::logging::SessionLogService &sessionLog,
+               QWidget *parent = nullptr);
 
 private:
+    MainWindow(oms555tv::ui::MonitoringViewModel &viewModel,
+               oms555tv::configuration::ConfigurationService *configuration,
+               oms555tv::diagnostics::CommunicationDiagnosticsModel *diagnostics,
+               oms555tv::logging::SessionLogService *sessionLog,
+               QWidget *parent);
     QLabel *makeValueLabel(const QString &objectName);
     void render();
+    void renderConfiguration();
+    void renderDiagnostics();
+    void renderDiagnosticDetails();
+    void renderSessionLog();
 
     oms555tv::ui::MonitoringViewModel &viewModel_;
+    oms555tv::configuration::ConfigurationService *configuration_ = nullptr;
+    oms555tv::diagnostics::CommunicationDiagnosticsModel *diagnostics_ = nullptr;
+    oms555tv::logging::SessionLogService *sessionLog_ = nullptr;
+
     QComboBox *portCombo_ = nullptr;
     QComboBox *periodCombo_ = nullptr;
     QSpinBox *slaveAddressSpin_ = nullptr;
@@ -58,4 +81,27 @@ private:
     QLabel *timedOutLabel_ = nullptr;
     QLabel *successRateLabel_ = nullptr;
     QLabel *rttLabel_ = nullptr;
+
+    QDoubleSpinBox *thresholdSpins_[4]{};
+    QLabel *thresholdCurrentLabels_[4]{};
+    QPushButton *readThresholdsButton_ = nullptr;
+    QPushButton *writeThresholdsButton_ = nullptr;
+    QPushButton *cancelConfigurationButton_ = nullptr;
+    QLabel *configurationStateLabel_ = nullptr;
+    QPlainTextEdit *configurationResult_ = nullptr;
+
+    QComboBox *diagnosticLevelFilter_ = nullptr;
+    QComboBox *diagnosticResultFilter_ = nullptr;
+    QLineEdit *diagnosticRequestFilter_ = nullptr;
+    QPushButton *clearDiagnosticsButton_ = nullptr;
+    QTableWidget *diagnosticTable_ = nullptr;
+    QPlainTextEdit *diagnosticDetails_ = nullptr;
+
+    QPushButton *startSessionButton_ = nullptr;
+    QPushButton *endSessionButton_ = nullptr;
+    QPushButton *clearSessionLogButton_ = nullptr;
+    QLabel *sessionStateLabel_ = nullptr;
+    QLabel *sessionPathLabel_ = nullptr;
+    QLabel *sessionErrorLabel_ = nullptr;
+    QPlainTextEdit *sessionLogView_ = nullptr;
 };
