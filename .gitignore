@@ -13,6 +13,13 @@
 .vscode/
 .idea/
 
+# STM32Cube / STM32 VS Code 本地生成状态
+/firmware/stm32/.clangd
+/firmware/stm32/.gitignore
+/firmware/stm32/.settings/
+/firmware/stm32/.settings/**
+/firmware/stm32/mx.scratch
+
 # 编译器与调试产物
 *.obj
 *.o
