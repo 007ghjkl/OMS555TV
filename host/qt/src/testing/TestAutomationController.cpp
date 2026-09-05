@@ -45,15 +45,23 @@ TestAutomationController::TestAutomationController(
         currentStep_.reset();
         currentRequestId_.reset();
         currentAttempt_ = 0;
+        currentLogicalStepId_.clear();
+        currentLogicalStepIndex_ = -1;
+        currentRepetition_ = 0;
         emit currentStepChanged();
     });
     connect(&engine_, &TestEngine::stepStarted, this,
             [this](const QString &caseId, TestStepPurpose purpose,
-                   communication::RequestId requestId, int attempt) {
+                   communication::RequestId requestId, int attempt,
+                   QString logicalStepId, qsizetype logicalStepIndex,
+                   int repetition) {
         currentCaseId_ = caseId;
         currentStep_ = purpose;
         currentRequestId_ = requestId;
         currentAttempt_ = attempt;
+        currentLogicalStepId_ = std::move(logicalStepId);
+        currentLogicalStepIndex_ = logicalStepIndex;
+        currentRepetition_ = repetition;
         emit currentStepChanged();
     });
     connect(&engine_, &TestEngine::caseFinished, this,
@@ -62,6 +70,9 @@ TestAutomationController::TestAutomationController(
             currentStep_.reset();
             currentRequestId_.reset();
             currentAttempt_ = 0;
+            currentLogicalStepId_.clear();
+            currentLogicalStepIndex_ = -1;
+            currentRepetition_ = 0;
             emit currentStepChanged();
         }
     });
@@ -131,6 +142,21 @@ TestAutomationController::currentRequestId() const noexcept
 int TestAutomationController::currentAttempt() const noexcept
 {
     return currentAttempt_;
+}
+
+const QString &TestAutomationController::currentLogicalStepId() const noexcept
+{
+    return currentLogicalStepId_;
+}
+
+qsizetype TestAutomationController::currentLogicalStepIndex() const noexcept
+{
+    return currentLogicalStepIndex_;
+}
+
+int TestAutomationController::currentRepetition() const noexcept
+{
+    return currentRepetition_;
 }
 
 void TestAutomationController::setResumeMonitoring(bool enabled)
@@ -271,6 +297,9 @@ bool TestAutomationController::beginRun(QSet<QString> selectedCaseIds,
     currentStep_.reset();
     currentRequestId_.reset();
     currentAttempt_ = 0;
+    currentLogicalStepId_.clear();
+    currentLogicalStepIndex_ = -1;
+    currentRepetition_ = 0;
     emit currentStepChanged();
     if (wasMonitoring_) {
         const auto submission = appState_.stopMonitoring();
@@ -381,6 +410,9 @@ void TestAutomationController::handleRunCompleted()
     currentStep_.reset();
     currentRequestId_.reset();
     currentAttempt_ = 0;
+    currentLogicalStepId_.clear();
+    currentLogicalStepIndex_ = -1;
+    currentRepetition_ = 0;
     emit currentStepChanged();
     if (wasMonitoring_ && resumeMonitoring_) {
         const auto submission = appState_.startMonitoring(savedMonitorConfig_);

@@ -1,0 +1,202 @@
+{
+  "schema_version": 2,
+  "id": "phase6-rs485-full",
+  "name": "Phase 6 真实 RS485 完整自动化套件",
+  "description": "20 条正式用例覆盖功能、协议、边界、数据一致性、协议异常后恢复和 10 分钟稳定性；TASK-019 仅完成 Fake/offscreen 验证，真实结果由 TASK-020 记录。",
+  "tags": ["phase6", "rs485", "formal"],
+  "metadata": {
+    "hardware": "NUCLEO-F411RE",
+    "transport": "USART1-RS485",
+    "slave_id": "1",
+    "coverage": "docs/phase6_coverage_matrix.md"
+  },
+  "cases": [
+    {
+      "id": "TC-F001", "name": "A 相温度符号与范围", "category": "functional",
+      "description": "读取 A 相温度并按 int16 的 0.1℃ 工程范围判定。", "environment": "both",
+      "type": "read_register", "enabled": true, "tags": ["temperature", "read"],
+      "request": {"function": 3, "address": 0, "count": 1},
+      "expected": {"type": "range", "min": -400, "max": 1250, "representation": "int16", "unit": "0.1℃"},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-F002", "name": "四路温度单请求快照", "category": "functional",
+      "description": "用一次 0x03 请求读取四路温度并逐元素验证符号、缩放和范围。", "environment": "both",
+      "type": "read_registers", "enabled": true, "tags": ["temperature", "snapshot"],
+      "request": {"function": 3, "address": 0, "count": 4},
+      "expected": {"type": "elements", "items": [
+        {"index": 0, "type": "range", "min": -400, "max": 1250, "representation": "int16", "decimal_places": 1, "unit": "℃"},
+        {"index": 1, "type": "range", "min": -400, "max": 1250, "representation": "int16", "decimal_places": 1, "unit": "℃"},
+        {"index": 2, "type": "range", "min": -400, "max": 1250, "representation": "int16", "decimal_places": 1, "unit": "℃"},
+        {"index": 3, "type": "range", "min": -400, "max": 1250, "representation": "int16", "decimal_places": 1, "unit": "℃"}
+      ]},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-F003", "name": "四路告警阈值快照", "category": "functional",
+      "description": "一次读取全部阈值并逐元素验证 int16 与 0.1℃ 缩放。", "environment": "both",
+      "type": "read_registers", "enabled": true, "tags": ["threshold", "snapshot"],
+      "request": {"function": 3, "address": 9, "count": 4},
+      "expected": {"type": "elements", "items": [
+        {"index": 0, "type": "range", "min": -400, "max": 800, "representation": "int16", "decimal_places": 1, "unit": "℃"},
+        {"index": 1, "type": "range", "min": -400, "max": 800, "representation": "int16", "decimal_places": 1, "unit": "℃"},
+        {"index": 2, "type": "range", "min": -400, "max": 800, "representation": "int16", "decimal_places": 1, "unit": "℃"},
+        {"index": 3, "type": "range", "min": -400, "max": 800, "representation": "int16", "decimal_places": 1, "unit": "℃"}
+      ]},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-F004", "name": "A 相阈值写回读与恢复", "category": "functional",
+      "description": "保存 A 相阈值，写入 65.0℃，独立回读后恢复运行前原值。", "environment": "both",
+      "type": "write_and_verify", "enabled": true, "tags": ["threshold", "write", "restore"],
+      "request": {"function": 6, "verify_function": 3, "address": 9, "value": 650, "read_before_write": true, "restore_original": true},
+      "expected": {"type": "equals", "value": 650, "unit": "raw"},
+      "timeout": {"request_ms": 500, "case_ms": 3000}
+    },
+    {
+      "id": "TC-F005", "name": "Firmware 版本序列", "category": "functional",
+      "description": "一次读取主次版本并验证当前 Firmware 版本 0.2。", "environment": "both",
+      "type": "read_registers", "enabled": true, "tags": ["firmware", "version"],
+      "request": {"function": 3, "address": 39, "count": 2},
+      "expected": {"type": "register_sequence", "values": [0, 2]},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-F006", "name": "光敏模拟电压范围", "category": "functional",
+      "description": "读取光敏 ADC 换算毫伏值并验证 0～3300 mV。", "environment": "both",
+      "type": "read_register", "enabled": true, "tags": ["light", "adc"],
+      "request": {"function": 3, "address": 4, "count": 1},
+      "expected": {"type": "range", "min": 0, "max": 3300, "unit": "mV"},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-F007", "name": "告警与设备状态位", "category": "functional",
+      "description": "验证告警保留位清零，以及 RUNNING、AMBIENT_SIMULATED 和设备保留位。", "environment": "both",
+      "type": "read_registers", "enabled": true, "tags": ["status", "bitmask"],
+      "request": {"function": 3, "address": 19, "count": 2},
+      "expected": {"type": "elements", "items": [
+        {"index": 0, "type": "bitmask", "mask": 65520, "value": 0},
+        {"index": 1, "type": "bitmask", "mask": 65505, "value": 33}
+      ]},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-F008", "name": "运行时间双字快照", "category": "functional",
+      "description": "一次读取 uptime 低字和高字，验证两个原始字均存在且处于 uint16 范围。", "environment": "both",
+      "type": "read_registers", "enabled": true, "tags": ["uptime", "snapshot"],
+      "request": {"function": 3, "address": 30, "count": 2},
+      "expected": {"type": "elements", "items": [
+        {"index": 0, "type": "range", "min": 0, "max": 65535},
+        {"index": 1, "type": "range", "min": 0, "max": 65535}
+      ]},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-P001", "name": "0x03 正常读取", "category": "protocol",
+      "description": "用 0x03 读取通信错误计数并保留完整事务证据。", "environment": "both",
+      "type": "read_register", "enabled": true, "tags": ["modbus", "function-03"],
+      "request": {"function": 3, "address": 29, "count": 1},
+      "expected": {"type": "range", "min": 0, "max": 65535},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-P002", "name": "0x06 正常写入", "category": "protocol",
+      "description": "用 0x06 写入 B 相阈值，独立 0x03 回读并恢复原值。", "environment": "both",
+      "type": "write_and_verify", "enabled": true, "tags": ["modbus", "function-06", "restore"],
+      "request": {"function": 6, "verify_function": 3, "address": 10, "value": 650, "read_before_write": true, "restore_original": true},
+      "expected": {"type": "equals", "value": 650, "unit": "raw"},
+      "timeout": {"request_ms": 500, "case_ms": 3000}
+    },
+    {
+      "id": "TC-P004", "name": "非法地址返回 0x02", "category": "protocol",
+      "description": "读取未实现地址并要求 Illegal Data Address。", "environment": "both",
+      "type": "expect_exception", "enabled": true, "tags": ["modbus", "exception-02"],
+      "request": {"function": 3, "address": 50000, "count": 1},
+      "expected": {"type": "modbus_exception", "code": 2},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-P007", "name": "连续请求严格串行", "category": "protocol",
+      "description": "重复读取版本与通信计数，验证 sequence 顺序和唯一 RequestId。", "environment": "both",
+      "type": "sequence", "enabled": true, "tags": ["modbus", "sequence", "serial"],
+      "repeat_count": 5, "failure_policy": "stop_on_failure",
+      "timeout": {"request_ms": 500, "case_ms": 10000},
+      "steps": [
+        {"id": "major", "type": "read_register", "request": {"function": 3, "address": 39, "count": 1}, "expected": {"type": "equals", "value": 0}},
+        {"id": "minor", "type": "read_register", "delay_before_ms": 10, "request": {"function": 3, "address": 40, "count": 1}, "expected": {"type": "equals", "value": 2}},
+        {"id": "error-count", "type": "read_register", "request": {"function": 3, "address": 29, "count": 1}, "expected": {"type": "range", "min": 0, "max": 65535}}
+      ]
+    },
+    {
+      "id": "TC-B003", "name": "阈值最小值写入边界", "category": "boundary",
+      "description": "写入 C 相阈值最小值 -40.0℃，独立回读并恢复原值。", "environment": "both",
+      "type": "write_and_verify", "enabled": true, "tags": ["threshold", "minimum", "restore"],
+      "request": {"function": 6, "verify_function": 3, "address": 11, "value": 65136, "read_before_write": true, "restore_original": true},
+      "expected": {"type": "equals", "value": 65136, "unit": "raw（-40.0℃）"},
+      "timeout": {"request_ms": 500, "case_ms": 3000}
+    },
+    {
+      "id": "TC-B004", "name": "阈值最大值写入边界", "category": "boundary",
+      "description": "写入环境阈值最大值 80.0℃，独立回读并恢复原值。", "environment": "both",
+      "type": "write_and_verify", "enabled": true, "tags": ["threshold", "maximum", "restore"],
+      "request": {"function": 6, "verify_function": 3, "address": 12, "value": 800, "read_before_write": true, "restore_original": true},
+      "expected": {"type": "equals", "value": 800, "unit": "raw（80.0℃）"},
+      "timeout": {"request_ms": 500, "case_ms": 3000}
+    },
+    {
+      "id": "TC-B005", "name": "阈值超上限返回 0x03", "category": "boundary",
+      "description": "向 A 相阈值写入 80.1℃ 并要求 Illegal Data Value；Firmware 不应修改原值。", "environment": "both",
+      "type": "expect_exception", "enabled": true, "tags": ["threshold", "exception-03"],
+      "request": {"function": 6, "address": 9, "value": 801},
+      "expected": {"type": "modbus_exception", "code": 3},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-B006", "name": "寄存器末端跨界返回 0x02", "category": "boundary",
+      "description": "从最后一个已实现寄存器开始读取两个字，要求地址范围异常。", "environment": "both",
+      "type": "expect_exception", "enabled": true, "tags": ["address", "end-boundary", "exception-02"],
+      "request": {"function": 3, "address": 40, "count": 2},
+      "expected": {"type": "modbus_exception", "code": 2},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-D002", "name": "运行时间低高字组合", "category": "consistency",
+      "description": "按低字在低地址组合单个 uptime 快照。", "environment": "both",
+      "type": "consistency", "enabled": true, "tags": ["uptime", "uint32", "word-order"],
+      "request": {"function": 3, "address": 30, "count": 2},
+      "expected": {"type": "uint32", "word_order": "low_word_first", "comparison": "range", "min": 0, "max": 4294967295, "unit": "s"},
+      "timeout": {"request_ms": 500, "case_ms": 500},
+      "consistency": {"sample_count": 1, "interval_ms": 0}
+    },
+    {
+      "id": "TC-D003", "name": "运行时间非递减", "category": "consistency",
+      "description": "连续三个 uptime 快照按低高字组合后必须非递减。", "environment": "both",
+      "type": "consistency", "enabled": true, "tags": ["uptime", "uint32", "monotonic"],
+      "request": {"function": 3, "address": 30, "count": 2},
+      "expected": {"type": "uint32", "word_order": "low_word_first", "comparison": "non_decreasing", "min": 0, "max": 4294967295, "unit": "s"},
+      "timeout": {"request_ms": 500, "case_ms": 3500},
+      "consistency": {"sample_count": 3, "interval_ms": 1000}
+    },
+    {
+      "id": "TC-R-AUTO-001", "name": "协议异常后合法请求恢复", "category": "recovery",
+      "description": "收到预期 0x02 后发送新的合法版本读取，证明协议事务可继续；不包含物理重连。", "environment": "both",
+      "type": "sequence", "enabled": true, "tags": ["recovery", "protocol", "non-physical"],
+      "repeat_count": 1, "failure_policy": "stop_on_failure",
+      "timeout": {"request_ms": 500, "case_ms": 3000},
+      "steps": [
+        {"id": "expected-address-error", "type": "expect_exception", "request": {"function": 3, "address": 50000, "count": 1}, "expected": {"type": "modbus_exception", "code": 2}},
+        {"id": "legal-read-after-error", "type": "read_registers", "delay_before_ms": 50, "request": {"function": 3, "address": 39, "count": 2}, "expected": {"type": "register_sequence", "values": [0, 2]}}
+      ]
+    },
+    {
+      "id": "TC-S001", "name": "10 分钟连续轮询稳定性", "category": "stability",
+      "description": "每秒读取四路温度与光敏值，10 分钟内至少 594 次成功且失败率不超过 1%。", "environment": "real_rs485",
+      "type": "stability", "enabled": true, "tags": ["stability", "10min", "rtt"],
+      "request": {"function": 3, "address": 0, "count": 5},
+      "expected": {"type": "stability_summary", "min_total": 594, "min_successes": 594, "max_failures": 6, "max_timeouts": 6, "max_failure_rate_ppm": 10000,
+        "rtt_ms": {"require_valid_samples": true, "minimum_sample": 0, "maximum_average": 500, "maximum_sample": 1000}},
+      "timeout": {"request_ms": 500, "case_ms": 600500},
+      "stability": {"duration_ms": 600000, "interval_ms": 1000, "minimum_successes": 594, "allowed_failure_rate_ppm": 10000, "evidence_sample_limit": 64}
+    }
+  ]
+}

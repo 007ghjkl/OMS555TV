@@ -51,10 +51,10 @@
 - TASK-009/010 已证明当前 USART1、自动换向模块、约 20 cm 两线 RS485 和 COM6 转换器下的双向 Modbus、500 次连续请求、物理断线恢复与设备复位恢复。
 - TASK-011 的应用状态与监控核心、TASK-012 的实时 UI、TASK-013 的参数配置/通信诊断/会话日志均已通过自动化测试；TASK-012 另完成 30 分钟真实 RS485、设备复位、陈旧状态、UI 响应和显式重连验收；TASK-013 完成四路阈值真实写回读、原值恢复和 20/20 请求会话证据核对。
 - Host Phase 5 的 TASK-014 测试模型/JSON Schema/断言、TASK-015 TestEngine 和 TASK-016 自动化测试 UI/真实 RS485 基础套件均已完成。TASK-016 全新构建和 19/19 CTest 通过，COM6 上 8/8 基础用例 PASS，11 个测试 RequestId 与诊断/TEST 日志一致，阈值前后独立读取一致。
-- Host Phase 6 已拆分为 TASK-017 覆盖模型/Schema v2、TASK-018 复合/超时/稳定性执行核心、TASK-019 完整 20+ 套件/UI 集成、TASK-020 真实 RS485 全量验收。TASK-017/018 已通过全新构建与全部 Host CTest；TASK-019/020 尚未实施或验证。
+- Host Phase 6 已拆分为 TASK-017 覆盖模型/Schema v2、TASK-018 复合/超时/稳定性执行核心、TASK-019 完整 20+ 套件/UI 集成、TASK-020 真实 RS485 全量验收。TASK-017/018/019 已通过全新构建与全部 Host CTest；TASK-020 尚未实施或验证。
 - 标准 Modbus Client 未必能发送 CRC 错误帧，可能需要后续 Raw Frame 接口。
 - 8/24 小时稳定性测试只能在具备持续硬件环境后执行。
 
 ## 8. 结果真实性
 
-未实际运行的测试不得标记通过。TASK-003、TASK-005、TASK-008、TASK-009、TASK-010、TASK-011、TASK-012、TASK-013、TASK-014、TASK-015、TASK-016、TASK-017 和 TASK-018 只能按各自记录标记通过。TASK-018 证明 Phase 6 执行核心及 10 分钟至 24 小时虚拟时间路径，不代表正式 20+ 套件、真实 RS485 长时运行或实机验收通过；TASK-019/020 尚未实施。TASK-016 的 8 条 Phase 5 基础套件也不代表半自动步骤或正式 HTML/PDF 报告已经验证。当前短距离 RS485 结果不得外推为 8/24 小时稳定性、工业长线、隔离或 EMC 验证。
+未实际运行的测试不得标记通过。TASK-003、TASK-005、TASK-008、TASK-009、TASK-010、TASK-011、TASK-012、TASK-013、TASK-014、TASK-015、TASK-016、TASK-017、TASK-018 和 TASK-019 只能按各自记录标记通过。TASK-019 证明正式 20+4 套件在 Fake/虚拟时间和 offscreen UI 下正确，不代表真实 RS485 长时运行或实机验收通过；TASK-020 尚未实施。TASK-016 的 8 条 Phase 5 基础套件也不代表半自动步骤或正式 HTML/PDF 报告已经验证。当前短距离 RS485 结果不得外推为 8/24 小时稳定性、工业长线、隔离或 EMC 验证。

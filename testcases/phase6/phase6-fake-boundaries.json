@@ -1,0 +1,44 @@
+{
+  "schema_version": 2,
+  "id": "phase6-fake-boundaries",
+  "name": "Phase 6 Fake 确定性边界套件",
+  "description": "只用于确定性无响应、int16 极值和负温度缩放，不得作为真实 RS485 结果。",
+  "tags": ["phase6", "fake", "formal"],
+  "metadata": {"coverage": "docs/phase6_coverage_matrix.md", "physical_evidence": "false"},
+  "cases": [
+    {
+      "id": "TC-P006", "name": "确定性响应超时", "category": "protocol",
+      "description": "Fake 明确不产生响应，只有结构化 ResponseTimeout 才通过。", "environment": "fake",
+      "type": "expect_timeout", "enabled": true, "tags": ["timeout", "deterministic"],
+      "request": {"function": 3, "address": 0, "count": 1},
+      "expected": {"type": "response_timeout", "source": "deterministic_no_response"},
+      "timeout": {"request_ms": 100, "case_ms": 500}, "fault": "no_response"
+    },
+    {
+      "id": "TC-B001", "name": "int16 最小值解释", "category": "boundary",
+      "description": "Fake 返回 0x8000，验证二补码解释为 -32768。", "environment": "fake",
+      "type": "read_register", "enabled": true, "tags": ["int16", "minimum"],
+      "request": {"function": 3, "address": 0, "count": 1},
+      "expected": {"type": "equals", "value": -32768, "representation": "int16"},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-B002", "name": "int16 最大值解释", "category": "boundary",
+      "description": "Fake 返回 0x7FFF，验证二补码解释上界 32767。", "environment": "fake",
+      "type": "read_register", "enabled": true, "tags": ["int16", "maximum"],
+      "request": {"function": 3, "address": 0, "count": 1},
+      "expected": {"type": "equals", "value": 32767, "representation": "int16"},
+      "timeout": {"request_ms": 500}
+    },
+    {
+      "id": "TC-D001", "name": "负温度符号与十进制缩放", "category": "consistency",
+      "description": "Fake 返回 -10.0℃ 原始值，逐元素保留 raw、int16 解释值和 10 的缩放分母。", "environment": "fake",
+      "type": "read_registers", "enabled": true, "tags": ["temperature", "int16", "scale"],
+      "request": {"function": 3, "address": 0, "count": 1},
+      "expected": {"type": "elements", "items": [
+        {"index": 0, "type": "equals", "value": -100, "representation": "int16", "decimal_places": 1, "unit": "℃"}
+      ]},
+      "timeout": {"request_ms": 500}
+    }
+  ]
+}

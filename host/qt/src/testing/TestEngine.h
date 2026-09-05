@@ -53,7 +53,10 @@ signals:
     void stepStarted(QString caseId,
                      oms555tv::testing::TestStepPurpose purpose,
                      oms555tv::communication::RequestId requestId,
-                     int attempt);
+                     int attempt,
+                     QString logicalStepId,
+                     qsizetype logicalStepIndex,
+                     int repetition);
     void caseFinished(QString caseId, oms555tv::testing::TestStatus status);
     void runCompleted(const oms555tv::testing::TestSuiteResult &result);
 

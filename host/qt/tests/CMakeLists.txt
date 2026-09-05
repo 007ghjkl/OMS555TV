@@ -109,12 +109,26 @@ add_executable(tst_testengine
 target_link_libraries(tst_testengine PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.testing.engine COMMAND tst_testengine)
 
+add_executable(tst_phase6suite
+    monitor/ManualMonitorScheduler.h
+    testing/tst_phase6suite.cpp
+)
+target_compile_definitions(tst_phase6suite PRIVATE
+    OMS555TV_PHASE6_RS485_SUITE="${CMAKE_SOURCE_DIR}/../../testcases/phase6/phase6-rs485-full.json"
+    OMS555TV_PHASE6_FAKE_SUITE="${CMAKE_SOURCE_DIR}/../../testcases/phase6/phase6-fake-boundaries.json"
+    OMS555TV_PHASE6_COVERAGE_MATRIX="${CMAKE_SOURCE_DIR}/../../docs/phase6_coverage_matrix.md"
+    OMS555TV_PHASE6_TEST_CASES="${CMAKE_SOURCE_DIR}/../../docs/test_cases.md"
+)
+target_link_libraries(tst_phase6suite PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.testing.phase6_suite COMMAND tst_phase6suite)
+
 add_executable(tst_automationui
     monitor/ManualMonitorScheduler.h
     ui/tst_automationui.cpp
 )
 target_compile_definitions(tst_automationui PRIVATE
     OMS555TV_PHASE5_SUITE="${CMAKE_SOURCE_DIR}/../../testcases/functional/phase5-smoke.json"
+    OMS555TV_PHASE6_RS485_SUITE="${CMAKE_SOURCE_DIR}/../../testcases/phase6/phase6-rs485-full.json"
 )
 target_link_libraries(tst_automationui PRIVATE oms555tv_widgets Qt6::Test)
 add_test(NAME host.testing.automation_ui COMMAND tst_automationui)
@@ -138,6 +152,7 @@ set_tests_properties(
     host.testing.testcase_loader
     host.testing.assertions
     host.testing.engine
+    host.testing.phase6_suite
     host.testing.automation_ui
     host.application.smoke
     PROPERTIES

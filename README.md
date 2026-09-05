@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`～`TASK-018`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 已完成覆盖矩阵、Schema v2、规范化模型、纯数据断言，以及 sequence/预期超时/一致性/稳定性执行核心；正式 20+ 套件和真实 RS485 全量验收仍待 `TASK-019`～`TASK-020`。
+当前状态：`TASK-001`～`TASK-019`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 已完成覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件和 UI 集成；真实 RS485 全量验收仍待 `TASK-020`。
 
 ## 项目目标
 
@@ -72,6 +72,8 @@
 - [Host Phase 6 复合测试、超时与稳定性执行核心技术规范](specs/host_phase6_execution_engine.md)
 - [TASK-018 复合与稳定性执行核心验证记录](docs/test_results/task018_phase6_execution_engine.md)
 - [TASK-019 Host Phase 6 完整自动化套件与 UI 集成](tasks/TASK-019-host-phase6-complete-test-suite.md)
+- [Host Phase 6 正式自动化套件与 UI 集成技术规范](specs/host_phase6_complete_suite_ui.md)
+- [TASK-019 正式套件与 UI 集成验证记录](docs/test_results/task019_phase6_complete_suite_ui.md)
 - [TASK-020 Host Phase 6 真实 RS485 完整套件验收](tasks/TASK-020-host-phase6-rs485-full-validation.md)
 
 ## 仓库结构
@@ -159,6 +161,8 @@ $env:Path = "$bundleRoot\gnu-tools-for-stm32\14.3.1+st.2\bin;$bundleRoot\ninja\1
 
 2026-09-05 的 TASK-018 最终结果：TestEngine 与处理器边界新增有界延迟、sequence 重复与失败策略、结构化预期超时、uint32 一致性聚合和 stability 长循环；结果可追溯逻辑步骤、统计、Session ID 与有界代表证据，完整 attempt 仍写入 JSONL。全新 Host 构建和 19/19 CTest 通过，TestEngine 33 个测试包含 10 分钟、1 小时、8 小时及 24 小时虚拟运行。验证未访问串口、真实 RS485 或开发板；正式 20+ 套件和实机验收仍由 TASK-019～TASK-020 完成。
 
+2026-09-05 的 TASK-019 最终结果：新增 20 条真实 RS485 主套件和 4 条 Fake 边界套件，主套件独立满足功能 8、协议 4、边界 4、数据一致性 2、自动恢复 1、稳定性 1 的最低数量。自动化测试从正式 JSON 原样加载，主套件 20/20、Fake 套件 4/4 PASS；10 分钟 stability 通过虚拟时间完成 600 次采样，主套件共核对 648 个唯一 RequestId，另覆盖 FAIL、通信 ERROR、恢复失败和中止。UI 新增 sequence 步骤/重复、稳定性迭代、聚合 RTT 和证据保留摘要。全新 Host 构建和 20/20 CTest 通过，未访问串口或开发板；Phase 6 仍须由 TASK-020 的真实 RS485 全量验收关闭。
+
 实板联调工具会运行时枚举 ST-LINK，不写死 COM 号：
 
 ```powershell
@@ -177,7 +181,7 @@ $env:Path = "D:\Dev\Qt\6.8.3\msvc2022_64\bin;$env:Path"
 3. Phase 4 的实时监控、30 分钟台架、参数配置、通信调试和会话日志已通过；Phase 5 的输入、执行核心、自动化 UI 与 8 条真实 RS485 基础套件也已通过；
 4. Phase 5 的 `TASK-014/015/016` 已关闭；后续仍须复用 TestAutomationController、TestEngine、AppStateController 和唯一 `IModbusClient` 路径，不得在 QWidget 临时实现协议或执行循环；
 5. Phase 6 按 `TASK-017` 覆盖模型/Schema v2、`TASK-018` 复合与稳定性执行核心、`TASK-019` 完整 20+ 套件/UI、`TASK-020` 真实 RS485 全量验收的顺序推进；前置任务未验收时不得跨层临时实现；
-6. `TASK-017/018` 已关闭，仅允许进入 `TASK-019`；`TASK-019/020` 尚未实施，Phase 7 人工恢复和 Phase 8 HTML 报告继续留待后续拆分；
+6. `TASK-017/018/019` 已关闭，仅允许进入 `TASK-020`；Phase 7 人工恢复和 Phase 8 HTML 报告继续留待后续拆分；
 7. TASK-014 的中文示例与 fixture 不属于正式用例，TASK-016 的 8 条基础用例也不得表述为 Phase 6 已完成；
 8. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
 

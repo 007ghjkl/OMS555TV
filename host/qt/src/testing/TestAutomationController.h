@@ -43,6 +43,9 @@ public:
     [[nodiscard]] std::optional<TestStepPurpose> currentStep() const noexcept;
     [[nodiscard]] std::optional<communication::RequestId> currentRequestId() const noexcept;
     [[nodiscard]] int currentAttempt() const noexcept;
+    [[nodiscard]] const QString &currentLogicalStepId() const noexcept;
+    [[nodiscard]] qsizetype currentLogicalStepIndex() const noexcept;
+    [[nodiscard]] int currentRepetition() const noexcept;
 
     void setResumeMonitoring(bool enabled);
     [[nodiscard]] bool loadSuiteFile(const QString &path);
@@ -104,6 +107,9 @@ private:
     std::optional<TestStepPurpose> currentStep_;
     std::optional<communication::RequestId> currentRequestId_;
     int currentAttempt_ = 0;
+    QString currentLogicalStepId_;
+    qsizetype currentLogicalStepIndex_ = -1;
+    int currentRepetition_ = 0;
     bool resultVisible_ = false;
 };
 

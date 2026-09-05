@@ -1,61 +1,67 @@
 # Host Phase 6 需求—用例—环境—证据覆盖矩阵
 
-> 状态：TASK-017 覆盖模型已定义；正式用例由 TASK-019 建立，真实 RS485 结果由 TASK-020 记录。
+> 状态：TASK-019 正式套件与 Fake/offscreen 验证已完成；真实 RS485 结果仍由 TASK-020 记录。
 
 ## 1. 环境与证据口径
 
 | 环境 | 用途 | 可以证明 | 不能冒充 |
 |---|---|---|---|
-| Fake | 确定性极值、无响应、虚拟时间、错误分支 | Schema/Engine 语义、边界与失败分类 | 真实串口、电气层、物理恢复 |
+| Fake | 确定性极值、无响应、虚拟时间、错误分支 | Schema、Engine、控制器与 UI 语义 | 真实串口、电气层、物理恢复 |
 | 真实 RS485 | 当前安全低压点对点台架 | DUT 寄存器、协议响应、RTT、写入恢复与长期请求 | 工业长线、隔离、EMC、人工拔插自动恢复 |
-| 两者 | 同一目标分别做确定性和实机验证 | 逻辑边界与台架行为一致 | 未执行的环境结果 |
+| 两者 | 同一目标分别做确定性和实机验证 | 逻辑边界与台架行为一致 | 尚未执行的实机结果 |
 
-每个通信步骤至少关联 case/step/RequestId、TX、RX、RTT、原始寄存器、解释值、断言与终态。稳定性内存只保留有界代表性证据，完整 attempt 进入 JSONL；报告只消费不可变结果，不重新计算 Engine 语义。
+主套件路径为 `testcases/phase6/phase6-rs485-full.json`，含 20 条用例；Fake 边界套件路径为 `testcases/phase6/phase6-fake-boundaries.json`，含 4 条用例。每个通信步骤至少关联 case/step/RequestId、TX、RX、RTT、原始寄存器、解释值、断言与终态。稳定性内存只保留有界代表性证据，完整 attempt 进入 JSONL；UI 只显示 `TestResultManager` 发布的不可变结果。
 
-## 2. 覆盖矩阵
+## 2. 正式用例唯一映射
 
-| 需求/候选 ID | 类别 | v2 表达能力 | 计划环境 | 核心证据 | 实现/验收任务 |
+| 正式 ID | 类别 | 套件 | JSON 环境 | 核心请求与预期 | 写入/清理策略 |
 |---|---|---|---|---|---|
-| TC-F001 A 相温度 | 功能 | read_register + int16 range/scale | 两者 | raw、符号值、0.1 ℃工程值 | TASK-019/020 |
-| TC-F002 四路温度快照 | 功能 | read_registers + elements | 两者 | 单请求四元素索引与范围 | TASK-019/020 |
-| TC-F003 四路阈值 | 功能 | read_registers + elements | 两者 | 四元素 int16/scale | TASK-019/020 |
-| TC-F004 阈值写回读 | 功能 | write_and_verify | 两者 | 写前值、0x06、独立0x03、恢复 | TASK-019/020 |
-| TC-F005 固件版本 | 功能 | register_sequence | 两者 | 地址39～40原始序列 | TASK-019/020 |
-| TC-F006 光敏电压 | 功能 | uint16 range | 两者 | raw、mV范围 | TASK-019/020 |
-| TC-F007 状态位 | 功能 | elements/bitmask | 两者 | 告警/设备状态保留位与模拟位 | TASK-019/020 |
-| TC-F008 运行时间读取 | 功能 | consistency + uint32 range | 两者 | 低/高字及组合值 | TASK-019/020 |
-| TC-P001 0x03 正常读取 | 协议 | read_register(s) | 两者 | TX/RX、功能码、数据 | TASK-019/020 |
-| TC-P002 0x06 正常写入 | 协议 | write_and_verify | 两者 | 回显、独立回读、恢复 | TASK-019/020 |
-| TC-P003 非法功能码 0x01 | 协议 | 当前不纳入 v2 标准请求 | 后续 Raw Frame | 原始非法帧与0x01 | 非 TASK-017～020 |
-| TC-P004 非法地址 0x02 | 协议 | expect_exception | 两者 | 远端异常与后续合法请求 | TASK-019/020 |
-| TC-P005 非法数据 0x03 | 协议 | expect_exception | 两者 | 越界阈值写与0x03 | TASK-019/020 |
-| TC-P006 响应超时 | 协议 | expect_timeout + no_response fault | Fake | 仅 ResponseTimeout 判 PASS | TASK-018/019 |
-| TC-P007 连续请求 | 协议 | sequence + repeat_count | 两者 | 串行 RequestId、无重叠、总预算 | TASK-018～020 |
-| TC-B001 温度最小值 | 边界 | elements/range + int16 | Fake | 0x8000→-32768与边界差异 | TASK-018/019 |
-| TC-B002 温度最大值 | 边界 | elements/range + int16 | Fake | 0x7FFF→32767与边界差异 | TASK-018/019 |
-| TC-B003 阈值最小值 | 边界 | write_and_verify | 两者 | -400原始值、回读、恢复 | TASK-019/020 |
-| TC-B004 阈值最大值 | 边界 | write_and_verify | 两者 | 800原始值、回读、恢复 | TASK-019/020 |
-| TC-B005 超范围阈值 | 边界 | expect_exception 0x03 | 两者 | 异常且原值不变 | TASK-019/020 |
-| TC-B006 寄存器末端/越界 | 边界 | expect_exception + Loader overflow | 两者/Fake | 0x02 与配置 AddressRangeOverflow | TASK-017/019/020 |
-| TC-D001 负温度一致性 | 数据一致性 | elements + int16 + decimal_places | Fake | raw、二补码、缩放工程值 | TASK-017～019 |
-| TC-D002 uptime 字序 | 数据一致性 | consistency + uint32 low_word_first | 两者 | 两原始字、uint32、范围 | TASK-017～020 |
-| TC-D003 uptime 单调性 | 数据一致性 | consistency + non_decreasing | 两者 | 多样本组合值与差异索引 | TASK-018～020 |
-| TC-R-AUTO-001 协议异常后恢复 | 自动恢复 | sequence continue_on_failure | 两者 | 异常步骤后新合法 RequestId 成功 | TASK-018～020 |
-| TC-R001 RS485 拔插恢复 | 人工恢复 | 不属于自动恢复 v2 | 半自动真实硬件 | 人工确认、Offline、恢复时间 | Phase 7 |
-| TC-R002 设备复位恢复 | 人工恢复 | 不属于自动恢复 v2 | 半自动真实硬件 | 人工确认、重连与恢复时间 | Phase 7 |
-| TC-S001 连续轮询 | 稳定性/性能 | stability + stability_summary | Fake+真实 RS485 | 总数、成功/失败/timeout、ppm、RTT | TASK-018～020 |
+| TC-F001 | 功能 | 主套件 | both | A 相温度，int16 范围 | 只读 |
+| TC-F002 | 功能 | 主套件 | both | 四路温度单请求快照，逐元素 int16/缩放/范围 | 只读 |
+| TC-F003 | 功能 | 主套件 | both | 四路阈值单请求快照，逐元素范围 | 只读 |
+| TC-F004 | 功能 | 主套件 | both | A 相阈值 0x06 写 650，独立 0x03 回读 | 写前保存并恢复原值 |
+| TC-F005 | 功能 | 主套件 | both | 地址 39～40，序列 `[0,2]` | 只读 |
+| TC-F006 | 功能 | 主套件 | both | 光敏电压 0～3300 mV | 只读 |
+| TC-F007 | 功能 | 主套件 | both | 告警/设备状态逐元素位掩码 | 只读 |
+| TC-F008 | 功能 | 主套件 | both | uptime 低高字单请求快照 | 只读 |
+| TC-P001 | 协议 | 主套件 | both | 0x03 读取通信错误计数 | 只读 |
+| TC-P002 | 协议 | 主套件 | both | B 相阈值 0x06 写 650，独立 0x03 回读 | 写前保存并恢复原值 |
+| TC-P004 | 协议 | 主套件 | both | 非法地址返回 Modbus 0x02 | 只读 |
+| TC-P007 | 协议 | 主套件 | both | 三步骤 sequence 重复 5 次，严格串行 | 只读 |
+| TC-B003 | 边界 | 主套件 | both | C 相阈值最小 raw=65136（-40.0℃） | 写前保存并恢复原值 |
+| TC-B004 | 边界 | 主套件 | both | 环境阈值最大 raw=800（80.0℃） | 写前保存并恢复原值 |
+| TC-B005 | 边界 | 主套件 | both | 越界阈值 raw=801 返回 0x03 | 写请求被拒绝，不产生成功写入 |
+| TC-B006 | 边界 | 主套件 | both | 地址 40 起读 2 字返回 0x02 | 只读 |
+| TC-D002 | 数据一致性 | 主套件 | both | uptime 低字在前组合 uint32 范围 | 只读 |
+| TC-D003 | 数据一致性 | 主套件 | both | 三个 uptime 组合样本非递减 | 只读 |
+| TC-R-AUTO-001 | 自动恢复 | 主套件 | both | 预期 0x02 后新合法版本请求成功 | 只读；不代表物理重连 |
+| TC-S001 | 稳定性 | 主套件 | real_rs485 | 10 分钟、1 秒间隔、最低 594 成功、失败率不超过 1% | 只读；CTest 使用 600 次虚拟采样 |
+| TC-P006 | 协议 | Fake 套件 | fake | 确定性无响应，只接受 ResponseTimeout | 只读；不得计作实机结果 |
+| TC-B001 | 边界 | Fake 套件 | fake | `0x8000` 按 int16 等于 -32768 | 只读；不得计作实机结果 |
+| TC-B002 | 边界 | Fake 套件 | fake | `0x7FFF` 按 int16 等于 32767 | 只读；不得计作实机结果 |
+| TC-D001 | 数据一致性 | Fake 套件 | fake | `0xFF9C` 按 int16/0.1℃ 解释为 -10.0℃ | 只读；不得计作实机结果 |
 
-## 3. 六类 Phase 6 关闭路径
+24 个 ID 在两个套件间互不重复。自动测试硬编码同一 ID 集合并逐项核对启用状态、描述、标签、环境和安全恢复；覆盖矩阵缺项会使测试失败。
 
-| 类别 | 最低正式数量 | TASK-017 输入保证 | TASK-018 执行保证 | TASK-019 套件/UI | TASK-020 实机关闭 |
-|---|---:|---|---|---|---|
-| 功能 | 8 | 基础/逐元素/uint32 | 请求与断言映射 | 唯一 ID 和 Fake 全套 | 实机结果与寄存器证据 |
-| 协议 | 4 | exception/timeout/sequence | 精确错误分类和串行 | Fake timeout、正式协议项 | 实机 0x03/0x06/异常恢复 |
-| 边界 | 4 | int16、地址、数值上限 | 写入清理和差异 | 极值与安全写入 | 阈值最终恢复 |
-| 数据一致性 | 2 | raw/符号/缩放/低高字 | 多样本组合 | 明细与差异展示 | 实机 uptime 快照 |
-| 自动恢复 | 1 | continue sequence | 错误后新请求 | 明确非物理恢复 | 实机协议异常后合法请求 |
-| 稳定性 | 1 | 10分钟～24小时、ppm、RTT | 虚拟长时与有界内存 | 正式10分钟配置/UI | 真实至少10分钟 |
+## 3. 六类数量与关闭路径
 
-## 4. 当前结论
+| 类别 | 主套件数量 | 最低要求 | TASK-019 证据 | TASK-020 实机关闭 |
+|---|---:|---:|---|---|
+| 功能 | 8 | 8 | Loader + Fake 全套 + UI | DUT 寄存器与阈值恢复 |
+| 协议 | 4 | 4 | 0x03、0x06、0x02、连续请求 | 实机事务证据 |
+| 边界 | 4 | 4 | 最小/最大阈值、0x03、地址末端 | 阈值最终恢复 |
+| 数据一致性 | 2 | 2 | uint32 字序与非递减聚合 | 实机 uptime 样本 |
+| 自动恢复 | 1 | 1 | 协议异常后新 RequestId 成功 | 实机协议异常后合法请求 |
+| 稳定性 | 1 | 1 | 正式 10 分钟配置、600 次虚拟采样、RTT 汇总 | 真实至少 10 分钟 |
 
-TASK-017 只证明六类需求均有严格输入、环境和证据路径。未创建正式 20+ 套件、未执行 sequence/stability、未访问真实 RS485，所有计划项仍须按 TASK-018→019→020 顺序验收。
+Fake 边界套件额外提供协议 1、边界 2、数据一致性 1 条确定性证据，不参与主套件六类最低数量的凑数。
+
+## 4. 明确排除项
+
+- TC-P003 非法功能码需要 Raw Frame；不属于 TASK-019/020。
+- 原候选 TC-P005 与正式 TC-B005 验证同一“越界阈值返回 0x03”目标，不重复计数。
+- TC-R001 物理拔插和 TC-R002 设备复位属于 Phase 7 人工恢复，不属于自动恢复。
+
+## 5. 当前结论
+
+TASK-019 已证明 20 条主套件和 4 条 Fake 边界用例可加载、可执行且进入明确终态；全通过、断言 FAIL、通信 ERROR、恢复失败和中止路径均有确定性测试。该结论不包含真实 RS485 全量运行，不能关闭 Phase 6，下一门禁为 TASK-020。

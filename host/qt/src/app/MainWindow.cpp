@@ -29,8 +29,10 @@
 #include <QTextCursor>
 #include <QVBoxLayout>
 
+#include <algorithm>
 #include <array>
 #include <chrono>
+#include <optional>
 
 namespace {
 
@@ -77,13 +79,29 @@ QString channelText(oms555tv::device::TemperatureChannel channel)
 
 QString testRequestText(const oms555tv::testing::TestCase &testCase)
 {
-    const auto &request = testCase.request;
-    if (request.function == oms555tv::testing::ModbusFunction::ReadHoldingRegisters) {
-        return QStringLiteral("0x03 addr=%1 count=%2")
-            .arg(request.address.value()).arg(request.count);
+    using Type = oms555tv::testing::TestCaseType;
+    if (testCase.declaredType == Type::Sequence) {
+        return QStringLiteral("sequence steps=%1 repeat=%2")
+            .arg(testCase.sequence.steps.size()).arg(testCase.sequence.repeatCount);
     }
-    return QStringLiteral("0x06 addr=%1 value=%2")
-        .arg(request.address.value()).arg(request.rawValue);
+    const auto &request = testCase.request;
+    const QString requestText = request.function
+            == oms555tv::testing::ModbusFunction::ReadHoldingRegisters
+        ? QStringLiteral("0x03 addr=%1 count=%2")
+              .arg(request.address.value()).arg(request.count)
+        : QStringLiteral("0x06 addr=%1 value=%2")
+              .arg(request.address.value()).arg(request.rawValue);
+    if (testCase.declaredType == Type::Consistency) {
+        return QStringLiteral("%1 samples=%2 interval=%3 ms")
+            .arg(requestText).arg(testCase.consistency.sampleCount)
+            .arg(testCase.consistency.interval.count());
+    }
+    if (testCase.declaredType == Type::Stability) {
+        return QStringLiteral("%1 duration=%2 ms interval=%3 ms")
+            .arg(requestText).arg(testCase.stability.duration.count())
+            .arg(testCase.stability.interval.count());
+    }
+    return requestText;
 }
 
 QString testExpectedText(const oms555tv::testing::ExpectedAssertion &expected)
@@ -107,6 +125,34 @@ QString testExpectedText(const oms555tv::testing::ExpectedAssertion &expected)
     case Type::ModbusException:
         return QStringLiteral("Modbus exception 0x%1")
             .arg(expected.exceptionCode, 2, 16, QLatin1Char('0'));
+    case Type::Elements:
+        return QStringLiteral("elements count=%1").arg(expected.elements.size());
+    case Type::ResponseTimeout:
+        return QStringLiteral("response timeout");
+    case Type::UInt32: {
+        using Comparison = oms555tv::testing::UInt32Comparison;
+        switch (expected.uint32.comparison) {
+        case Comparison::Range:
+            return QStringLiteral("uint32 low-word-first range [%1, %2] %3")
+                .arg(expected.uint32.minimum).arg(expected.uint32.maximum)
+                .arg(expected.uint32.unit);
+        case Comparison::NonDecreasing:
+            return QStringLiteral("uint32 low-word-first non-decreasing %1")
+                .arg(expected.uint32.unit);
+        case Comparison::StrictlyIncreasing:
+            return QStringLiteral("uint32 low-word-first strictly-increasing %1")
+                .arg(expected.uint32.unit);
+        }
+        break;
+    }
+    case Type::StabilitySummary:
+        return QStringLiteral(
+            "stability total>=%1 successes>=%2 failures<=%3 timeouts<=%4 failure-rate<=%5 ppm")
+            .arg(expected.stability.minimumTotal)
+            .arg(expected.stability.minimumSuccesses)
+            .arg(expected.stability.maximumFailures)
+            .arg(expected.stability.maximumTimeouts)
+            .arg(expected.stability.maximumFailureRatePpm);
     }
     return QStringLiteral("--");
 }
@@ -139,6 +185,13 @@ QString testAttemptDetails(const oms555tv::testing::TestRequestAttemptResult &at
         .arg(oms555tv::diagnostics::requestStateName(request.state), rtt,
              oms555tv::diagnostics::byteArrayHex(evidence.txAdu),
              oms555tv::diagnostics::byteArrayHex(evidence.rxAdu));
+    if (!attempt.logicalStepId.isEmpty() || attempt.logicalStepIndex >= 0) {
+        text.prepend(QStringLiteral("复合步骤=%1 index=%2 repetition=%3\n")
+            .arg(attempt.logicalStepId.isEmpty() ? QStringLiteral("--")
+                                                 : attempt.logicalStepId)
+            .arg(attempt.logicalStepIndex + 1)
+            .arg(attempt.repetition + 1));
+    }
     if (request.error) {
         text += QStringLiteral("\n错误类别=%1 错误码=%2：%3")
             .arg(static_cast<int>(request.error->category))
@@ -530,7 +583,7 @@ MainWindow::MainWindow(
             testCaseDetails_->setObjectName(QStringLiteral("testCaseDetails"));
             testCaseDetails_->setReadOnly(true);
             testCaseDetails_->setPlaceholderText(
-                QStringLiteral("选择用例以查看断言、错误和完整 attempt 证据"));
+                QStringLiteral("选择用例以查看复合步骤、稳定性统计和证据保留摘要"));
             testSplitter->addWidget(testCaseTable_);
             testSplitter->addWidget(testCaseDetails_);
             testingLayout->addWidget(testSplitter, 1);
@@ -1020,9 +1073,35 @@ void MainWindow::renderTesting()
     if (automation_->currentCaseId().isEmpty()) {
         testCurrentStepLabel_->setText(QStringLiteral("--"));
     } else if (automation_->currentStep() && automation_->currentRequestId()) {
-        testCurrentStepLabel_->setText(QStringLiteral("case=%1，步骤=%2，attempt=%3，RequestId=%4")
+        QString logicalProgress;
+        const auto currentCase = std::find_if(
+            suite.cases.cbegin(), suite.cases.cend(), [this](const auto &candidate) {
+                return candidate.id == automation_->currentCaseId();
+            });
+        if (currentCase != suite.cases.cend()
+            && currentCase->declaredType == oms555tv::testing::TestCaseType::Sequence) {
+            logicalProgress = QStringLiteral("，复合步骤=%1（%2/%3），重复=%4/%5")
+                .arg(automation_->currentLogicalStepId().isEmpty()
+                         ? QStringLiteral("--") : automation_->currentLogicalStepId())
+                .arg(automation_->currentLogicalStepIndex() + 1)
+                .arg(currentCase->sequence.steps.size())
+                .arg(automation_->currentRepetition() + 1)
+                .arg(currentCase->sequence.repeatCount);
+        } else if (currentCase != suite.cases.cend()
+                   && currentCase->declaredType
+                       == oms555tv::testing::TestCaseType::Stability) {
+            const auto interval = currentCase->stability.interval.count();
+            const auto maximumIterations = interval > 0
+                ? (currentCase->stability.duration.count() + interval - 1) / interval : 0;
+            logicalProgress = QStringLiteral("，稳定性迭代=%1/%2")
+                .arg(automation_->currentLogicalStepIndex() + 1)
+                .arg(maximumIterations);
+        }
+        testCurrentStepLabel_->setText(QStringLiteral(
+            "case=%1，步骤=%2%3，attempt=%4，RequestId=%5")
             .arg(automation_->currentCaseId(),
                  oms555tv::testing::testStepPurposeName(*automation_->currentStep()))
+            .arg(logicalProgress)
             .arg(automation_->currentAttempt())
             .arg(automation_->currentRequestId()->value));
     } else {
@@ -1058,6 +1137,8 @@ void MainWindow::renderTestDetails()
         QStringLiteral("名称：%1").arg(testCase.name),
         QStringLiteral("类别/类型：%1 / %2")
             .arg(testCase.category, oms555tv::testing::testCaseTypeName(testCase.declaredType)),
+        QStringLiteral("执行环境：%1")
+            .arg(oms555tv::testing::executionEnvironmentName(testCase.environment)),
         QStringLiteral("请求：%1").arg(testRequestText(testCase)),
         QStringLiteral("预期：%1").arg(testExpectedText(testCase.expected)),
     };
@@ -1083,6 +1164,63 @@ void MainWindow::renderTestDetails()
                 .arg(oms555tv::testing::testErrorCodeName(result.cleanupError->code),
                      result.cleanupError->diagnostic);
         }
+        if (!result.steps.isEmpty()) {
+            lines << QStringLiteral("\n=== 复合步骤（%1）===").arg(result.steps.size());
+            for (const auto &step : result.steps) {
+                QStringList sequences;
+                for (const auto sequence : step.attemptSequences) {
+                    sequences << QString::number(sequence);
+                }
+                lines << QStringLiteral("步骤 %1（index=%2，repetition=%3）：%4，%5 ms")
+                    .arg(step.stepId).arg(step.stepIndex + 1).arg(step.repetition + 1)
+                    .arg(oms555tv::testing::testStatusName(step.status))
+                    .arg(step.duration.count());
+                lines << QStringLiteral("  预期：%1").arg(testExpectedText(step.expected));
+                if (step.assertion) {
+                    lines << QStringLiteral("  实际：%1").arg(step.assertion->actualSummary);
+                    for (const auto &difference : step.assertion->differences) {
+                        lines << QStringLiteral("  差异：%1").arg(difference.reason);
+                    }
+                }
+                if (step.error) {
+                    lines << QStringLiteral("  错误 %1：%2")
+                        .arg(oms555tv::testing::testErrorCodeName(step.error->code),
+                             step.error->diagnostic);
+                }
+                lines << QStringLiteral("  attempt sequence：%1")
+                    .arg(sequences.isEmpty() ? QStringLiteral("--")
+                                             : sequences.join(QStringLiteral(", ")));
+            }
+        }
+        if (result.stability) {
+            const auto rttText = [](const std::optional<qint64> &value) {
+                return value ? QString::number(*value) + QStringLiteral(" ms")
+                             : QStringLiteral("--");
+            };
+            const auto &statistics = *result.stability;
+            lines << QStringLiteral("\n=== 稳定性聚合统计 ===");
+            lines << QStringLiteral("样本：total=%1 success=%2 failure=%3 timeout=%4")
+                .arg(statistics.total).arg(statistics.successes)
+                .arg(statistics.failures).arg(statistics.timeouts);
+            lines << QStringLiteral("RTT：有效=%1 缺失=%2 min=%3 avg=%4 max=%5")
+                .arg(statistics.validRttSamples).arg(statistics.missingRttSamples)
+                .arg(rttText(statistics.minimumRttMs), rttText(statistics.averageRttMs),
+                     rttText(statistics.maximumRttMs));
+        }
+        const auto &retention = result.evidenceRetention;
+        lines << QStringLiteral("\n=== 证据保留摘要 ===");
+        lines << QStringLiteral("策略：%1；total=%2 retained=%3 dropped=%4")
+            .arg(oms555tv::testing::testEvidenceRetentionPolicyName(retention.policy))
+            .arg(retention.totalAttempts).arg(retention.retainedAttempts)
+            .arg(retention.droppedAttempts);
+        lines << QStringLiteral("失败：total=%1 retained=%2；容量=%3")
+            .arg(retention.totalFailures).arg(retention.retainedFailures)
+            .arg(retention.configuredLimit);
+        lines << QStringLiteral("说明：%1")
+            .arg(retention.description.isEmpty() ? QStringLiteral("--")
+                                                 : retention.description);
+        lines << QStringLiteral("Session ID：%1")
+            .arg(result.sessionId.isEmpty() ? QStringLiteral("--") : result.sessionId);
         for (const auto &attempt : result.attempts) {
             lines << QStringLiteral("\n--- attempt %1 ---\n%2")
                 .arg(attempt.sequence).arg(testAttemptDetails(attempt));

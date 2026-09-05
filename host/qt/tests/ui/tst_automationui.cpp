@@ -52,6 +52,19 @@ communication::FakeStep readStep(
             std::move(outcome), {}, {}, {}};
 }
 
+communication::FakeStep readRegistersStep(
+    communication::CommunicationOwner owner,
+    quint16 address,
+    quint16 count,
+    communication::FakeOutcome outcome,
+    int timeoutMs = 500)
+{
+    return {{owner,
+             communication::ReadRequestDescriptor{device::PduAddress(address), count},
+             std::chrono::milliseconds(timeoutMs)},
+            std::move(outcome), {}, {}, {}};
+}
+
 communication::FakeStep monitorReadStep(communication::FakeOutcome outcome)
 {
     return {{communication::CommunicationOwner::Monitor,
@@ -68,10 +81,12 @@ communication::FakeOutcome readSuccess(quint16 value)
     return outcome;
 }
 
-communication::FakeOutcome outcome(communication::FakeOutcomeKind kind)
+communication::FakeOutcome outcome(communication::FakeOutcomeKind kind,
+                                   quint8 exceptionCode = 0)
 {
     communication::FakeOutcome value;
     value.kind = kind;
+    value.exceptionCode = exceptionCode;
     return value;
 }
 
@@ -157,6 +172,15 @@ struct UiRig {
         auto *table = window.findChild<QTableWidget *>(QStringLiteral("testCaseTable"));
         QVERIFY(table);
         QCOMPARE(table->rowCount(), expectedRows);
+    }
+
+    int rowFor(const QString &id) const
+    {
+        auto *table = window.findChild<QTableWidget *>(QStringLiteral("testCaseTable"));
+        for (int row = 0; table && row < table->rowCount(); ++row) {
+            if (table->item(row, 0)->text() == id) return row;
+        }
+        return -1;
     }
 };
 
@@ -330,6 +354,78 @@ private slots:
         QVERIFY(rig.appState.stopMonitoring().accepted());
         rig.scheduler->runUntilIdle();
         QCOMPARE(rig.appState.state(), app::AppState::ConnectedIdle);
+    }
+
+    void formalV2SuiteShowsCompositeEvidenceAndAbortableStabilityProgress()
+    {
+        UiRig rig;
+        rig.load(QStringLiteral(OMS555TV_PHASE6_RS485_SUITE), 20);
+        rig.connectDevice();
+        auto *table = widget<QTableWidget>(rig.window, "testCaseTable");
+
+        const int recoveryRow = rig.rowFor(QStringLiteral("TC-R-AUTO-001"));
+        QVERIFY(recoveryRow >= 0);
+        table->selectRow(recoveryRow);
+        rig.client.enqueueStep(readStep(
+            communication::CommunicationOwner::Testing, 50000,
+            outcome(communication::FakeOutcomeKind::RemoteException, 2)));
+        rig.client.enqueueStep(readRegistersStep(
+            communication::CommunicationOwner::Testing, 39, 2,
+            [] {
+                communication::FakeOutcome value;
+                value.kind = communication::FakeOutcomeKind::ReadSuccess;
+                value.readValues = {0, 2};
+                return value;
+            }()));
+        widget<QPushButton>(rig.window, "runSelectedTestsButton")->click();
+        rig.scheduler->runUntilIdle();
+        table->selectRow(recoveryRow);
+        const QString recoveryDetails =
+            widget<QPlainTextEdit>(rig.window, "testCaseDetails")->toPlainText();
+        QVERIFY(recoveryDetails.contains(QStringLiteral("复合步骤（2）")));
+        QVERIFY(recoveryDetails.contains(QStringLiteral("expected-address-error")));
+        QVERIFY(recoveryDetails.contains(QStringLiteral("legal-read-after-error")));
+        QVERIFY(recoveryDetails.contains(QStringLiteral("证据保留摘要")));
+        QVERIFY(recoveryDetails.contains(QStringLiteral("Session ID")));
+
+        rig.load(QStringLiteral(OMS555TV_PHASE6_RS485_SUITE), 20);
+        const int sequenceRow = rig.rowFor(QStringLiteral("TC-P007"));
+        QVERIFY(sequenceRow >= 0);
+        table->selectRow(sequenceRow);
+        rig.client.enqueueStep(readStep(
+            communication::CommunicationOwner::Testing, 39,
+            outcome(communication::FakeOutcomeKind::Pending)));
+        widget<QPushButton>(rig.window, "runSelectedTestsButton")->click();
+        rig.scheduler->runUntilIdle();
+        const QString sequenceProgress =
+            widget<QLabel>(rig.window, "testCurrentStepLabel")->text();
+        QVERIFY(sequenceProgress.contains(QStringLiteral("复合步骤=major（1/3）")));
+        QVERIFY(sequenceProgress.contains(QStringLiteral("重复=1/5")));
+        widget<QPushButton>(rig.window, "abortTestsButton")->click();
+        rig.scheduler->runUntilIdle();
+
+        rig.load(QStringLiteral(OMS555TV_PHASE6_RS485_SUITE), 20);
+        const int stabilityRow = rig.rowFor(QStringLiteral("TC-S001"));
+        QVERIFY(stabilityRow >= 0);
+        table->selectRow(stabilityRow);
+        rig.client.enqueueStep(readRegistersStep(
+            communication::CommunicationOwner::Testing, 0, 5,
+            outcome(communication::FakeOutcomeKind::Pending)));
+        widget<QPushButton>(rig.window, "runSelectedTestsButton")->click();
+        rig.scheduler->runUntilIdle();
+        QVERIFY(widget<QPushButton>(rig.window, "abortTestsButton")->isEnabled());
+        QVERIFY(widget<QLabel>(rig.window, "testCurrentStepLabel")->text()
+                    .contains(QStringLiteral("稳定性迭代=1/600")));
+        QCoreApplication::processEvents();
+        widget<QPushButton>(rig.window, "abortTestsButton")->click();
+        rig.scheduler->runUntilIdle();
+        table->selectRow(stabilityRow);
+        const QString stabilityDetails =
+            widget<QPlainTextEdit>(rig.window, "testCaseDetails")->toPlainText();
+        QVERIFY(stabilityDetails.contains(QStringLiteral("稳定性聚合统计")));
+        QVERIFY(stabilityDetails.contains(QStringLiteral("证据保留摘要")));
+        QCOMPARE(rig.appState.state(), app::AppState::ConnectedIdle);
+        QCOMPARE(rig.client.activeOwner(), communication::CommunicationOwner::None);
     }
 };
 
