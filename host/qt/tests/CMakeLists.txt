@@ -109,6 +109,16 @@ add_executable(tst_testengine
 target_link_libraries(tst_testengine PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.testing.engine COMMAND tst_testengine)
 
+add_executable(tst_automationui
+    monitor/ManualMonitorScheduler.h
+    ui/tst_automationui.cpp
+)
+target_compile_definitions(tst_automationui PRIVATE
+    OMS555TV_PHASE5_SUITE="${CMAKE_SOURCE_DIR}/../../testcases/functional/phase5-smoke.json"
+)
+target_link_libraries(tst_automationui PRIVATE oms555tv_widgets Qt6::Test)
+add_test(NAME host.testing.automation_ui COMMAND tst_automationui)
+
 add_test(NAME host.application.smoke COMMAND oms555tv_host --smoke-test)
 set_tests_properties(
     host.logging.logentry
@@ -128,6 +138,7 @@ set_tests_properties(
     host.testing.testcase_loader
     host.testing.assertions
     host.testing.engine
+    host.testing.automation_ui
     host.application.smoke
     PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
@@ -135,6 +146,7 @@ set_tests_properties(
 set_tests_properties(
     host.monitoring.ui
     host.configuration_diagnostics.ui
+    host.testing.automation_ui
     host.application.smoke
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )

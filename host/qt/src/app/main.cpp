@@ -6,6 +6,9 @@
 #include "logging/SessionLogService.h"
 #include "monitor/MonitorScheduler.h"
 #include "monitor/MonitorService.h"
+#include "testing/TestAutomationController.h"
+#include "testing/TestEngine.h"
+#include "testing/TestResultManager.h"
 #include "ui/MonitoringViewModel.h"
 #include "ui/SerialPortCatalog.h"
 
@@ -32,6 +35,10 @@ int main(int argc, char *argv[])
     oms555tv::configuration::ConfigurationService configuration(controller, client);
     oms555tv::diagnostics::CommunicationDiagnosticsModel diagnostics(client);
     oms555tv::logging::SessionLogService sessionLog(diagnostics);
+    oms555tv::testing::TestResultManager testResults;
+    oms555tv::testing::TestEngine testEngine(controller, client, testResults, &sessionLog);
+    oms555tv::testing::TestAutomationController testAutomation(
+        controller, testEngine, testResults);
     QObject::connect(&controller, &oms555tv::app::AppStateController::stateChanged,
                      &sessionLog, [&sessionLog](oms555tv::app::AppState state) {
         oms555tv::logging::LogEntry entry{
@@ -62,7 +69,7 @@ int main(int argc, char *argv[])
             entry.metadata.insert(QStringLiteral("cancelled"), result.cancelled);
             sessionLog.append(std::move(entry));
         });
-    MainWindow window(viewModel, configuration, diagnostics, sessionLog);
+    MainWindow window(viewModel, configuration, diagnostics, sessionLog, testAutomation);
     window.show();
 
     if (application.arguments().contains(QStringLiteral("--smoke-test"))) {

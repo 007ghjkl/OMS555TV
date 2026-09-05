@@ -3,11 +3,14 @@
 #include "configuration/ConfigurationService.h"
 #include "diagnostics/CommunicationDiagnostics.h"
 #include "logging/SessionLogService.h"
+#include "testing/TestAutomationController.h"
 #include "ui/MonitoringViewModel.h"
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDoubleSpinBox>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QGridLayout>
 #include <QGroupBox>
@@ -72,6 +75,79 @@ QString channelText(oms555tv::device::TemperatureChannel channel)
     return QStringLiteral("未知");
 }
 
+QString testRequestText(const oms555tv::testing::TestCase &testCase)
+{
+    const auto &request = testCase.request;
+    if (request.function == oms555tv::testing::ModbusFunction::ReadHoldingRegisters) {
+        return QStringLiteral("0x03 addr=%1 count=%2")
+            .arg(request.address.value()).arg(request.count);
+    }
+    return QStringLiteral("0x06 addr=%1 value=%2")
+        .arg(request.address.value()).arg(request.rawValue);
+}
+
+QString testExpectedText(const oms555tv::testing::ExpectedAssertion &expected)
+{
+    using Type = oms555tv::testing::AssertionType;
+    switch (expected.type) {
+    case Type::Equals:
+        return QStringLiteral("equals %1 %2").arg(expected.value).arg(expected.unit);
+    case Type::Range:
+        return QStringLiteral("range [%1, %2] %3")
+            .arg(expected.minimum).arg(expected.maximum).arg(expected.unit);
+    case Type::RegisterSequence: {
+        QStringList values;
+        for (const auto value : expected.values) values << QString::number(value);
+        return QStringLiteral("sequence [%1]").arg(values.join(QStringLiteral(", ")));
+    }
+    case Type::BitMask:
+        return QStringLiteral("bitmask mask=0x%1 value=0x%2")
+            .arg(expected.mask, 4, 16, QLatin1Char('0'))
+            .arg(expected.value, 4, 16, QLatin1Char('0'));
+    case Type::ModbusException:
+        return QStringLiteral("Modbus exception 0x%1")
+            .arg(expected.exceptionCode, 2, 16, QLatin1Char('0'));
+    }
+    return QStringLiteral("--");
+}
+
+QString testResultActualText(const oms555tv::testing::TestCaseResult &result)
+{
+    if (result.assertion) return result.assertion->actualSummary;
+    if (result.error) return result.error->diagnostic;
+    if (result.skipReason) {
+        return oms555tv::testing::testSkipReasonName(*result.skipReason);
+    }
+    return QStringLiteral("--");
+}
+
+QString testAttemptDetails(const oms555tv::testing::TestRequestAttemptResult &attempt)
+{
+    const auto &request = attempt.requestResult;
+    const auto &evidence = request.evidence;
+    const QString rtt = evidence.rtt
+        ? QStringLiteral("%1 ms").arg(
+              std::chrono::duration<double, std::milli>(*evidence.rtt).count(), 0, 'f', 3)
+        : QStringLiteral("--");
+    QString text = QStringLiteral(
+        "步骤=%1 attempt=%2%3 RequestId=%4 状态=%5 RTT=%6\nTX=%7\nRX=%8")
+        .arg(oms555tv::testing::testStepPurposeName(attempt.purpose))
+        .arg(attempt.stepAttempt)
+        .arg(attempt.retry ? QStringLiteral("（retry: %1）").arg(attempt.retryReason)
+                           : QString{})
+        .arg(attempt.requestId.value)
+        .arg(oms555tv::diagnostics::requestStateName(request.state), rtt,
+             oms555tv::diagnostics::byteArrayHex(evidence.txAdu),
+             oms555tv::diagnostics::byteArrayHex(evidence.rxAdu));
+    if (request.error) {
+        text += QStringLiteral("\n错误类别=%1 错误码=%2：%3")
+            .arg(static_cast<int>(request.error->category))
+            .arg(static_cast<int>(request.error->code))
+            .arg(request.error->diagnostic);
+    }
+    return text;
+}
+
 std::array<oms555tv::device::Temperature, 4> thresholdArray(
     const oms555tv::device::AlarmThresholds &value)
 {
@@ -82,7 +158,7 @@ std::array<oms555tv::device::Temperature, 4> thresholdArray(
 
 MainWindow::MainWindow(oms555tv::ui::MonitoringViewModel &viewModel,
                        QWidget *parent)
-    : MainWindow(viewModel, nullptr, nullptr, nullptr, parent)
+    : MainWindow(viewModel, nullptr, nullptr, nullptr, nullptr, parent)
 {
 }
 
@@ -92,7 +168,19 @@ MainWindow::MainWindow(
     oms555tv::diagnostics::CommunicationDiagnosticsModel &diagnostics,
     oms555tv::logging::SessionLogService &sessionLog,
     QWidget *parent)
-    : MainWindow(viewModel, &configuration, &diagnostics, &sessionLog, parent)
+    : MainWindow(viewModel, &configuration, &diagnostics, &sessionLog, nullptr, parent)
+{
+}
+
+MainWindow::MainWindow(
+    oms555tv::ui::MonitoringViewModel &viewModel,
+    oms555tv::configuration::ConfigurationService &configuration,
+    oms555tv::diagnostics::CommunicationDiagnosticsModel &diagnostics,
+    oms555tv::logging::SessionLogService &sessionLog,
+    oms555tv::testing::TestAutomationController &automation,
+    QWidget *parent)
+    : MainWindow(viewModel, &configuration, &diagnostics, &sessionLog,
+                 &automation, parent)
 {
 }
 
@@ -101,12 +189,14 @@ MainWindow::MainWindow(
     oms555tv::configuration::ConfigurationService *configuration,
     oms555tv::diagnostics::CommunicationDiagnosticsModel *diagnostics,
     oms555tv::logging::SessionLogService *sessionLog,
+    oms555tv::testing::TestAutomationController *automation,
     QWidget *parent)
     : QMainWindow(parent)
     , viewModel_(viewModel)
     , configuration_(configuration)
     , diagnostics_(diagnostics)
     , sessionLog_(sessionLog)
+    , automation_(automation)
 {
     setWindowTitle(QStringLiteral("OMS555TV 监控与诊断平台"));
     resize(1180, 860);
@@ -358,6 +448,95 @@ MainWindow::MainWindow(
         diagnosticsLayout->addWidget(splitter, 1);
         tabs->addTab(diagnosticsPage, QStringLiteral("通信调试"));
 
+        if (automation_) {
+            auto *testingPage = new QWidget;
+            auto *testingLayout = new QVBoxLayout(testingPage);
+            auto *suiteRow = new QHBoxLayout;
+            testSuitePath_ = new QLineEdit;
+            testSuitePath_->setObjectName(QStringLiteral("testSuitePath"));
+            testSuitePath_->setPlaceholderText(
+                QStringLiteral("选择 testcases/ 下的 JSON 测试套件"));
+            browseTestSuiteButton_ = new QPushButton(QStringLiteral("浏览"));
+            browseTestSuiteButton_->setObjectName(QStringLiteral("browseTestSuiteButton"));
+            loadTestSuiteButton_ = new QPushButton(QStringLiteral("加载套件"));
+            loadTestSuiteButton_->setObjectName(QStringLiteral("loadTestSuiteButton"));
+            suiteRow->addWidget(testSuitePath_, 1);
+            suiteRow->addWidget(browseTestSuiteButton_);
+            suiteRow->addWidget(loadTestSuiteButton_);
+            testingLayout->addLayout(suiteRow);
+
+            testSuiteSummaryLabel_ = new QLabel;
+            testSuiteSummaryLabel_->setObjectName(QStringLiteral("testSuiteSummaryLabel"));
+            testSuiteSummaryLabel_->setWordWrap(true);
+            testLoadErrors_ = new QPlainTextEdit;
+            testLoadErrors_->setObjectName(QStringLiteral("testLoadErrors"));
+            testLoadErrors_->setReadOnly(true);
+            testLoadErrors_->setMaximumHeight(100);
+            testLoadErrors_->setPlaceholderText(QStringLiteral("加载错误和 JSON 路径将在这里显示"));
+            testingLayout->addWidget(testSuiteSummaryLabel_);
+            testingLayout->addWidget(testLoadErrors_);
+
+            auto *testButtons = new QHBoxLayout;
+            runSelectedTestsButton_ = new QPushButton(QStringLiteral("执行选中"));
+            runSelectedTestsButton_->setObjectName(QStringLiteral("runSelectedTestsButton"));
+            runAllTestsButton_ = new QPushButton(QStringLiteral("执行全部"));
+            runAllTestsButton_->setObjectName(QStringLiteral("runAllTestsButton"));
+            skipTestButton_ = new QPushButton(QStringLiteral("跳过选中待执行用例"));
+            skipTestButton_->setObjectName(QStringLiteral("skipTestButton"));
+            abortTestsButton_ = new QPushButton(QStringLiteral("中止"));
+            abortTestsButton_->setObjectName(QStringLiteral("abortTestsButton"));
+            resumeMonitoringCheck_ = new QCheckBox(QStringLiteral("完成后恢复此前监控"));
+            resumeMonitoringCheck_->setObjectName(QStringLiteral("resumeMonitoringCheck"));
+            testButtons->addWidget(runSelectedTestsButton_);
+            testButtons->addWidget(runAllTestsButton_);
+            testButtons->addWidget(skipTestButton_);
+            testButtons->addWidget(abortTestsButton_);
+            testButtons->addWidget(resumeMonitoringCheck_);
+            testButtons->addStretch();
+            testingLayout->addLayout(testButtons);
+
+            auto *stateRow = new QGridLayout;
+            testWorkflowStateLabel_ = new QLabel;
+            testWorkflowStateLabel_->setObjectName(QStringLiteral("testWorkflowStateLabel"));
+            testProgressLabel_ = new QLabel;
+            testProgressLabel_->setObjectName(QStringLiteral("testProgressLabel"));
+            testCurrentStepLabel_ = new QLabel;
+            testCurrentStepLabel_->setObjectName(QStringLiteral("testCurrentStepLabel"));
+            testStatisticsLabel_ = new QLabel;
+            testStatisticsLabel_->setObjectName(QStringLiteral("testStatisticsLabel"));
+            stateRow->addWidget(new QLabel(QStringLiteral("工作流：")), 0, 0);
+            stateRow->addWidget(testWorkflowStateLabel_, 0, 1);
+            stateRow->addWidget(new QLabel(QStringLiteral("进度：")), 0, 2);
+            stateRow->addWidget(testProgressLabel_, 0, 3);
+            stateRow->addWidget(new QLabel(QStringLiteral("当前步骤：")), 1, 0);
+            stateRow->addWidget(testCurrentStepLabel_, 1, 1, 1, 3);
+            stateRow->addWidget(new QLabel(QStringLiteral("统计：")), 2, 0);
+            stateRow->addWidget(testStatisticsLabel_, 2, 1, 1, 3);
+            testingLayout->addLayout(stateRow);
+
+            auto *testSplitter = new QSplitter(Qt::Vertical);
+            testCaseTable_ = new QTableWidget(testSplitter);
+            testCaseTable_->setObjectName(QStringLiteral("testCaseTable"));
+            testCaseTable_->setColumnCount(9);
+            testCaseTable_->setHorizontalHeaderLabels({
+                QStringLiteral("ID"), QStringLiteral("名称"), QStringLiteral("类别"),
+                QStringLiteral("类型"), QStringLiteral("状态"), QStringLiteral("请求"),
+                QStringLiteral("预期"), QStringLiteral("实际/原因"), QStringLiteral("耗时")});
+            testCaseTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
+            testCaseTable_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+            testCaseTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+            testCaseTable_->horizontalHeader()->setStretchLastSection(true);
+            testCaseDetails_ = new QPlainTextEdit(testSplitter);
+            testCaseDetails_->setObjectName(QStringLiteral("testCaseDetails"));
+            testCaseDetails_->setReadOnly(true);
+            testCaseDetails_->setPlaceholderText(
+                QStringLiteral("选择用例以查看断言、错误和完整 attempt 证据"));
+            testSplitter->addWidget(testCaseTable_);
+            testSplitter->addWidget(testCaseDetails_);
+            testingLayout->addWidget(testSplitter, 1);
+            tabs->addTab(testingPage, QStringLiteral("自动化测试"));
+        }
+
         auto *sessionPage = new QWidget;
         auto *sessionLayout = new QVBoxLayout(sessionPage);
         auto *sessionButtons = new QHBoxLayout;
@@ -392,7 +571,7 @@ MainWindow::MainWindow(
     setCentralWidget(tabs);
 
     connect(&viewModel_, &oms555tv::ui::MonitoringViewModel::stateChanged,
-            this, [this] { render(); renderConfiguration(); });
+            this, [this] { render(); renderConfiguration(); renderTesting(); });
     connect(refreshPortsButton_, &QPushButton::clicked,
             &viewModel_, &oms555tv::ui::MonitoringViewModel::refreshPorts);
     connect(portCombo_, &QComboBox::currentIndexChanged, this, [this](int index) {
@@ -466,11 +645,61 @@ MainWindow::MainWindow(
         });
         connect(clearSessionLogButton_, &QPushButton::clicked,
                 sessionLog_, &oms555tv::logging::SessionLogService::clearMemory);
+        if (automation_) {
+            connect(automation_, &oms555tv::testing::TestAutomationController::stateChanged,
+                    this, [this] {
+                render();
+                renderConfiguration();
+                renderDiagnostics();
+                renderTesting();
+            });
+            connect(automation_, &oms555tv::testing::TestAutomationController::suiteChanged,
+                    this, &MainWindow::renderTesting);
+            connect(automation_, &oms555tv::testing::TestAutomationController::currentStepChanged,
+                    this, &MainWindow::renderTesting);
+            connect(browseTestSuiteButton_, &QPushButton::clicked, this, [this] {
+                const QString path = QFileDialog::getOpenFileName(
+                    this, QStringLiteral("选择测试套件"), testSuitePath_->text(),
+                    QStringLiteral("JSON 测试套件 (*.json)"));
+                if (!path.isEmpty()) testSuitePath_->setText(path);
+            });
+            connect(loadTestSuiteButton_, &QPushButton::clicked, this, [this] {
+                (void)automation_->loadSuiteFile(testSuitePath_->text());
+            });
+            connect(resumeMonitoringCheck_, &QCheckBox::toggled,
+                    automation_, &oms555tv::testing::TestAutomationController::setResumeMonitoring);
+            const auto monitorConfig = [this] {
+                oms555tv::monitor::MonitorConfig config;
+                config.targetPeriod = std::chrono::milliseconds(viewModel_.state().targetPeriodMs);
+                config.requestTimeout = std::chrono::milliseconds(viewModel_.state().responseTimeoutMs);
+                return config;
+            };
+            connect(runAllTestsButton_, &QPushButton::clicked, this, [this, monitorConfig] {
+                (void)automation_->runAll(monitorConfig());
+            });
+            connect(runSelectedTestsButton_, &QPushButton::clicked,
+                    this, [this, monitorConfig] {
+                QSet<QString> selected;
+                for (const auto &index : testCaseTable_->selectionModel()->selectedRows(0)) {
+                    selected.insert(index.data().toString());
+                }
+                (void)automation_->runSelected(selected, monitorConfig());
+            });
+            connect(skipTestButton_, &QPushButton::clicked, this, [this] {
+                const auto rows = testCaseTable_->selectionModel()->selectedRows(0);
+                if (!rows.isEmpty()) (void)automation_->skipCase(rows.front().data().toString());
+            });
+            connect(abortTestsButton_, &QPushButton::clicked,
+                    automation_, &oms555tv::testing::TestAutomationController::abort);
+            connect(testCaseTable_, &QTableWidget::itemSelectionChanged,
+                    this, &MainWindow::renderTestDetails);
+        }
     }
     render();
     renderConfiguration();
     renderDiagnostics();
     renderSessionLog();
+    renderTesting();
 }
 
 QLabel *MainWindow::makeValueLabel(const QString &objectName)
@@ -484,6 +713,7 @@ QLabel *MainWindow::makeValueLabel(const QString &objectName)
 void MainWindow::render()
 {
     const auto &state = viewModel_.state();
+    const bool testBusy = automation_ && automation_->busy();
     const QSignalBlocker portBlocker(portCombo_);
     portCombo_->clear();
     for (const auto &port : state.ports) portCombo_->addItem(port.displayName(), port.portName);
@@ -494,16 +724,18 @@ void MainWindow::render()
     slaveAddressSpin_->setValue(state.slaveAddress);
     timeoutSpin_->setValue(state.responseTimeoutMs);
     periodCombo_->setCurrentIndex(periodCombo_->findData(state.targetPeriodMs));
-    portCombo_->setEnabled(state.connectionFieldsEnabled);
-    slaveAddressSpin_->setEnabled(state.connectionFieldsEnabled);
-    timeoutSpin_->setEnabled(state.connectionFieldsEnabled);
-    refreshPortsButton_->setEnabled(state.refreshPortsEnabled);
-    periodCombo_->setEnabled(state.targetPeriodEnabled);
-    connectButton_->setEnabled(state.connectEnabled);
-    disconnectButton_->setEnabled(state.disconnectEnabled && (!configuration_ || !configuration_->busy()));
-    startMonitoringButton_->setEnabled(state.startMonitoringEnabled && (!configuration_ || !configuration_->busy()));
-    stopMonitoringButton_->setEnabled(state.stopMonitoringEnabled);
-    recoverButton_->setEnabled(state.recoverEnabled);
+    portCombo_->setEnabled(state.connectionFieldsEnabled && !testBusy);
+    slaveAddressSpin_->setEnabled(state.connectionFieldsEnabled && !testBusy);
+    timeoutSpin_->setEnabled(state.connectionFieldsEnabled && !testBusy);
+    refreshPortsButton_->setEnabled(state.refreshPortsEnabled && !testBusy);
+    periodCombo_->setEnabled(state.targetPeriodEnabled && !testBusy);
+    connectButton_->setEnabled(state.connectEnabled && !testBusy);
+    disconnectButton_->setEnabled(state.disconnectEnabled && !testBusy
+                                  && (!configuration_ || !configuration_->busy()));
+    startMonitoringButton_->setEnabled(state.startMonitoringEnabled && !testBusy
+                                      && (!configuration_ || !configuration_->busy()));
+    stopMonitoringButton_->setEnabled(state.stopMonitoringEnabled && !testBusy);
+    recoverButton_->setEnabled(state.recoverEnabled && !testBusy);
     appStateLabel_->setText(state.appStateText);
     connectionStateLabel_->setText(state.connectionStateText);
     healthLabel_->setText(state.deviceHealthText);
@@ -546,10 +778,11 @@ void MainWindow::renderConfiguration()
     if (!configuration_) return;
     const bool idle = viewModel_.state().appState == oms555tv::app::AppState::ConnectedIdle;
     const bool busy = configuration_->busy();
-    readThresholdsButton_->setEnabled(idle && !busy);
-    writeThresholdsButton_->setEnabled(idle && !busy);
+    const bool testBusy = automation_ && automation_->busy();
+    readThresholdsButton_->setEnabled(idle && !busy && !testBusy);
+    writeThresholdsButton_->setEnabled(idle && !busy && !testBusy);
     cancelConfigurationButton_->setEnabled(busy);
-    for (auto *spin : thresholdSpins_) spin->setEnabled(idle && !busy);
+    for (auto *spin : thresholdSpins_) spin->setEnabled(idle && !busy && !testBusy);
     configurationStateLabel_->setText(configurationStateText(configuration_->state()));
     if (configuration_->thresholds()) {
         const auto values = thresholdArray(*configuration_->thresholds());
@@ -587,6 +820,9 @@ void MainWindow::renderConfiguration()
 void MainWindow::renderDiagnostics()
 {
     if (!diagnostics_) return;
+    if (clearDiagnosticsButton_) {
+        clearDiagnosticsButton_->setEnabled(!automation_ || !automation_->busy());
+    }
     oms555tv::diagnostics::DiagnosticFilter filter;
     const int levelIndex = diagnosticLevelFilter_->currentIndex();
     if (levelIndex > 0) filter.level = static_cast<oms555tv::logging::LogLevel>(levelIndex - 1);
@@ -666,4 +902,193 @@ void MainWindow::renderSessionLog()
     }
     sessionLogView_->setPlainText(lines.join(QLatin1Char('\n')));
     sessionLogView_->moveCursor(QTextCursor::End);
+}
+
+void MainWindow::renderTesting()
+{
+    if (!automation_ || !testCaseTable_) return;
+    const bool busy = automation_->busy();
+    const bool runnableState = viewModel_.state().appState == oms555tv::app::AppState::ConnectedIdle
+        || viewModel_.state().appState == oms555tv::app::AppState::Monitoring;
+    testSuitePath_->setEnabled(!busy);
+    browseTestSuiteButton_->setEnabled(!busy);
+    loadTestSuiteButton_->setEnabled(!busy);
+    resumeMonitoringCheck_->setEnabled(!busy);
+    {
+        const QSignalBlocker blocker(resumeMonitoringCheck_);
+        resumeMonitoringCheck_->setChecked(automation_->resumeMonitoring());
+    }
+    if (!automation_->suitePath().isEmpty() && !testSuitePath_->hasFocus()) {
+        testSuitePath_->setText(automation_->suitePath());
+    }
+    const bool hasSuite = automation_->suite().has_value();
+    const bool configurationBusy = configuration_ && configuration_->busy();
+    runAllTestsButton_->setEnabled(hasSuite && !busy && !configurationBusy && runnableState);
+    runSelectedTestsButton_->setEnabled(
+        hasSuite && !busy && !configurationBusy && runnableState);
+    skipTestButton_->setEnabled(
+        automation_->state() == oms555tv::testing::TestAutomationState::Running);
+    abortTestsButton_->setEnabled(
+        automation_->state() == oms555tv::testing::TestAutomationState::Running);
+    testWorkflowStateLabel_->setText(
+        oms555tv::testing::testAutomationStateName(automation_->state()));
+
+    QStringList errorLines;
+    if (!automation_->lastError().isEmpty()) errorLines << automation_->lastError();
+    for (const auto &error : automation_->loadErrors()) {
+        errorLines << QStringLiteral("%1 %2 suite=%3 case=%4：%5")
+            .arg(oms555tv::testing::configErrorCodeName(error.code), error.path,
+                 error.suiteId.isEmpty() ? QStringLiteral("--") : error.suiteId,
+                 error.caseId.isEmpty() ? QStringLiteral("--") : error.caseId,
+                 error.diagnostic);
+    }
+    testLoadErrors_->setPlainText(errorLines.join(QLatin1Char('\n')));
+
+    if (!hasSuite) {
+        testSuiteSummaryLabel_->setText(QStringLiteral("未加载有效套件"));
+        testCaseTable_->setRowCount(0);
+        testProgressLabel_->setText(QStringLiteral("0/0"));
+        testStatisticsLabel_->setText(
+            QStringLiteral("PASS 0 / FAIL 0 / ERROR 0 / SKIPPED 0 / NOT_RUN 0"));
+        testCurrentStepLabel_->setText(QStringLiteral("--"));
+        renderTestDetails();
+        return;
+    }
+
+    const auto &suite = *automation_->suite();
+    testSuiteSummaryLabel_->setText(QStringLiteral("%1（%2）— %3 条用例；%4")
+        .arg(suite.name, suite.id).arg(suite.cases.size()).arg(suite.description));
+    const auto snapshot = automation_->resultSnapshot();
+    const bool snapshotMatches = snapshot && snapshot->suite
+        && snapshot->suite->id == suite.id
+        && snapshot->cases.size() == suite.cases.size();
+
+    QSet<QString> selectedIds;
+    for (const auto &index : testCaseTable_->selectionModel()->selectedRows(0)) {
+        selectedIds.insert(index.data().toString());
+    }
+    testCaseTable_->clearSelection();
+    testCaseTable_->setRowCount(suite.cases.size());
+    int pass = 0;
+    int fail = 0;
+    int error = 0;
+    int skipped = 0;
+    int notRun = 0;
+    int terminal = 0;
+    for (int row = 0; row < suite.cases.size(); ++row) {
+        const auto &testCase = suite.cases[row];
+        const oms555tv::testing::TestCaseResult *result = snapshotMatches
+            ? &snapshot->cases[row] : nullptr;
+        const auto status = result ? result->status : oms555tv::testing::TestStatus::NotRun;
+        switch (status) {
+        case oms555tv::testing::TestStatus::Pass: ++pass; ++terminal; break;
+        case oms555tv::testing::TestStatus::Fail: ++fail; ++terminal; break;
+        case oms555tv::testing::TestStatus::Error: ++error; ++terminal; break;
+        case oms555tv::testing::TestStatus::Skipped: ++skipped; ++terminal; break;
+        case oms555tv::testing::TestStatus::NotRun: ++notRun; break;
+        case oms555tv::testing::TestStatus::Running: break;
+        }
+        const QStringList cells{
+            testCase.id,
+            testCase.name,
+            testCase.category,
+            oms555tv::testing::testCaseTypeName(testCase.declaredType),
+            oms555tv::testing::testStatusName(status),
+            testRequestText(testCase),
+            testExpectedText(testCase.expected),
+            result ? testResultActualText(*result) : QStringLiteral("--"),
+            result && result->finishedUtc.isValid()
+                ? QStringLiteral("%1 ms").arg(result->duration.count())
+                : QStringLiteral("--"),
+        };
+        for (int column = 0; column < cells.size(); ++column) {
+            auto *item = new QTableWidgetItem(cells[column]);
+            item->setData(Qt::UserRole, testCase.id);
+            testCaseTable_->setItem(row, column, item);
+        }
+        if (selectedIds.contains(testCase.id)) {
+            testCaseTable_->selectionModel()->select(
+                testCaseTable_->model()->index(row, 0),
+                QItemSelectionModel::Select | QItemSelectionModel::Rows);
+        }
+    }
+    testCaseTable_->resizeColumnsToContents();
+    testProgressLabel_->setText(QStringLiteral("%1/%2").arg(terminal).arg(suite.cases.size()));
+    testStatisticsLabel_->setText(
+        QStringLiteral("PASS %1 / FAIL %2 / ERROR %3 / SKIPPED %4 / NOT_RUN %5")
+            .arg(pass).arg(fail).arg(error).arg(skipped).arg(notRun));
+    if (automation_->currentCaseId().isEmpty()) {
+        testCurrentStepLabel_->setText(QStringLiteral("--"));
+    } else if (automation_->currentStep() && automation_->currentRequestId()) {
+        testCurrentStepLabel_->setText(QStringLiteral("case=%1，步骤=%2，attempt=%3，RequestId=%4")
+            .arg(automation_->currentCaseId(),
+                 oms555tv::testing::testStepPurposeName(*automation_->currentStep()))
+            .arg(automation_->currentAttempt())
+            .arg(automation_->currentRequestId()->value));
+    } else {
+        testCurrentStepLabel_->setText(
+            QStringLiteral("case=%1，准备下一步骤").arg(automation_->currentCaseId()));
+    }
+    renderTestDetails();
+}
+
+void MainWindow::renderTestDetails()
+{
+    if (!automation_ || !testCaseDetails_ || !testCaseTable_
+        || !testCaseTable_->currentItem() || !automation_->suite()) {
+        if (testCaseDetails_) testCaseDetails_->clear();
+        return;
+    }
+    const QString id = testCaseTable_->currentItem()->data(Qt::UserRole).toString();
+    const auto &suite = *automation_->suite();
+    qsizetype index = -1;
+    for (qsizetype candidate = 0; candidate < suite.cases.size(); ++candidate) {
+        if (suite.cases[candidate].id == id) {
+            index = candidate;
+            break;
+        }
+    }
+    if (index < 0) {
+        testCaseDetails_->clear();
+        return;
+    }
+    const auto &testCase = suite.cases[index];
+    QStringList lines{
+        QStringLiteral("ID：%1").arg(testCase.id),
+        QStringLiteral("名称：%1").arg(testCase.name),
+        QStringLiteral("类别/类型：%1 / %2")
+            .arg(testCase.category, oms555tv::testing::testCaseTypeName(testCase.declaredType)),
+        QStringLiteral("请求：%1").arg(testRequestText(testCase)),
+        QStringLiteral("预期：%1").arg(testExpectedText(testCase.expected)),
+    };
+    const auto snapshot = automation_->resultSnapshot();
+    if (snapshot && snapshot->suite && snapshot->suite->id == suite.id
+        && index < snapshot->cases.size()) {
+        const auto &result = snapshot->cases[index];
+        lines << QStringLiteral("状态：%1").arg(oms555tv::testing::testStatusName(result.status));
+        if (result.assertion) {
+            lines << QStringLiteral("实际：%1").arg(result.assertion->actualSummary);
+            lines << QStringLiteral("断言：%1").arg(result.assertion->expectedSummary);
+            for (const auto &difference : result.assertion->differences) {
+                lines << QStringLiteral("差异：%1").arg(difference.reason);
+            }
+        }
+        if (result.error) {
+            lines << QStringLiteral("主错误 %1：%2")
+                .arg(oms555tv::testing::testErrorCodeName(result.error->code),
+                     result.error->diagnostic);
+        }
+        if (result.cleanupError) {
+            lines << QStringLiteral("清理错误 %1：%2")
+                .arg(oms555tv::testing::testErrorCodeName(result.cleanupError->code),
+                     result.cleanupError->diagnostic);
+        }
+        for (const auto &attempt : result.attempts) {
+            lines << QStringLiteral("\n--- attempt %1 ---\n%2")
+                .arg(attempt.sequence).arg(testAttemptDetails(attempt));
+        }
+    } else {
+        lines << QStringLiteral("状态：NOT_RUN");
+    }
+    testCaseDetails_->setPlainText(lines.join(QLatin1Char('\n')));
 }

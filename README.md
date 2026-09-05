@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`～`TASK-015`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、纯断言与 Fake 下的 TestEngine 执行核心；自动化测试 UI 和至少 5 条真实 RS485 用例仍待 TASK-016。
+当前状态：`TASK-001`～`TASK-016`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。
 
 ## 项目目标
 
@@ -62,6 +62,8 @@
 - [Host Phase 5 TestEngine 执行核心技术规范](specs/host_phase5_test_engine.md)
 - [TASK-015 TestEngine 执行核心验证记录](docs/test_results/task015_test_engine_core.md)
 - [TASK-016 Host Phase 5 自动化测试 UI 与真实 RS485 验收](tasks/TASK-016-host-phase5-automation-ui-rs485-validation.md)
+- [Host Phase 5 自动化测试 UI 技术规范](specs/host_phase5_automation_ui.md)
+- [TASK-016 自动化测试 UI 与真实 RS485 验收记录](docs/test_results/task016_phase5_automation_rs485.md)
 
 ## 仓库结构
 
@@ -142,6 +144,8 @@ $env:Path = "$bundleRoot\gnu-tools-for-stm32\14.3.1+st.2\bin;$bundleRoot\ninja\1
 
 2026-09-05 的 TASK-015 最终结果：新增无 QWidget 的 `TestEngine`、可注册基础处理器和不可变 `TestResultManager` 快照，支持单条/批量、禁用/选择跳过、timeout、显式 retry、中止、完整 attempt/RequestId/TX/RX 证据及 TEST 日志。`write_and_verify` 执行写前读取、独立写/回读，并在失败或中止后受控恢复原值；全新 Host 构建和 18/18 CTest 通过。验证完全使用 Fake 与虚拟时间，未访问真实 RS485；自动化 UI 与至少 5 条实机套件留给 TASK-016。
 
+2026-09-05 的 TASK-016 最终结果：新增异步 JSON 加载与测试模式编排层、Qt 自动化测试页面、8 条 Phase 5 基础套件和真实 RS485 验收工具。页面支持选中/全部执行、跳过、中止、可选恢复监控，并展示 PASS/FAIL/ERROR/SKIPPED、当前步骤、RequestId、TX/RX、RTT、实际值和结构化错误。全新 Host 构建和 19/19 CTest 通过；COM6 实测 8/8 用例 PASS，11 个测试请求在结果/诊断/TEST 日志中一致，四路阈值最终恢复为 60.0/60.0/60.0/40.0 ℃。本结果只关闭 Phase 5，不代表 Phase 6 的完整 20 条套件、Phase 7 或 Phase 8 已完成。
+
 实板联调工具会运行时枚举 ST-LINK，不写死 COM 号：
 
 ```powershell
@@ -157,8 +161,8 @@ $env:Path = "D:\Dev\Qt\6.8.3\msvc2022_64\bin;$env:Path"
 
 1. `TASK-002/009/010` 已关闭；改变模块、供电、方向方式、线长、终端或偏置时必须重新评审硬件接口和对应测试范围；
 2. TASK-011/012/013 已关闭；配置和调试日志复用状态/监控核心与 `IModbusClient`，后续功能仍不得在 QWidget 直接操作 QSerialPort；
-3. Phase 4 的实时监控、30 分钟台架、参数配置、通信调试和会话日志已通过；TASK-015 仅完成 Fake 下的 TestEngine 核心，自动化 UI、真实套件与报告仍未实施；
-4. Phase 5 的 `TASK-014/015` 输入和执行核心已关闭；下一步实施 `TASK-016` 自动化测试 UI 与至少 5 条真实 RS485 用例，前置任务未验收时不得跨层临时实现；
+3. Phase 4 的实时监控、30 分钟台架、参数配置、通信调试和会话日志已通过；Phase 5 的输入、执行核心、自动化 UI 与 8 条真实 RS485 基础套件也已通过；
+4. Phase 5 的 `TASK-014/015/016` 已关闭；后续仍须复用 TestAutomationController、TestEngine、AppStateController 和唯一 `IModbusClient` 路径，不得在 QWidget 临时实现协议或执行循环；
 5. TASK-014 的中文示例与 fixture 不属于正式用例；Phase 6 的完整 20 条套件、Phase 7 半自动测试和 Phase 8 HTML 报告继续留待后续拆分；
 6. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
 

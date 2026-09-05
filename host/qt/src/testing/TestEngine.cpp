@@ -316,6 +316,7 @@ void TestEngine::submitStep(TestHandlerStep step, bool retry, QString retryReaso
     currentAttemptStarted_ = nowUtc();
     currentRetryReason_ = retry ? std::move(retryReason) : QString{};
     ++stepAttempt_;
+    emit stepStarted(testCase.id, step.purpose, *submission.requestId, stepAttempt_);
 }
 
 void TestEngine::handleRequestCompleted(

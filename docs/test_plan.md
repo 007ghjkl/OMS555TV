@@ -1,6 +1,6 @@
 # 测试计划
 
-> 状态：开发中基线 1.1（TASK-015 TestEngine 执行核心已验证）
+> 状态：开发中基线 1.2（Host Phase 5 基础自动化闭环已验证）
 
 ## 1. 目标
 
@@ -9,7 +9,7 @@
 ## 2. 测试层次
 
 - 纯软件单元测试：CRC、缩放、寄存器映射、告警迟滞、JSON 校验、断言和报告模型。
-- Host 集成测试：使用 Fake Modbus Client 验证监控、配置、通信诊断、日志与 TestEngine，无需真实硬件。
+- Host 集成测试：使用 Fake Modbus Client 验证监控、配置、通信诊断、日志、TestEngine 与自动化测试 UI，无需真实硬件。
 - 协议联调测试：第三方 Master 和 Qt 生产后端均已与真实 STM32 通过 VCP/UART 和 RS485 分层验证。
 - 系统测试：覆盖人工故障注入、恢复、长时运行和报告输出。
 
@@ -50,10 +50,10 @@
 - TASK-005/008 已证明 USART2 VCP 下的 Firmware 与 Host Modbus RTU 闭环。
 - TASK-009/010 已证明当前 USART1、自动换向模块、约 20 cm 两线 RS485 和 COM6 转换器下的双向 Modbus、500 次连续请求、物理断线恢复与设备复位恢复。
 - TASK-011 的应用状态与监控核心、TASK-012 的实时 UI、TASK-013 的参数配置/通信诊断/会话日志均已通过自动化测试；TASK-012 另完成 30 分钟真实 RS485、设备复位、陈旧状态、UI 响应和显式重连验收；TASK-013 完成四路阈值真实写回读、原值恢复和 20/20 请求会话证据核对。
-- Host Phase 5 已拆分为 TASK-014 测试模型/JSON Schema/断言、TASK-015 TestEngine 执行核心、TASK-016 自动化测试 UI/至少 5 条真实 RS485 用例；TASK-014/015 已完成，TASK-015 全新构建和 18/18 CTest 通过，测试使用 Fake 与虚拟时钟，不访问硬件；TASK-016 尚未实施。
+- Host Phase 5 的 TASK-014 测试模型/JSON Schema/断言、TASK-015 TestEngine 和 TASK-016 自动化测试 UI/真实 RS485 基础套件均已完成。TASK-016 全新构建和 19/19 CTest 通过，COM6 上 8/8 基础用例 PASS，11 个测试 RequestId 与诊断/TEST 日志一致，阈值前后独立读取一致。
 - 标准 Modbus Client 未必能发送 CRC 错误帧，可能需要后续 Raw Frame 接口。
 - 8/24 小时稳定性测试只能在具备持续硬件环境后执行。
 
 ## 8. 结果真实性
 
-未实际运行的测试不得标记通过。TASK-003、TASK-005、TASK-008、TASK-009、TASK-010、TASK-011、TASK-012、TASK-013、TASK-014 和 TASK-015 只能按各自记录标记通过；TASK-015 仅证明 Fake 下的执行核心、结果和 owner 清理，不代表自动化 UI、真实 RS485 测试套件或正式报告已验证。TASK-016 尚未实施，Phase 5 的 5 条最小套件也不得表述为 Phase 6 的完整 20 条套件。当前短距离 RS485 结果不得外推为 8/24 小时稳定性、工业长线、隔离或 EMC 验证。
+未实际运行的测试不得标记通过。TASK-003、TASK-005、TASK-008、TASK-009、TASK-010、TASK-011、TASK-012、TASK-013、TASK-014、TASK-015 和 TASK-016 只能按各自记录标记通过。TASK-016 的 8 条 Phase 5 基础套件不得表述为 Phase 6 的完整 20 条套件，也不代表半自动步骤或正式 HTML/PDF 报告已经验证。当前短距离 RS485 结果不得外推为 8/24 小时稳定性、工业长线、隔离或 EMC 验证。

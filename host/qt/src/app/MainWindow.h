@@ -3,6 +3,7 @@
 #include <QMainWindow>
 
 class QComboBox;
+class QCheckBox;
 class QDoubleSpinBox;
 class QLabel;
 class QLineEdit;
@@ -14,6 +15,7 @@ class QTableWidget;
 namespace oms555tv::configuration { class ConfigurationService; }
 namespace oms555tv::diagnostics { class CommunicationDiagnosticsModel; }
 namespace oms555tv::logging { class SessionLogService; }
+namespace oms555tv::testing { class TestAutomationController; }
 namespace oms555tv::ui { class MonitoringViewModel; }
 
 class MainWindow final : public QMainWindow
@@ -26,12 +28,19 @@ public:
                oms555tv::diagnostics::CommunicationDiagnosticsModel &diagnostics,
                oms555tv::logging::SessionLogService &sessionLog,
                QWidget *parent = nullptr);
+    MainWindow(oms555tv::ui::MonitoringViewModel &viewModel,
+               oms555tv::configuration::ConfigurationService &configuration,
+               oms555tv::diagnostics::CommunicationDiagnosticsModel &diagnostics,
+               oms555tv::logging::SessionLogService &sessionLog,
+               oms555tv::testing::TestAutomationController &automation,
+               QWidget *parent = nullptr);
 
 private:
     MainWindow(oms555tv::ui::MonitoringViewModel &viewModel,
                oms555tv::configuration::ConfigurationService *configuration,
                oms555tv::diagnostics::CommunicationDiagnosticsModel *diagnostics,
                oms555tv::logging::SessionLogService *sessionLog,
+               oms555tv::testing::TestAutomationController *automation,
                QWidget *parent);
     QLabel *makeValueLabel(const QString &objectName);
     void render();
@@ -39,11 +48,14 @@ private:
     void renderDiagnostics();
     void renderDiagnosticDetails();
     void renderSessionLog();
+    void renderTesting();
+    void renderTestDetails();
 
     oms555tv::ui::MonitoringViewModel &viewModel_;
     oms555tv::configuration::ConfigurationService *configuration_ = nullptr;
     oms555tv::diagnostics::CommunicationDiagnosticsModel *diagnostics_ = nullptr;
     oms555tv::logging::SessionLogService *sessionLog_ = nullptr;
+    oms555tv::testing::TestAutomationController *automation_ = nullptr;
 
     QComboBox *portCombo_ = nullptr;
     QComboBox *periodCombo_ = nullptr;
@@ -104,4 +116,21 @@ private:
     QLabel *sessionPathLabel_ = nullptr;
     QLabel *sessionErrorLabel_ = nullptr;
     QPlainTextEdit *sessionLogView_ = nullptr;
+
+    QLineEdit *testSuitePath_ = nullptr;
+    QPushButton *browseTestSuiteButton_ = nullptr;
+    QPushButton *loadTestSuiteButton_ = nullptr;
+    QPushButton *runSelectedTestsButton_ = nullptr;
+    QPushButton *runAllTestsButton_ = nullptr;
+    QPushButton *skipTestButton_ = nullptr;
+    QPushButton *abortTestsButton_ = nullptr;
+    QCheckBox *resumeMonitoringCheck_ = nullptr;
+    QLabel *testWorkflowStateLabel_ = nullptr;
+    QLabel *testSuiteSummaryLabel_ = nullptr;
+    QLabel *testProgressLabel_ = nullptr;
+    QLabel *testCurrentStepLabel_ = nullptr;
+    QLabel *testStatisticsLabel_ = nullptr;
+    QPlainTextEdit *testLoadErrors_ = nullptr;
+    QTableWidget *testCaseTable_ = nullptr;
+    QPlainTextEdit *testCaseDetails_ = nullptr;
 };

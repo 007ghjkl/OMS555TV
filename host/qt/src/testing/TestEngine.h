@@ -42,6 +42,10 @@ public:
 signals:
     void stateChanged(oms555tv::testing::TestEngineState state);
     void caseStarted(QString caseId);
+    void stepStarted(QString caseId,
+                     oms555tv::testing::TestStepPurpose purpose,
+                     oms555tv::communication::RequestId requestId,
+                     int attempt);
     void caseFinished(QString caseId, oms555tv::testing::TestStatus status);
     void runCompleted(const oms555tv::testing::TestSuiteResult &result);
 

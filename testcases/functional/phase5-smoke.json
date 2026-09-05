@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "id": "phase5-smoke",
+  "name": "Phase 5 真实 RS485 基础套件",
+  "description": "覆盖动态测量范围、Firmware 版本、非法地址异常和阈值写入/独立回读/原值恢复；不代表 Phase 6 完整 20 条套件。",
+  "tags": ["phase5", "rs485", "smoke"],
+  "metadata": {
+    "hardware": "NUCLEO-F411RE",
+    "transport": "USART1-RS485",
+    "slave_id": "1"
+  },
+  "cases": [
+    {
+      "id": "P5-TEMP-A-RANGE",
+      "name": "A 相温度范围读取",
+      "category": "functional",
+      "type": "read_register",
+      "request": { "function": 3, "address": 0, "count": 1 },
+      "expected": { "type": "range", "min": -400, "max": 1250, "representation": "int16", "unit": "0.1℃" },
+      "timeout": { "request_ms": 500 }
+    },
+    {
+      "id": "P5-TEMP-B-RANGE",
+      "name": "B 相温度范围读取",
+      "category": "functional",
+      "type": "read_register",
+      "request": { "function": 3, "address": 1, "count": 1 },
+      "expected": { "type": "range", "min": -400, "max": 1250, "representation": "int16", "unit": "0.1℃" },
+      "timeout": { "request_ms": 500 }
+    },
+    {
+      "id": "P5-TEMP-C-RANGE",
+      "name": "C 相温度范围读取",
+      "category": "functional",
+      "type": "read_register",
+      "request": { "function": 3, "address": 2, "count": 1 },
+      "expected": { "type": "range", "min": -400, "max": 1250, "representation": "int16", "unit": "0.1℃" },
+      "timeout": { "request_ms": 500 }
+    },
+    {
+      "id": "P5-TEMP-AMBIENT-RANGE",
+      "name": "环境温度范围读取（模拟源）",
+      "category": "functional",
+      "type": "read_register",
+      "request": { "function": 3, "address": 3, "count": 1 },
+      "expected": { "type": "range", "min": -400, "max": 1250, "representation": "int16", "unit": "0.1℃" },
+      "timeout": { "request_ms": 500 }
+    },
+    {
+      "id": "P5-LIGHT-RANGE",
+      "name": "光敏模拟电压范围读取",
+      "category": "functional",
+      "type": "read_register",
+      "request": { "function": 3, "address": 4, "count": 1 },
+      "expected": { "type": "range", "min": 0, "max": 3300, "representation": "uint16", "unit": "mV" },
+      "timeout": { "request_ms": 500 }
+    },
+    {
+      "id": "P5-FIRMWARE-VERSION",
+      "name": "Firmware 版本 0.2",
+      "category": "consistency",
+      "type": "read_registers",
+      "request": { "function": 3, "address": 39, "count": 2 },
+      "expected": { "type": "register_sequence", "values": [0, 2] },
+      "timeout": { "request_ms": 500 }
+    },
+    {
+      "id": "P5-ILLEGAL-ADDRESS",
+      "name": "非法地址返回 0x02",
+      "category": "protocol",
+      "type": "expect_exception",
+      "request": { "function": 3, "address": 50000, "count": 1 },
+      "expected": { "type": "modbus_exception", "code": 2 },
+      "timeout": { "request_ms": 500 }
+    },
+    {
+      "id": "P5-THRESHOLD-RESTORE",
+      "name": "A 相阈值写入、独立回读并恢复",
+      "category": "functional",
+      "type": "write_and_verify",
+      "request": {
+        "function": 6,
+        "verify_function": 3,
+        "address": 9,
+        "value": 600,
+        "read_before_write": true,
+        "restore_original": true
+      },
+      "expected": { "type": "equals", "value": 600, "representation": "uint16", "unit": "0.1℃" },
+      "timeout": { "request_ms": 500, "case_ms": 3000 }
+    }
+  ]
+}
