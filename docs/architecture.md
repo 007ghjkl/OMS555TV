@@ -1,6 +1,6 @@
 # 系统架构设计草案
 
-> 状态：评审草案 0.9，Host 后端、RS485 物理接口、Phase 4/5 与 Phase 6 正式套件/UI 已确认
+> 状态：评审草案 1.0，Host 后端、RS485 物理接口与 Phase 4～6 已确认
 > 日期：2026-09-05
 
 ## 1. 架构目标
@@ -122,6 +122,8 @@ TASK-017 已在保持 v1 严格兼容的前提下新增独立 Schema v2、Loader
 TASK-018 已扩展统一处理器决策边界，使处理器可在“下一请求、单次有界延迟、唯一终态”之间推进。sequence 按 repetition/step 顺序保存不可变逻辑步骤和 attempt 关联；expect_timeout 仅识别结构化 `ResponseTimeout`；consistency 聚合 uint32 样本；stability 按实际请求开始间隔串行运行且不追赶积压。Engine 使用注入调度器的单调时间判断 duration、interval 和 case budget，UTC 仅作审计；稳定性结果固定保留首条、均匀样本、失败窗口和末条，完整事务继续写入滚动 JSONL。中止会取消等待或普通在途请求并沿既有状态机释放 Testing owner。详细契约见 `specs/host_phase6_execution_engine.md`。
 
 TASK-019 已将上述能力落成 20 条真实 RS485 主套件和 4 条独立 Fake 边界用例。控制器把 Engine 的逻辑步骤索引、step ID 和 repetition 透传到 UI；MainWindow 只从控制器与 `TestResultManager` 显示 sequence 明细、稳定性迭代/聚合统计、证据保留策略和 Session ID，不重新解释断言。正式 10 分钟配置保持不变，CTest 使用共享虚拟单调时钟完成全套验证。真实 DUT 与长时 RS485 证据仍由 TASK-020 负责。详细契约见 `specs/host_phase6_complete_suite_ui.md`。
+
+TASK-020 已在当前约 20 cm 安全低压点对点台架上关闭 Phase 6。专用验收工具复用生产 MainWindow、唯一 QSerialPort 后端、集中状态机、配置服务、诊断/会话日志和自动化执行链；短时预检、独立中止与正式完整会话彼此隔离。真实等待使用 `Qt::PreciseTimer`，仍按实际请求开始时刻串行调度且不追赶积压。最终 20 条主套件全部 PASS，10 分钟稳定性 599/599 成功，结果/诊断/通信日志/TEST 日志的 647 个 RequestId 一致，阈值恢复和 UI 心跳通过。详细门禁与证据见 `specs/host_phase6_rs485_full_validation.md` 和对应验证记录；该结论不包含 Phase 7 人工物理恢复或 Phase 8 正式报告。
 
 ## 9. 部署与构建
 

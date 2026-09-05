@@ -53,6 +53,9 @@ IMonitorScheduler::TaskId QtMonitorScheduler::scheduleAfter(
 
     auto *timer = new QTimer(this);
     timer->setSingleShot(true);
+    // 稳定性测试按实际请求开始时刻计算下一周期。使用默认粗粒度定时器时，
+    // 每周期的调度迟到会累计，10 分钟窗口可能达不到套件规定的最低样本数。
+    timer->setTimerType(Qt::PreciseTimer);
     impl_->timers.insert(id, timer);
     const QPointer<QObject> guard(context);
     connect(timer, &QTimer::timeout, this,
