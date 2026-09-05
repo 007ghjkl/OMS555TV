@@ -14,6 +14,28 @@ qint64 interpreted(const quint16 raw, const ValueRepresentation representation)
         : raw;
 }
 
+qint64 decimalDenominator(const int decimalPlaces)
+{
+    qint64 result = 1;
+    for (int index = 0; index < decimalPlaces; ++index) result *= 10;
+    return result;
+}
+
+QString scaledNumber(const qint64 numerator, const int decimalPlaces)
+{
+    if (decimalPlaces == 0) return QString::number(numerator);
+    const qint64 denominator = decimalDenominator(decimalPlaces);
+    const quint64 absolute = numerator < 0
+        ? static_cast<quint64>(-(numerator + 1)) + 1U
+        : static_cast<quint64>(numerator);
+    const QString sign = numerator < 0 ? QStringLiteral("-") : QString{};
+    return QStringLiteral("%1%2.%3")
+        .arg(sign)
+        .arg(absolute / static_cast<quint64>(denominator))
+        .arg(absolute % static_cast<quint64>(denominator), decimalPlaces, 10,
+             QLatin1Char('0'));
+}
+
 QString numberList(const QVector<qint64> &values)
 {
     QStringList parts;
@@ -71,8 +93,259 @@ void populateRegisterExpected(AssertionResult &result,
             .arg(expected.value, 4, 16, QLatin1Char('0'));
         break;
     case AssertionType::ModbusException:
+    case AssertionType::Elements:
+    case AssertionType::ResponseTimeout:
+    case AssertionType::UInt32:
+    case AssertionType::StabilitySummary:
         break;
     }
+}
+
+AssertionResult evaluateElements(const ExpectedAssertion &expected,
+                                 const ActualResult &actual)
+{
+    AssertionResult result;
+    result.type = AssertionType::Elements;
+    result.expectedElements = expected.elements;
+    result.expectedSummary = QStringLiteral("%1 个逐元素断言").arg(expected.elements.size());
+    if (actual.type != ActualResultType::RegisterValues) {
+        result.differences.append(difference(AssertionDifferenceCode::ActualTypeMismatch,
+                                             QStringLiteral("期望寄存器数据"), {}));
+        return result;
+    }
+    result.actualRawValues = actual.registerValues;
+    if (actual.registerValues.size() != expected.elements.size()) {
+        auto item = difference(AssertionDifferenceCode::ElementCountMismatch,
+                               QStringLiteral("逐元素断言数量与实际寄存器数量不一致"), {});
+        item.expected = expected.elements.size();
+        item.actual = actual.registerValues.size();
+        result.differences.append(item);
+        return result;
+    }
+
+    QStringList actualParts;
+    for (const ElementAssertion &element : expected.elements) {
+        if (element.index < 0 || element.index >= actual.registerValues.size()) {
+            auto item = difference(AssertionDifferenceCode::ElementCountMismatch,
+                                   QStringLiteral("逐元素断言索引超出实际寄存器范围"),
+                                   element.unit);
+            item.index = element.index;
+            result.differences.append(item);
+            continue;
+        }
+        const quint16 raw = actual.registerValues[element.index];
+        const qint64 value = interpreted(raw, element.representation);
+        const qint64 denominator = decimalDenominator(element.decimalPlaces);
+        result.actualValues.append(value);
+        result.actualScaledValues.append({value, denominator});
+        actualParts.append(QStringLiteral("%1=%2%3")
+                               .arg(element.index)
+                               .arg(scaledNumber(value, element.decimalPlaces))
+                               .arg(element.unit));
+        if (element.type == AssertionType::Equals && value != element.value) {
+            auto item = difference(AssertionDifferenceCode::ValueMismatch,
+                                   QStringLiteral("逐元素值与期望不相等"), element.unit);
+            item.index = element.index;
+            item.expected = element.value;
+            item.actual = value;
+            item.actualRaw = raw;
+            item.scaledDenominator = denominator;
+            result.differences.append(item);
+        } else if (element.type == AssertionType::Range
+                   && (value < element.minimum || value > element.maximum)) {
+            auto item = difference(AssertionDifferenceCode::OutOfRange,
+                                   QStringLiteral("逐元素值超出期望范围"), element.unit);
+            item.index = element.index;
+            item.expectedMinimum = element.minimum;
+            item.expectedMaximum = element.maximum;
+            item.actual = value;
+            item.actualRaw = raw;
+            item.scaledDenominator = denominator;
+            result.differences.append(item);
+        } else if (element.type == AssertionType::BitMask
+                   && (raw & element.mask) != element.value) {
+            auto item = difference(AssertionDifferenceCode::BitMaskMismatch,
+                                   QStringLiteral("逐元素掩码结果与期望不匹配"), element.unit);
+            item.index = element.index;
+            item.expected = element.value;
+            item.actual = raw & element.mask;
+            item.actualRaw = raw;
+            item.scaledDenominator = 1;
+            result.differences.append(item);
+        }
+    }
+    result.actualSummary = QStringLiteral("[%1]").arg(actualParts.join(QStringLiteral(", ")));
+    if (result.differences.isEmpty()) result.status = TestStatus::Pass;
+    return result;
+}
+
+quint32 combineLowWordFirst(const QVector<quint16> &words)
+{
+    return static_cast<quint32>(words[0])
+        | (static_cast<quint32>(words[1]) << 16U);
+}
+
+AssertionResult evaluateUInt32(const ExpectedAssertion &expected,
+                               const ActualResult &actual)
+{
+    AssertionResult result;
+    result.type = AssertionType::UInt32;
+    result.expectedUInt32 = expected.uint32;
+    result.unit = expected.uint32.unit;
+    result.expectedSummary = QStringLiteral("uint32 [%1, %2]")
+        .arg(expected.uint32.minimum).arg(expected.uint32.maximum);
+    QVector<QVector<quint16>> samples;
+    if (actual.type == ActualResultType::RegisterValues) {
+        samples.append(actual.registerValues);
+    } else if (actual.type == ActualResultType::RegisterSamples) {
+        samples = actual.registerSamples;
+    } else {
+        result.differences.append(difference(AssertionDifferenceCode::ActualTypeMismatch,
+                                             QStringLiteral("期望 uint32 寄存器样本"),
+                                             expected.uint32.unit));
+        return result;
+    }
+    result.actualRawSamples = samples;
+    QStringList actualParts;
+    const qint64 denominator = decimalDenominator(expected.uint32.decimalPlaces);
+    for (qsizetype index = 0; index < samples.size(); ++index) {
+        if (samples[index].size() != 2) {
+            auto item = difference(AssertionDifferenceCode::UInt32WordCountMismatch,
+                                   QStringLiteral("uint32 样本必须恰好包含两个寄存器"),
+                                   expected.uint32.unit);
+            item.index = index;
+            item.expected = 2;
+            item.actual = samples[index].size();
+            result.differences.append(item);
+            continue;
+        }
+        const quint32 value = combineLowWordFirst(samples[index]);
+        result.actualValues.append(static_cast<qint64>(value));
+        result.actualScaledValues.append({static_cast<qint64>(value), denominator});
+        actualParts.append(scaledNumber(value, expected.uint32.decimalPlaces));
+        if (value < expected.uint32.minimum || value > expected.uint32.maximum) {
+            auto item = difference(AssertionDifferenceCode::UInt32OutOfRange,
+                                   QStringLiteral("uint32 组合值超出期望范围"),
+                                   expected.uint32.unit);
+            item.index = index;
+            item.expectedMinimum = static_cast<qint64>(expected.uint32.minimum);
+            item.expectedMaximum = static_cast<qint64>(expected.uint32.maximum);
+            item.actual = static_cast<qint64>(value);
+            item.scaledDenominator = denominator;
+            result.differences.append(item);
+        }
+    }
+    result.actualSummary = QStringLiteral("[%1] %2")
+        .arg(actualParts.join(QStringLiteral(", ")), expected.uint32.unit);
+    if (result.differences.isEmpty()
+        && expected.uint32.comparison != UInt32Comparison::Range) {
+        for (qsizetype index = 1; index < result.actualValues.size(); ++index) {
+            const bool ordered = expected.uint32.comparison == UInt32Comparison::NonDecreasing
+                ? result.actualValues[index] >= result.actualValues[index - 1]
+                : result.actualValues[index] > result.actualValues[index - 1];
+            if (ordered) continue;
+            auto item = difference(AssertionDifferenceCode::UInt32MonotonicityMismatch,
+                                   QStringLiteral("uint32 样本不满足声明的单调性"),
+                                   expected.uint32.unit);
+            item.index = index;
+            item.expected = result.actualValues[index - 1];
+            item.actual = result.actualValues[index];
+            result.differences.append(item);
+            break;
+        }
+    }
+    if (result.differences.isEmpty()) result.status = TestStatus::Pass;
+    return result;
+}
+
+quint64 allowedFailures(const quint64 total, const quint32 thresholdPpm)
+{
+    const quint64 scale = failureRateScalePpm;
+    return (total / scale) * thresholdPpm
+        + ((total % scale) * thresholdPpm) / scale;
+}
+
+AssertionResult evaluateStability(const ExpectedAssertion &expected,
+                                  const ActualResult &actual)
+{
+    AssertionResult result;
+    result.type = AssertionType::StabilitySummary;
+    result.expectedStability = expected.stability;
+    result.expectedSummary = QStringLiteral("total>=%1 success>=%2 failure_rate<=%3ppm")
+        .arg(expected.stability.minimumTotal)
+        .arg(expected.stability.minimumSuccesses)
+        .arg(expected.stability.maximumFailureRatePpm);
+    if (actual.type != ActualResultType::StabilitySummary || !actual.stability.has_value()) {
+        result.differences.append(difference(AssertionDifferenceCode::ActualTypeMismatch,
+                                             QStringLiteral("期望稳定性汇总"), {}));
+        return result;
+    }
+    const StabilityStatistics &stats = *actual.stability;
+    result.stability = stats;
+    result.actualSummary = QStringLiteral("total=%1 success=%2 failure=%3 timeout=%4")
+        .arg(stats.total).arg(stats.successes).arg(stats.failures).arg(stats.timeouts);
+    if (stats.total != stats.successes + stats.failures + stats.timeouts) {
+        result.differences.append(difference(AssertionDifferenceCode::StabilityInvariantMismatch,
+                                             QStringLiteral("total 不等于 success+failure+timeout"), {}));
+    }
+    auto addCountDifference = [&result](const QString &reason,
+                                        const quint64 expectedValue,
+                                        const quint64 actualValue) {
+        auto item = difference(AssertionDifferenceCode::StabilityCountMismatch, reason, {});
+        item.expected = static_cast<qint64>(expectedValue);
+        item.actual = static_cast<qint64>(actualValue);
+        result.differences.append(item);
+    };
+    if (stats.total < expected.stability.minimumTotal) {
+        addCountDifference(QStringLiteral("总请求数低于下限"),
+                           expected.stability.minimumTotal, stats.total);
+    }
+    if (stats.successes < expected.stability.minimumSuccesses) {
+        addCountDifference(QStringLiteral("成功数低于下限"),
+                           expected.stability.minimumSuccesses, stats.successes);
+    }
+    if (stats.failures > expected.stability.maximumFailures) {
+        addCountDifference(QStringLiteral("失败数超过上限"),
+                           expected.stability.maximumFailures, stats.failures);
+    }
+    if (stats.timeouts > expected.stability.maximumTimeouts) {
+        addCountDifference(QStringLiteral("超时数超过上限"),
+                           expected.stability.maximumTimeouts, stats.timeouts);
+    }
+    const quint64 failed = stats.failures + stats.timeouts;
+    if (stats.total == 0 || failed > allowedFailures(stats.total,
+                                                     expected.stability.maximumFailureRatePpm)) {
+        auto item = difference(AssertionDifferenceCode::FailureRateExceeded,
+                               QStringLiteral("失败率超过 ppm 上限"), QStringLiteral("ppm"));
+        item.expected = expected.stability.maximumFailureRatePpm;
+        item.actual = stats.total == 0
+            ? failureRateScalePpm
+            : static_cast<qint64>((failed * failureRateScalePpm) / stats.total);
+        result.differences.append(item);
+    }
+    const bool hasAllRtt = stats.validRttSamples > 0 && stats.minimumRttMs.has_value()
+        && stats.averageRttMs.has_value() && stats.maximumRttMs.has_value();
+    if (expected.stability.requireValidRttSamples && !hasAllRtt) {
+        result.differences.append(difference(AssertionDifferenceCode::RttMissing,
+                                             QStringLiteral("缺少有效 RTT 样本"),
+                                             QStringLiteral("ms")));
+    } else if (hasAllRtt) {
+        if (*stats.minimumRttMs > *stats.averageRttMs
+            || *stats.averageRttMs > *stats.maximumRttMs) {
+            result.differences.append(difference(AssertionDifferenceCode::StabilityInvariantMismatch,
+                                                 QStringLiteral("RTT min/avg/max 顺序非法"),
+                                                 QStringLiteral("ms")));
+        }
+        if (*stats.minimumRttMs < expected.stability.minimumRttMs
+            || *stats.averageRttMs > expected.stability.maximumAverageRttMs
+            || *stats.maximumRttMs > expected.stability.maximumRttMs) {
+            result.differences.append(difference(AssertionDifferenceCode::RttOutOfRange,
+                                                 QStringLiteral("RTT 汇总超出期望边界"),
+                                                 QStringLiteral("ms")));
+        }
+    }
+    if (result.differences.isEmpty()) result.status = TestStatus::Pass;
+    return result;
 }
 
 } // namespace
@@ -85,11 +358,41 @@ ActualResult ActualResult::registers(QVector<quint16> values)
     return result;
 }
 
+ActualResult ActualResult::samples(QVector<QVector<quint16>> values)
+{
+    ActualResult result;
+    result.type = ActualResultType::RegisterSamples;
+    result.registerSamples = std::move(values);
+    return result;
+}
+
 ActualResult ActualResult::exception(const quint8 code)
 {
     ActualResult result;
     result.type = ActualResultType::ModbusException;
     result.exceptionCode = code;
+    return result;
+}
+
+ActualResult ActualResult::responseTimeout()
+{
+    ActualResult result;
+    result.type = ActualResultType::ResponseTimeout;
+    return result;
+}
+
+ActualResult ActualResult::communicationError()
+{
+    ActualResult result;
+    result.type = ActualResultType::CommunicationError;
+    return result;
+}
+
+ActualResult ActualResult::stabilitySummary(StabilityStatistics value)
+{
+    ActualResult result;
+    result.type = ActualResultType::StabilitySummary;
+    result.stability = std::move(value);
     return result;
 }
 
@@ -99,6 +402,31 @@ AssertionResult evaluateAssertion(const ExpectedAssertion &expected,
     AssertionResult result;
     result.type = expected.type;
     result.unit = expected.unit;
+
+    if (expected.type == AssertionType::Elements) {
+        return evaluateElements(expected, actual);
+    }
+    if (expected.type == AssertionType::UInt32) {
+        return evaluateUInt32(expected, actual);
+    }
+    if (expected.type == AssertionType::StabilitySummary) {
+        return evaluateStability(expected, actual);
+    }
+    if (expected.type == AssertionType::ResponseTimeout) {
+        result.expectedSummary = QStringLiteral("ResponseTimeout");
+        if (actual.type == ActualResultType::ResponseTimeout) {
+            result.actualSummary = QStringLiteral("ResponseTimeout");
+            result.status = TestStatus::Pass;
+            return result;
+        }
+        result.actualSummary = actual.type == ActualResultType::CommunicationError
+            ? QStringLiteral("OtherCommunicationError") : QStringLiteral("NonTimeoutResponse");
+        result.status = actual.type == ActualResultType::CommunicationError
+            ? TestStatus::Error : TestStatus::Fail;
+        result.differences.append(difference(AssertionDifferenceCode::ActualTypeMismatch,
+                                             QStringLiteral("实际结果不是目标 ResponseTimeout"), {}));
+        return result;
+    }
 
     if (expected.type == AssertionType::ModbusException) {
         result.expectedExceptionCode = expected.exceptionCode;
@@ -223,6 +551,10 @@ AssertionResult evaluateAssertion(const ExpectedAssertion &expected,
         break;
     }
     case AssertionType::ModbusException:
+    case AssertionType::Elements:
+    case AssertionType::ResponseTimeout:
+    case AssertionType::UInt32:
+    case AssertionType::StabilitySummary:
         break;
     }
 

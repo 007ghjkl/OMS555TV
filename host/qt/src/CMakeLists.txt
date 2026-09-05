@@ -43,6 +43,8 @@ add_library(oms555tv_core STATIC
     testing/TestAutomationController.h
     testing/TestCaseLoader.cpp
     testing/TestCaseLoader.h
+    testing/TestCaseLoaderV2.cpp
+    testing/TestCaseLoaderV2.h
     testing/TestCaseTypes.cpp
     testing/TestCaseTypes.h
     testing/TestCaseHandlers.cpp

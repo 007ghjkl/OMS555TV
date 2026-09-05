@@ -1,0 +1,66 @@
+{
+  "schema_version": 2,
+  "id": "v2-all-features",
+  "name": "v2 全能力有效 fixture",
+  "cases": [
+    {
+      "id": "elements",
+      "name": "逐元素",
+      "category": "功能",
+      "environment": "both",
+      "type": "read_registers",
+      "request": {"function": 3, "address": 0, "count": 2},
+      "expected": {"type": "elements", "items": [
+        {"index": 0, "type": "range", "min": -400, "max": 1250, "representation": "int16", "decimal_places": 1, "unit": "℃"},
+        {"index": 1, "type": "bitmask", "mask": 63, "value": 33}
+      ]}
+    },
+    {
+      "id": "sequence",
+      "name": "序列",
+      "category": "恢复",
+      "environment": "fake",
+      "type": "sequence",
+      "repeat_count": 2,
+      "failure_policy": "continue_on_failure",
+      "timeout": {"request_ms": 500, "case_ms": 5000},
+      "steps": [
+        {"id": "timeout", "type": "expect_timeout", "request": {"function": 3, "address": 0, "count": 1}, "expected": {"type": "response_timeout", "source": "deterministic_no_response"}, "fault": "no_response"},
+        {"id": "read", "type": "read_register", "delay_before_ms": 25, "request": {"function": 3, "address": 39, "count": 1}, "expected": {"type": "equals", "value": 0}}
+      ]
+    },
+    {
+      "id": "timeout",
+      "name": "超时",
+      "category": "协议",
+      "environment": "fake",
+      "type": "expect_timeout",
+      "request": {"function": 3, "address": 0, "count": 1},
+      "expected": {"type": "response_timeout", "source": "deterministic_no_response"},
+      "timeout": {"request_ms": 100, "case_ms": 100},
+      "fault": "no_response"
+    },
+    {
+      "id": "uptime",
+      "name": "uint32",
+      "category": "一致性",
+      "environment": "both",
+      "type": "consistency",
+      "request": {"function": 3, "address": 30, "count": 2},
+      "expected": {"type": "uint32", "word_order": "low_word_first", "comparison": "strictly_increasing", "min": 0, "max": 4294967295, "unit": "s"},
+      "timeout": {"request_ms": 500, "case_ms": 1200},
+      "consistency": {"sample_count": 2, "interval_ms": 200}
+    },
+    {
+      "id": "stability",
+      "name": "稳定性",
+      "category": "稳定性",
+      "environment": "real_rs485",
+      "type": "stability",
+      "request": {"function": 3, "address": 0, "count": 5},
+      "expected": {"type": "stability_summary", "min_total": 594, "min_successes": 594, "max_failures": 6, "max_timeouts": 6, "max_failure_rate_ppm": 10000, "rtt_ms": {"require_valid_samples": true, "minimum_sample": 0, "maximum_average": 500, "maximum_sample": 1000}},
+      "timeout": {"request_ms": 500, "case_ms": 600500},
+      "stability": {"duration_ms": 600000, "interval_ms": 1000, "minimum_successes": 594, "allowed_failure_rate_ppm": 10000, "evidence_sample_limit": 64}
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "id": "v2-invalid-unknown-field",
+  "name": "未知字段",
+  "cases": [
+    {
+      "id": "unknown",
+      "name": "禁止脚本字段",
+      "category": "协议",
+      "environment": "fake",
+      "type": "read_register",
+      "request": {"function": 3, "address": 0, "count": 1},
+      "expected": {"type": "range", "min": 0, "max": 100},
+      "script": "do-anything"
+    }
+  ]
+}

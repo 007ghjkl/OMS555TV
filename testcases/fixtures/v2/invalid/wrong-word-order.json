@@ -1,0 +1,1 @@
+{"schema_version":2,"id":"bad-order","name":"非法字序","cases":[{"id":"x","name":"x","category":"x","environment":"fake","type":"consistency","request":{"function":3,"address":30,"count":2},"expected":{"type":"uint32","word_order":"high_word_first","comparison":"range","min":0,"max":10},"timeout":{"request_ms":100,"case_ms":100},"consistency":{"sample_count":1,"interval_ms":0}}]}

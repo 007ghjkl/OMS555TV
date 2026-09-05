@@ -1,7 +1,7 @@
 # 系统架构设计草案
 
-> 状态：评审草案 0.7，Host 后端、RS485 物理接口与 Phase 4/5 已确认
-> 日期：2026-09-04
+> 状态：评审草案 0.8，Host 后端、RS485 物理接口、Phase 4/5 与 Phase 6 输入模型已确认
+> 日期：2026-09-05
 
 ## 1. 架构目标
 
@@ -116,6 +116,8 @@ TASK-014 已实现上述输入边界：`test-suite-v1.schema.json` 与 C++ Loade
 TASK-015 已实现无 QWidget 的 `TestEngine`、处理器注册边界和 `TestResultManager`。TASK-016/UI 先通过应用状态机取得 Testing owner，引擎只在 `TESTING` 状态执行，并在终态调用 `stopTesting()` 等待 owner 释放。四类基础处理器分别管理读取、写入、期望异常和写入/独立回读/恢复步骤；中心调度统一负责用例预算、显式 retry、中止、RequestId/完整事务证据与 TEST 日志。结果管理器以复制替换方式发布不可变快照，报告层无需重新解释通信结果。完整状态、错误优先级与清理规则见 `specs/host_phase5_test_engine.md`。
 
 TASK-016 已实现 `TestAutomationController` 和 Qt 自动化测试页面。控制器在线程池读取并加载 JSON，在应用线程编排 `MONITORING -> STOPPING -> CONNECTED_IDLE -> TESTING -> CONNECTED_IDLE`，仅在用户显式选择且运行前确实处于监控时恢复监控；MainWindow 只渲染 Loader、ResultManager 和步骤通知，不访问串口或解释 RTU。Phase 5 基础套件使用 8 条安全用例覆盖动态测量范围、版本、非法地址和阈值恢复，真实 RS485 已验证。完整 UI 和交接契约见 `specs/host_phase5_automation_ui.md`。
+
+TASK-017 已在保持 v1 严格兼容的前提下新增独立 Schema v2、Loader 和不可变规范化模型。v2 固化逐元素断言、受限 sequence、仅限 Fake 确定性故障注入的预期超时、低字在低地址的 uint32 一致性，以及 10 分钟至 24 小时稳定性配置和整数 ppm 汇总边界；覆盖矩阵明确 Fake、真实 RS485 与 Phase 7 人工恢复的责任边界。本阶段只完成输入校验和纯数据断言，运行状态机、20+ 正式套件及实机验收仍由 TASK-018～TASK-020 完成。详细契约见 `specs/host_phase6_testcase_schema.md`。
 
 ## 9. 部署与构建
 

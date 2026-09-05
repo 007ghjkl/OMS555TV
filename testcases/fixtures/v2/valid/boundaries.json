@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "id": "v2-boundaries",
+  "name": "Schema v2 上限",
+  "cases": [
+    {
+      "id": "sequence-upper-bounds",
+      "name": "Sequence 有界配置上限",
+      "category": "协议",
+      "environment": "fake",
+      "type": "sequence",
+      "repeat_count": 100,
+      "timeout": {"request_ms": 60000, "case_ms": 3600000},
+      "steps": [
+        {
+          "id": "read-after-delay",
+          "type": "read_register",
+          "delay_before_ms": 60000,
+          "request": {"function": 3, "address": 65535, "count": 1},
+          "expected": {"type": "range", "min": 0, "max": 65535}
+        }
+      ]
+    },
+    {
+      "id": "stability-upper-bounds",
+      "name": "稳定性 24 小时配置上限",
+      "category": "稳定性",
+      "environment": "fake",
+      "type": "stability",
+      "request": {"function": 3, "address": 0, "count": 125},
+      "expected": {
+        "type": "stability_summary",
+        "min_total": 8640000,
+        "min_successes": 8640000,
+        "max_failures": 0,
+        "max_timeouts": 0,
+        "max_failure_rate_ppm": 0,
+        "rtt_ms": {
+          "require_valid_samples": true,
+          "minimum_sample": 0,
+          "maximum_average": 60000,
+          "maximum_sample": 60000
+        }
+      },
+      "timeout": {"request_ms": 60000, "case_ms": 86460000},
+      "stability": {
+        "duration_ms": 86400000,
+        "interval_ms": 10,
+        "minimum_successes": 8640000,
+        "allowed_failure_rate_ppm": 0,
+        "evidence_sample_limit": 256
+      }
+    }
+  ]
+}

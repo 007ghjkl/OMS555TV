@@ -1,0 +1,1 @@
+{"schema_version":2,"id":"bad-timeout","name":"非法超时环境","cases":[{"id":"x","name":"x","category":"x","environment":"real_rs485","type":"expect_timeout","request":{"function":3,"address":0,"count":1},"expected":{"type":"response_timeout","source":"deterministic_no_response"},"timeout":{"request_ms":100,"case_ms":100},"fault":"no_response"}]}

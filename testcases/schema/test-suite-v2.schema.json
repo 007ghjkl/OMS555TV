@@ -1,0 +1,381 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oms555tv.local/schema/test-suite-v2.schema.json",
+  "title": "OMS555TV Host Phase 6 测试套件 v2",
+  "description": "TASK-017 测试套件结构契约；跨字段规则同时由语义约束与 TestCaseLoader 校验。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "name", "cases"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "id": { "$ref": "#/$defs/id" },
+    "name": { "$ref": "#/$defs/name" },
+    "description": { "$ref": "#/$defs/description" },
+    "tags": { "$ref": "#/$defs/tags" },
+    "metadata": {
+      "type": "object",
+      "maxProperties": 32,
+      "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$" },
+      "additionalProperties": { "type": "string", "maxLength": 256 }
+    },
+    "cases": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": { "$ref": "#/$defs/testCase" }
+    }
+  },
+  "x-oms555tv-semantic-constraints": [
+    "v1 与 v2 显式分支，v2 字段不得放宽 v1",
+    "所有字符串 trim 后校验，case.id、sequence step.id 和 element.index 在各自作用域唯一",
+    "address + count - 1 <= 65535",
+    "elements.items 数量等于 request.count 且完整覆盖 0..count-1",
+    "expect_timeout 仅允许 environment=fake、fault=no_response、response_timeout 且无 retry",
+    "sequence 仅包含 read_register(s)、expect_exception、expect_timeout 步骤",
+    "consistency 固定读取两个寄存器；单调性至少两个样本且 case_ms 覆盖理论预算",
+    "uint32 只接受 low_word_first，min <= max",
+    "stability case_ms >= duration_ms + request_ms，最低样本数不超过 ceil(duration/interval)",
+    "stability 配置和 expected 的 minimum_successes/failure_rate_ppm 必须一致",
+    "失败率按整数 ppm 比较：failed*1000000 <= total*threshold_ppm"
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^(?:\\S|\\S.*\\S)$" },
+    "description": { "type": "string", "maxLength": 1024 },
+    "category": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^(?:\\S|\\S.*\\S)$" },
+    "tags": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 32, "pattern": "^(?:\\S|\\S.*\\S)$" }
+    },
+    "environment": { "enum": ["both", "real_rs485", "fake"] },
+    "representation": { "enum": ["uint16", "int16"], "default": "uint16" },
+    "unit": { "type": "string", "maxLength": 16 },
+    "readRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["function", "address", "count"],
+      "properties": {
+        "function": { "const": 3 },
+        "address": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "count": { "type": "integer", "minimum": 1, "maximum": 125 }
+      }
+    },
+    "writeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["function", "address", "value"],
+      "properties": {
+        "function": { "const": 6 },
+        "address": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "value": { "type": "integer", "minimum": 0, "maximum": 65535 }
+      }
+    },
+    "writeAndVerifyRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["function", "verify_function", "address", "value", "read_before_write", "restore_original"],
+      "properties": {
+        "function": { "const": 6 },
+        "verify_function": { "const": 3 },
+        "address": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "value": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "read_before_write": { "type": "boolean" },
+        "restore_original": { "type": "boolean" }
+      }
+    },
+    "request": {
+      "oneOf": [
+        { "$ref": "#/$defs/readRequest" },
+        { "$ref": "#/$defs/writeRequest" },
+        { "$ref": "#/$defs/writeAndVerifyRequest" }
+      ]
+    },
+    "timeout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_ms"],
+      "properties": {
+        "request_ms": { "type": "integer", "minimum": 1, "maximum": 60000 },
+        "case_ms": { "type": "integer", "minimum": 1, "maximum": 86460000 }
+      }
+    },
+    "retry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_retries", "on_errors"],
+      "properties": {
+        "max_retries": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "on_errors": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "enum": ["timeout", "connection", "serial", "crc", "protocol"] }
+        }
+      }
+    },
+    "scalarAssertion": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "value"],
+          "properties": {
+            "type": { "const": "equals" },
+            "value": { "type": "integer", "minimum": -32768, "maximum": 65535 },
+            "representation": { "$ref": "#/$defs/representation" },
+            "unit": { "$ref": "#/$defs/unit" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "min", "max"],
+          "properties": {
+            "type": { "const": "range" },
+            "min": { "type": "integer", "minimum": -32768, "maximum": 65535 },
+            "max": { "type": "integer", "minimum": -32768, "maximum": 65535 },
+            "representation": { "$ref": "#/$defs/representation" },
+            "unit": { "$ref": "#/$defs/unit" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "values"],
+          "properties": {
+            "type": { "const": "register_sequence" },
+            "values": {
+              "type": "array", "minItems": 1, "maxItems": 125,
+              "items": { "type": "integer", "minimum": -32768, "maximum": 65535 }
+            },
+            "representation": { "$ref": "#/$defs/representation" },
+            "unit": { "$ref": "#/$defs/unit" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "mask", "value"],
+          "properties": {
+            "type": { "const": "bitmask" },
+            "mask": { "type": "integer", "minimum": 0, "maximum": 65535 },
+            "value": { "type": "integer", "minimum": 0, "maximum": 65535 },
+            "unit": { "$ref": "#/$defs/unit" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "code"],
+          "properties": {
+            "type": { "const": "modbus_exception" },
+            "code": { "type": "integer", "minimum": 1, "maximum": 255 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "source"],
+          "properties": {
+            "type": { "const": "response_timeout" },
+            "source": { "const": "deterministic_no_response" }
+          }
+        }
+      ]
+    },
+    "element": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["index", "type", "value"],
+          "properties": {
+            "index": { "type": "integer", "minimum": 0, "maximum": 124 },
+            "type": { "const": "equals" },
+            "value": { "type": "integer", "minimum": -32768, "maximum": 65535 },
+            "representation": { "$ref": "#/$defs/representation" },
+            "decimal_places": { "type": "integer", "minimum": 0, "maximum": 6, "default": 0 },
+            "unit": { "$ref": "#/$defs/unit" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["index", "type", "min", "max"],
+          "properties": {
+            "index": { "type": "integer", "minimum": 0, "maximum": 124 },
+            "type": { "const": "range" },
+            "min": { "type": "integer", "minimum": -32768, "maximum": 65535 },
+            "max": { "type": "integer", "minimum": -32768, "maximum": 65535 },
+            "representation": { "$ref": "#/$defs/representation" },
+            "decimal_places": { "type": "integer", "minimum": 0, "maximum": 6, "default": 0 },
+            "unit": { "$ref": "#/$defs/unit" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["index", "type", "mask", "value"],
+          "properties": {
+            "index": { "type": "integer", "minimum": 0, "maximum": 124 },
+            "type": { "const": "bitmask" },
+            "mask": { "type": "integer", "minimum": 0, "maximum": 65535 },
+            "value": { "type": "integer", "minimum": 0, "maximum": 65535 },
+            "decimal_places": { "const": 0, "default": 0 },
+            "unit": { "$ref": "#/$defs/unit" }
+          }
+        }
+      ]
+    },
+    "elementsAssertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "items"],
+      "properties": {
+        "type": { "const": "elements" },
+        "items": {
+          "type": "array", "minItems": 1, "maxItems": 125,
+          "items": { "$ref": "#/$defs/element" }
+        }
+      }
+    },
+    "uint32Assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "word_order", "comparison", "min", "max"],
+      "properties": {
+        "type": { "const": "uint32" },
+        "word_order": { "const": "low_word_first" },
+        "comparison": { "enum": ["range", "non_decreasing", "strictly_increasing"] },
+        "min": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "max": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "decimal_places": { "type": "integer", "minimum": 0, "maximum": 6, "default": 0 },
+        "unit": { "$ref": "#/$defs/unit" }
+      }
+    },
+    "stabilitySummaryAssertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "min_total", "min_successes", "max_failures", "max_timeouts", "max_failure_rate_ppm", "rtt_ms"],
+      "properties": {
+        "type": { "const": "stability_summary" },
+        "min_total": { "type": "integer", "minimum": 1, "maximum": 8640000 },
+        "min_successes": { "type": "integer", "minimum": 1, "maximum": 8640000 },
+        "max_failures": { "type": "integer", "minimum": 0, "maximum": 8640000 },
+        "max_timeouts": { "type": "integer", "minimum": 0, "maximum": 8640000 },
+        "max_failure_rate_ppm": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+        "rtt_ms": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["require_valid_samples", "minimum_sample", "maximum_average", "maximum_sample"],
+          "properties": {
+            "require_valid_samples": { "type": "boolean" },
+            "minimum_sample": { "type": "integer", "minimum": 0, "maximum": 60000 },
+            "maximum_average": { "type": "integer", "minimum": 0, "maximum": 60000 },
+            "maximum_sample": { "type": "integer", "minimum": 0, "maximum": 60000 }
+          }
+        }
+      }
+    },
+    "expected": {
+      "oneOf": [
+        { "$ref": "#/$defs/scalarAssertion" },
+        { "$ref": "#/$defs/elementsAssertion" },
+        { "$ref": "#/$defs/uint32Assertion" },
+        { "$ref": "#/$defs/stabilitySummaryAssertion" }
+      ]
+    },
+    "consistency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sample_count", "interval_ms"],
+      "properties": {
+        "sample_count": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "interval_ms": { "type": "integer", "minimum": 0, "maximum": 60000 }
+      }
+    },
+    "stability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["duration_ms", "interval_ms", "minimum_successes", "allowed_failure_rate_ppm"],
+      "properties": {
+        "duration_ms": { "type": "integer", "minimum": 600000, "maximum": 86400000 },
+        "interval_ms": { "type": "integer", "minimum": 10, "maximum": 60000 },
+        "minimum_successes": { "type": "integer", "minimum": 1, "maximum": 8640000 },
+        "allowed_failure_rate_ppm": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+        "evidence_sample_limit": { "type": "integer", "minimum": 8, "maximum": 256, "default": 64 }
+      }
+    },
+    "sequenceStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "request", "expected"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": { "enum": ["read_register", "read_registers", "expect_exception", "expect_timeout"] },
+        "delay_before_ms": { "type": "integer", "minimum": 0, "maximum": 60000, "default": 0 },
+        "request": { "$ref": "#/$defs/request" },
+        "expected": { "$ref": "#/$defs/expected" },
+        "retry": { "$ref": "#/$defs/retry" },
+        "fault": { "const": "no_response" }
+      }
+    },
+    "sequenceCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "category", "environment", "type", "timeout", "steps"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/name" },
+        "category": { "$ref": "#/$defs/category" },
+        "description": { "$ref": "#/$defs/description" },
+        "environment": { "$ref": "#/$defs/environment" },
+        "type": { "const": "sequence" },
+        "enabled": { "type": "boolean", "default": true },
+        "tags": { "$ref": "#/$defs/tags" },
+        "repeat_count": { "type": "integer", "minimum": 1, "maximum": 100, "default": 1 },
+        "failure_policy": { "enum": ["stop_on_failure", "continue_on_failure"], "default": "stop_on_failure" },
+        "timeout": { "$ref": "#/$defs/timeout" },
+        "steps": {
+          "type": "array", "minItems": 1, "maxItems": 64,
+          "items": { "$ref": "#/$defs/sequenceStep" }
+        }
+      }
+    },
+    "operationCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "category", "environment", "type", "request", "expected"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/name" },
+        "category": { "$ref": "#/$defs/category" },
+        "description": { "$ref": "#/$defs/description" },
+        "environment": { "$ref": "#/$defs/environment" },
+        "type": { "enum": ["read_register", "read_registers", "write_register", "write_and_verify", "expect_exception", "expect_timeout", "consistency", "stability"] },
+        "enabled": { "type": "boolean", "default": true },
+        "tags": { "$ref": "#/$defs/tags" },
+        "request": { "$ref": "#/$defs/request" },
+        "expected": { "$ref": "#/$defs/expected" },
+        "timeout": { "$ref": "#/$defs/timeout" },
+        "retry": { "$ref": "#/$defs/retry" },
+        "fault": { "const": "no_response" },
+        "consistency": { "$ref": "#/$defs/consistency" },
+        "stability": { "$ref": "#/$defs/stability" }
+      }
+    },
+    "testCase": {
+      "oneOf": [
+        { "$ref": "#/$defs/operationCase" },
+        { "$ref": "#/$defs/sequenceCase" }
+      ]
+    }
+  }
+}

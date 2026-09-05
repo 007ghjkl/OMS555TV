@@ -1,0 +1,1 @@
+{"schema_version":2,"id":"bad-index","name":"非法索引","cases":[{"id":"x","name":"x","category":"x","environment":"fake","type":"read_registers","request":{"function":3,"address":0,"count":2},"expected":{"type":"elements","items":[{"index":0,"type":"equals","value":1},{"index":0,"type":"equals","value":2}]}}]}
