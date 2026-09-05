@@ -399,6 +399,9 @@ void FakeModbusClient::executeStep(FakeStep step)
                                                 ErrorCode::FakeScriptMismatch,
                                                 self->state_, self->owner_));
         };
+        if (step.omitRtt) {
+            self->active_->txAcceptedAt.reset();
+        }
         switch (step.outcome.kind) {
         case FakeOutcomeKind::ReadSuccess:
             if (response.isEmpty()) {

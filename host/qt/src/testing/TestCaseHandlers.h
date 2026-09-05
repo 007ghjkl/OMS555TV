@@ -17,10 +17,22 @@ struct TestHandlerStep {
     quint16 count = 1;
     quint16 rawValue = 0;
     bool cleanup = false;
+    QString logicalStepId;
+    qsizetype logicalStepIndex = -1;
+    int repetition = 0;
+    std::optional<RetryPolicy> retryOverride;
+};
+
+struct TestHandlerContext {
+    std::chrono::nanoseconds caseElapsed{0};
+    std::chrono::nanoseconds monotonicNow{0};
+    QDateTime utcNow;
 };
 
 struct TestHandlerDecision {
     std::optional<TestHandlerStep> nextStep;
+    std::optional<std::chrono::nanoseconds> delay;
+    std::optional<TestCompositeStepResult> completedStep;
     bool finished = false;
     TestStatus status = TestStatus::Running;
     std::optional<ActualResult> actual;
@@ -33,12 +45,15 @@ class ITestCaseHandler
 {
 public:
     virtual ~ITestCaseHandler() = default;
-    [[nodiscard]] virtual TestHandlerDecision start() = 0;
-    virtual void requestAccepted(const TestHandlerStep &) {}
+    [[nodiscard]] virtual TestHandlerDecision start(const TestHandlerContext &context) = 0;
+    [[nodiscard]] virtual TestHandlerDecision resume(const TestHandlerContext &context);
+    virtual void requestAccepted(const TestHandlerStep &, const TestHandlerContext &) {}
     [[nodiscard]] virtual TestHandlerDecision handleResult(
-        const communication::ModbusRequestResult &result) = 0;
+        const communication::ModbusRequestResult &result,
+        const TestHandlerContext &context) = 0;
     [[nodiscard]] virtual TestHandlerDecision handleCommunicationError(
-        TestError error, bool requestWasAccepted) = 0;
+        TestError error, bool requestWasAccepted,
+        const TestHandlerContext &context) = 0;
 };
 
 class TestHandlerRegistry final

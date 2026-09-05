@@ -288,6 +288,10 @@ AssertionResult evaluateStability(const ExpectedAssertion &expected,
         result.differences.append(difference(AssertionDifferenceCode::StabilityInvariantMismatch,
                                              QStringLiteral("total 不等于 success+failure+timeout"), {}));
     }
+    if (stats.total != stats.validRttSamples + stats.missingRttSamples) {
+        result.differences.append(difference(AssertionDifferenceCode::StabilityInvariantMismatch,
+                                             QStringLiteral("total 不等于有效 RTT+缺失 RTT"), {}));
+    }
     auto addCountDifference = [&result](const QString &reason,
                                         const quint64 expectedValue,
                                         const quint64 actualValue) {

@@ -43,6 +43,7 @@ struct FakeStep {
     std::chrono::milliseconds virtualDelay{0};
     QByteArray expectedTxAdu;
     QByteArray rxAdu;
+    bool omitRtt = false;
 };
 
 class FakeModbusClient final : public IModbusClient

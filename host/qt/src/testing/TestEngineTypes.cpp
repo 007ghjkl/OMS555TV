@@ -21,6 +21,19 @@ QString testStepPurposeName(TestStepPurpose purpose)
     case TestStepPurpose::ReadBeforeWrite: return QStringLiteral("read_before_write");
     case TestStepPurpose::VerifyReadback: return QStringLiteral("verify_readback");
     case TestStepPurpose::RestoreOriginal: return QStringLiteral("restore_original");
+    case TestStepPurpose::SequenceStep: return QStringLiteral("sequence_step");
+    case TestStepPurpose::ConsistencySample: return QStringLiteral("consistency_sample");
+    case TestStepPurpose::StabilityIteration: return QStringLiteral("stability_iteration");
+    }
+    return {};
+}
+
+QString testEvidenceRetentionPolicyName(const TestEvidenceRetentionPolicy policy)
+{
+    switch (policy) {
+    case TestEvidenceRetentionPolicy::Complete: return QStringLiteral("complete");
+    case TestEvidenceRetentionPolicy::BoundedRepresentative:
+        return QStringLiteral("bounded_representative");
     }
     return {};
 }

@@ -36,7 +36,8 @@ int main(int argc, char *argv[])
     oms555tv::diagnostics::CommunicationDiagnosticsModel diagnostics(client);
     oms555tv::logging::SessionLogService sessionLog(diagnostics);
     oms555tv::testing::TestResultManager testResults;
-    oms555tv::testing::TestEngine testEngine(controller, client, testResults, &sessionLog);
+    oms555tv::testing::TestEngine testEngine(
+        controller, client, testResults, &sessionLog, scheduler);
     oms555tv::testing::TestAutomationController testAutomation(
         controller, testEngine, testResults);
     QObject::connect(&controller, &oms555tv::app::AppStateController::stateChanged,

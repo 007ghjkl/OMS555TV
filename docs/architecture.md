@@ -1,6 +1,6 @@
 # 系统架构设计草案
 
-> 状态：评审草案 0.8，Host 后端、RS485 物理接口、Phase 4/5 与 Phase 6 输入模型已确认
+> 状态：评审草案 0.9，Host 后端、RS485 物理接口、Phase 4/5 与 Phase 6 输入及执行核心已确认
 > 日期：2026-09-05
 
 ## 1. 架构目标
@@ -118,6 +118,8 @@ TASK-015 已实现无 QWidget 的 `TestEngine`、处理器注册边界和 `TestR
 TASK-016 已实现 `TestAutomationController` 和 Qt 自动化测试页面。控制器在线程池读取并加载 JSON，在应用线程编排 `MONITORING -> STOPPING -> CONNECTED_IDLE -> TESTING -> CONNECTED_IDLE`，仅在用户显式选择且运行前确实处于监控时恢复监控；MainWindow 只渲染 Loader、ResultManager 和步骤通知，不访问串口或解释 RTU。Phase 5 基础套件使用 8 条安全用例覆盖动态测量范围、版本、非法地址和阈值恢复，真实 RS485 已验证。完整 UI 和交接契约见 `specs/host_phase5_automation_ui.md`。
 
 TASK-017 已在保持 v1 严格兼容的前提下新增独立 Schema v2、Loader 和不可变规范化模型。v2 固化逐元素断言、受限 sequence、仅限 Fake 确定性故障注入的预期超时、低字在低地址的 uint32 一致性，以及 10 分钟至 24 小时稳定性配置和整数 ppm 汇总边界；覆盖矩阵明确 Fake、真实 RS485 与 Phase 7 人工恢复的责任边界。本阶段只完成输入校验和纯数据断言，运行状态机、20+ 正式套件及实机验收仍由 TASK-018～TASK-020 完成。详细契约见 `specs/host_phase6_testcase_schema.md`。
+
+TASK-018 已扩展统一处理器决策边界，使处理器可在“下一请求、单次有界延迟、唯一终态”之间推进。sequence 按 repetition/step 顺序保存不可变逻辑步骤和 attempt 关联；expect_timeout 仅识别结构化 `ResponseTimeout`；consistency 聚合 uint32 样本；stability 按实际请求开始间隔串行运行且不追赶积压。Engine 使用注入调度器的单调时间判断 duration、interval 和 case budget，UTC 仅作审计；稳定性结果固定保留首条、均匀样本、失败窗口和末条，完整事务继续写入滚动 JSONL。中止会取消等待或普通在途请求并沿既有状态机释放 Testing owner。详细契约见 `specs/host_phase6_execution_engine.md`。
 
 ## 9. 部署与构建
 

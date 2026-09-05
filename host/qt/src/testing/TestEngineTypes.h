@@ -19,8 +19,18 @@ struct TestRunId { quint64 value = 0; };
 
 enum class TestEngineState { Idle, Running, Aborting, Releasing };
 enum class TestStepKind { Read, Write };
-enum class TestStepPurpose { Read, Write, ReadBeforeWrite, VerifyReadback, RestoreOriginal };
+enum class TestStepPurpose {
+    Read,
+    Write,
+    ReadBeforeWrite,
+    VerifyReadback,
+    RestoreOriginal,
+    SequenceStep,
+    ConsistencySample,
+    StabilityIteration,
+};
 enum class TestSkipReason { Disabled, NotSelected, UserSelected, Aborted };
+enum class TestEvidenceRetentionPolicy { Complete, BoundedRepresentative };
 
 enum class TestErrorCode {
     InvalidState,
@@ -56,11 +66,40 @@ struct TestRequestAttemptResult {
     int stepAttempt = 1;
     bool retry = false;
     QString retryReason;
+    QString logicalStepId;
+    qsizetype logicalStepIndex = -1;
+    int repetition = 0;
     communication::RequestId requestId;
     QDateTime startedUtc;
     QDateTime finishedUtc;
     std::chrono::milliseconds duration{0};
     communication::ModbusRequestResult requestResult;
+};
+
+struct TestCompositeStepResult {
+    QString stepId;
+    qsizetype stepIndex = -1;
+    int repetition = 0;
+    TestStatus status = TestStatus::NotRun;
+    ExpectedAssertion expected;
+    std::optional<ActualResult> actual;
+    std::optional<AssertionResult> assertion;
+    std::optional<TestError> error;
+    QDateTime startedUtc;
+    QDateTime finishedUtc;
+    std::chrono::milliseconds duration{0};
+    QVector<quint64> attemptSequences;
+};
+
+struct TestEvidenceRetentionSummary {
+    TestEvidenceRetentionPolicy policy = TestEvidenceRetentionPolicy::Complete;
+    quint64 totalAttempts = 0;
+    quint64 retainedAttempts = 0;
+    quint64 droppedAttempts = 0;
+    quint64 totalFailures = 0;
+    quint64 retainedFailures = 0;
+    int configuredLimit = 0;
+    QString description;
 };
 
 struct TestCaseResult {
@@ -78,6 +117,10 @@ struct TestCaseResult {
     QDateTime finishedUtc;
     std::chrono::milliseconds duration{0};
     QVector<TestRequestAttemptResult> attempts;
+    QVector<TestCompositeStepResult> steps;
+    std::optional<StabilityStatistics> stability;
+    TestEvidenceRetentionSummary evidenceRetention;
+    QString sessionId;
 };
 
 struct TestSuiteResult {
@@ -90,12 +133,14 @@ struct TestSuiteResult {
     std::chrono::milliseconds duration{0};
     QVector<TestCaseResult> cases;
     QVector<TestError> auxiliaryErrors;
+    QString sessionId;
 };
 
 [[nodiscard]] QString testEngineStateName(TestEngineState state);
 [[nodiscard]] QString testStepPurposeName(TestStepPurpose purpose);
 [[nodiscard]] QString testSkipReasonName(TestSkipReason reason);
 [[nodiscard]] QString testErrorCodeName(TestErrorCode code);
+[[nodiscard]] QString testEvidenceRetentionPolicyName(TestEvidenceRetentionPolicy policy);
 
 } // namespace oms555tv::testing
 

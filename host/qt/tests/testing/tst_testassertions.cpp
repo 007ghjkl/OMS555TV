@@ -217,6 +217,7 @@ private slots:
         exactly.successes = 99;
         exactly.failures = 1;
         exactly.validRttSamples = 99;
+        exactly.missingRttSamples = 1;
         exactly.minimumRttMs = 1;
         exactly.averageRttMs = 5;
         exactly.maximumRttMs = 10;
@@ -240,6 +241,7 @@ private slots:
 
         StabilityStatistics missingRtt = exactly;
         missingRtt.validRttSamples = 0;
+        missingRtt.missingRttSamples = 100;
         missingRtt.minimumRttMs.reset();
         missingRtt.averageRttMs.reset();
         missingRtt.maximumRttMs.reset();

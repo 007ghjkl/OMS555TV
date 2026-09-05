@@ -127,10 +127,8 @@ struct UiRig {
     diagnostics::CommunicationDiagnosticsModel diagnostics{client};
     logging::SessionLogService sessionLog{diagnostics, output.path()};
     testing::TestResultManager results;
-    testing::TestEngine engine{appState, client, results, &sessionLog,
-        [this] { return QDateTime::fromMSecsSinceEpoch(
-            std::chrono::duration_cast<std::chrono::milliseconds>(scheduler->now()).count(),
-            Qt::UTC); }};
+    testing::TestEngine engine{
+        appState, client, results, &sessionLog, monitorScheduler};
     testing::TestAutomationController automation{appState, engine, results};
     MainWindow window{monitoring, configuration, diagnostics, sessionLog, automation};
 

@@ -21,6 +21,7 @@ struct StabilityStatistics {
     quint64 failures = 0;
     quint64 timeouts = 0;
     quint64 validRttSamples = 0;
+    quint64 missingRttSamples = 0;
     std::optional<qint64> minimumRttMs;
     std::optional<qint64> averageRttMs;
     std::optional<qint64> maximumRttMs;
