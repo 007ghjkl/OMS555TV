@@ -105,6 +105,16 @@ target_compile_definitions(tst_guidedtestmodel PRIVATE
 target_link_libraries(tst_guidedtestmodel PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.testing.guided_model COMMAND tst_guidedtestmodel)
 
+add_executable(tst_guidedtestcoordinator
+    monitor/ManualMonitorScheduler.h
+    testing/tst_guidedtestcoordinator.cpp
+)
+target_compile_definitions(tst_guidedtestcoordinator PRIVATE
+    OMS555TV_GUIDED_V3_FIXTURE="${CMAKE_SOURCE_DIR}/../../testcases/fixtures/v3/valid/guided-recovery.json"
+)
+target_link_libraries(tst_guidedtestcoordinator PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.testing.guided_coordinator COMMAND tst_guidedtestcoordinator)
+
 add_executable(tst_testassertions
     testing/tst_testassertions.cpp
 )
@@ -160,6 +170,7 @@ set_tests_properties(
     host.configuration_diagnostics.ui
     host.testing.testcase_loader
     host.testing.guided_model
+    host.testing.guided_coordinator
     host.testing.assertions
     host.testing.engine
     host.testing.phase6_suite

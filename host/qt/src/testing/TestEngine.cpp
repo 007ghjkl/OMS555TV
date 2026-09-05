@@ -85,7 +85,7 @@ TestEngine::TestEngine(app::AppStateController &appState,
 
 TestEngine::~TestEngine()
 {
-    if (state_ == TestEngineState::Idle) {
+    if (state_ == TestEngineState::Idle && !guidedProbe_) {
         return;
     }
     disconnect(&client_, nullptr, this, nullptr);
@@ -93,6 +93,9 @@ TestEngine::~TestEngine()
     cancelDelay();
     if (currentRequestId_) {
         (void)client_.cancelRequest(*currentRequestId_);
+    }
+    if (guidedProbe_) {
+        (void)client_.cancelRequest(guidedProbe_->requestId);
     }
     if (appState_.state() == app::AppState::Testing
         && client_.activeOwner() == communication::CommunicationOwner::Testing) {
@@ -106,6 +109,12 @@ std::optional<TestRunId> TestEngine::activeRunId() const noexcept
 {
     return run_ ? std::optional<TestRunId>(run_->runId) : std::nullopt;
 }
+
+bool TestEngine::guidedProbeActive() const noexcept { return guidedProbe_.has_value(); }
+
+monitor::IMonitorScheduler &TestEngine::scheduler() const noexcept { return *scheduler_; }
+
+logging::SessionLogService *TestEngine::sessionLog() const noexcept { return sessionLog_; }
 
 QDateTime TestEngine::nowUtc() const { return clock_().toUTC(); }
 
@@ -136,7 +145,7 @@ void TestEngine::setState(TestEngineState state)
 TestRunSubmission TestEngine::runSuite(const TestSuite &suite,
                                        const QSet<QString> &selectedCaseIds)
 {
-    if (state_ != TestEngineState::Idle || run_) {
+    if (state_ != TestEngineState::Idle || run_ || guidedProbe_) {
         return reject(TestErrorCode::AlreadyRunning, QStringLiteral("已有测试运行"));
     }
     if (appState_.state() != app::AppState::Testing
@@ -193,6 +202,57 @@ TestRunSubmission TestEngine::runSuite(const TestSuite &suite,
     publish();
     startNextCase();
     return {*id, std::nullopt};
+}
+
+GuidedProbeSubmission TestEngine::submitGuidedProbe(
+    TestRunId runId,
+    const QString &caseId,
+    const QString &stepId,
+    const TestRequest &request,
+    std::chrono::milliseconds timeout)
+{
+    const auto rejectProbe = [](TestErrorCode code, QString diagnostic,
+                                std::optional<communication::CommunicationError> error = std::nullopt) {
+        return GuidedProbeSubmission{std::nullopt,
+                                     TestError{code, std::move(diagnostic), std::move(error)}};
+    };
+    if (state_ != TestEngineState::Idle || run_ || guidedProbe_) {
+        return rejectProbe(TestErrorCode::AlreadyRunning,
+                           QStringLiteral("测试引擎已有活动执行器"));
+    }
+    if (appState_.state() != app::AppState::Testing
+        || client_.connectionState() != communication::ConnectionState::Connected
+        || client_.activeOwner() != communication::CommunicationOwner::Testing) {
+        return rejectProbe(TestErrorCode::InvalidState,
+                           QStringLiteral("引导探测要求 TESTING 状态和 Testing owner"));
+    }
+    if (runId.value == 0 || caseId.isEmpty() || stepId.isEmpty()
+        || request.function != ModbusFunction::ReadHoldingRegisters) {
+        return rejectProbe(TestErrorCode::InvariantViolation,
+                           QStringLiteral("引导探测上下文或请求无效"));
+    }
+
+    communication::RequestOptions options;
+    options.owner = communication::CommunicationOwner::Testing;
+    options.responseTimeout = std::max(std::chrono::milliseconds(1), timeout);
+    options.correlationId = QStringLiteral("guided/%1/%2/%3")
+        .arg(runId.value).arg(caseId, stepId);
+    const auto submission = client_.readHoldingRegisters(
+        request.address, request.count, options);
+    if (!submission.accepted()) {
+        return rejectProbe(TestErrorCode::RequestRejected,
+                           QStringLiteral("通信层拒绝引导探测"), submission.rejection);
+    }
+    guidedProbe_ = GuidedProbeContext{runId, caseId, stepId, *submission.requestId};
+    return {*submission.requestId, std::nullopt};
+}
+
+bool TestEngine::cancelGuidedProbe(communication::RequestId requestId)
+{
+    if (!guidedProbe_ || guidedProbe_->requestId != requestId) {
+        return false;
+    }
+    return client_.cancelRequest(requestId).isAccepted;
 }
 
 TestRunSubmission TestEngine::runCase(const TestSuite &suite, const QString &caseId)
@@ -425,6 +485,12 @@ void TestEngine::cancelDelay() noexcept
 void TestEngine::handleRequestCompleted(
     const communication::ModbusRequestResult &result)
 {
+    if (guidedProbe_ && result.requestId == guidedProbe_->requestId) {
+        const auto context = *guidedProbe_;
+        guidedProbe_.reset();
+        emit guidedProbeCompleted(context.runId, context.caseId, context.stepId, result);
+        return;
+    }
     if (!run_ || !currentRequestId_ || result.requestId != *currentRequestId_
         || currentCaseIndex_ < 0 || !handler_ || !currentStep_) {
         return;

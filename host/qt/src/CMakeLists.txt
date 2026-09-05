@@ -41,6 +41,8 @@ add_library(oms555tv_core STATIC
     testing/TestAssertions.h
     testing/GuidedTestModel.cpp
     testing/GuidedTestModel.h
+    testing/GuidedTestCoordinator.cpp
+    testing/GuidedTestCoordinator.h
     testing/TestAutomationController.cpp
     testing/TestAutomationController.h
     testing/TestCaseLoader.cpp

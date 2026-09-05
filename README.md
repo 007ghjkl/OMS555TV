@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`～`TASK-021`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 的覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件、UI 集成与真实 RS485 全量验收均已完成。Host Phase 7 已完成 TASK-021 的引导式模型与 Schema v3，控制器/UI 和真实 RS485 半自动验收仍由 TASK-022/023 完成。
+当前状态：`TASK-001`～`TASK-022`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 的覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件、UI 集成与真实 RS485 全量验收均已完成。Host Phase 7 已完成引导式模型、Schema v3、半自动协调器与 UI；真实 RS485 人工断线—恢复验收仍由 TASK-023 完成。
 
 ## 项目目标
 
@@ -81,6 +81,8 @@
 - [Host Phase 7 引导式测试模型与 Schema v3 技术规范](specs/host_phase7_guided_test_schema.md)
 - [TASK-021 引导式模型与 Schema v3 验证记录](docs/test_results/task021_phase7_guided_test_schema.md)
 - [TASK-022 Host Phase 7 半自动测试控制器与 UI](tasks/TASK-022-host-phase7-guided-controller-ui.md)
+- [Host Phase 7 引导式执行协调与 UI 技术规范](specs/host_phase7_guided_execution_ui.md)
+- [TASK-022 半自动测试控制器与 UI 验证记录](docs/test_results/task022_phase7_guided_controller_ui.md)
 - [TASK-023 Host Phase 7 RS485 断线恢复半自动验收](tasks/TASK-023-host-phase7-rs485-guided-recovery-validation.md)
 
 ## 仓库结构
@@ -174,6 +176,8 @@ $env:Path = "$bundleRoot\gnu-tools-for-stm32\14.3.1+st.2\bin;$bundleRoot\ninja\1
 
 2026-09-05 的 TASK-021 最终结果：新增独立 Schema v3、严格 Loader、固定四段 `guided_recovery` 模型、人工动作 token 校验、结构化中断/恢复观察契约和 Phase 8 可直接消费的不可变证据。恢复时间同时保存首个成功与连续成功完成两个单调时钟口径；未知步骤/动作、缺失恢复指引、非法 deadline、重复 step ID 和写探测均被结构化拒绝。全新 Host 140 步构建及最终 21/21 CTest 通过，v1/v2 与 Phase 5/6 正式套件无回归；测试未访问 QWidget、串口或真实硬件。半自动控制器/UI 与真实 RS485 拔插验收仍分别属于 TASK-022/023。
 
+2026-09-05 的 TASK-022 最终结果：新增无 QWidget 依赖的 `GuidedTestCoordinator`、TestEngine 互斥引导探测入口和自动化页引导面板。人工确认使用 run/case/step/一次性 token 校验；人工等待不发请求，观察严格串行且只以连续结构化超时/合法业务响应判定中断与恢复。结果和 TEST 日志保留人工记录、RequestId、TX/RX、RTT、首次响应/稳定恢复耗时及未恢复接线提醒。全新 Host 145 步构建及最终 22/22 CTest 通过，Fake/虚拟时间与 offscreen UI 覆盖成功、失败、取消、超时、致命错误和中止；未访问串口、开发板或真实 RS485。Phase 7 仍需 TASK-023 实机人工断线—恢复验收。
+
 实板联调工具会运行时枚举 ST-LINK，不写死 COM 号：
 
 ```powershell
@@ -194,7 +198,7 @@ $env:Path = "D:\Dev\Qt\6.8.3\msvc2022_64\bin;$env:Path"
 5. Phase 6 按 `TASK-017` 覆盖模型/Schema v2、`TASK-018` 复合与稳定性执行核心、`TASK-019` 完整 20+ 套件/UI、`TASK-020` 真实 RS485 全量验收的顺序推进；前置任务未验收时不得跨层临时实现；
 6. `TASK-017/018/019/020` 与 Phase 6 已关闭；
 7. Phase 7 按 `TASK-021` 引导式模型/Schema v3、`TASK-022` 半自动控制器/UI、`TASK-023` RS485 物理断线恢复实机验收的顺序推进；前置任务未验收时不得跨层临时实现；
-8. `TASK-021` 已完成；`TASK-022/023` 尚未实施。STM32 Reset 与传感器人工操作作为后续增强，Phase 8 HTML 报告继续留待后续拆分；
+8. `TASK-021/022` 已完成；`TASK-023` 尚未实施。STM32 Reset 与传感器人工操作作为后续增强，Phase 8 HTML 报告继续留待后续拆分；
 9. TASK-014 的中文示例与 fixture 不属于正式用例，TASK-016 的 8 条基础用例不能替代已独立记录的 TASK-020 Phase 6 实机结果；
 10. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
 

@@ -3,6 +3,7 @@
 #include "app/AppStateController.h"
 #include "testing/TestCaseLoader.h"
 #include "testing/TestEngine.h"
+#include "testing/GuidedTestCoordinator.h"
 
 #include <QObject>
 #include <QSet>
@@ -46,6 +47,8 @@ public:
     [[nodiscard]] const QString &currentLogicalStepId() const noexcept;
     [[nodiscard]] qsizetype currentLogicalStepIndex() const noexcept;
     [[nodiscard]] int currentRepetition() const noexcept;
+    [[nodiscard]] GuidedExecutionView guidedView() const;
+    [[nodiscard]] bool guidedRunActive() const noexcept;
 
     void setResumeMonitoring(bool enabled);
     [[nodiscard]] bool loadSuiteFile(const QString &path);
@@ -54,6 +57,11 @@ public:
                                    const monitor::MonitorConfig &monitorConfig);
     [[nodiscard]] bool skipCase(const QString &caseId);
     [[nodiscard]] bool abort();
+    [[nodiscard]] GuidedActionRejection submitGuidedAction(
+        const GuidedActionCommand &command);
+    [[nodiscard]] GuidedActionRejection confirmGuidedAction(const QString &token);
+    [[nodiscard]] GuidedActionRejection cancelGuidedAction(const QString &token,
+                                                            QString note = {});
 
 signals:
     void stateChanged();
@@ -111,6 +119,7 @@ private:
     qsizetype currentLogicalStepIndex_ = -1;
     int currentRepetition_ = 0;
     bool resultVisible_ = false;
+    std::unique_ptr<GuidedTestCoordinator> guided_;
 };
 
 [[nodiscard]] QString testAutomationStateName(TestAutomationState state);

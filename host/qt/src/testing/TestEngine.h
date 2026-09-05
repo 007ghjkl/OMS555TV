@@ -40,12 +40,21 @@ public:
 
     [[nodiscard]] TestEngineState state() const noexcept;
     [[nodiscard]] std::optional<TestRunId> activeRunId() const noexcept;
+    [[nodiscard]] bool guidedProbeActive() const noexcept;
+    [[nodiscard]] monitor::IMonitorScheduler &scheduler() const noexcept;
+    [[nodiscard]] logging::SessionLogService *sessionLog() const noexcept;
 
     TestRunSubmission runSuite(const TestSuite &suite,
                                const QSet<QString> &selectedCaseIds = {});
     TestRunSubmission runCase(const TestSuite &suite, const QString &caseId);
     [[nodiscard]] bool skipCase(const QString &caseId);
     [[nodiscard]] bool abort();
+    GuidedProbeSubmission submitGuidedProbe(TestRunId runId,
+                                            const QString &caseId,
+                                            const QString &stepId,
+                                            const TestRequest &request,
+                                            std::chrono::milliseconds timeout);
+    [[nodiscard]] bool cancelGuidedProbe(communication::RequestId requestId);
 
 signals:
     void stateChanged(oms555tv::testing::TestEngineState state);
@@ -59,6 +68,10 @@ signals:
                      int repetition);
     void caseFinished(QString caseId, oms555tv::testing::TestStatus status);
     void runCompleted(const oms555tv::testing::TestSuiteResult &result);
+    void guidedProbeCompleted(oms555tv::testing::TestRunId runId,
+                              QString caseId,
+                              QString stepId,
+                              const oms555tv::communication::ModbusRequestResult &result);
 
 private:
     [[nodiscard]] QDateTime nowUtc() const;
@@ -132,6 +145,13 @@ private:
     } stabilityRetention_;
     std::optional<app::AppOperationId> stopOperationId_;
     bool loggingErrorRecorded_ = false;
+    struct GuidedProbeContext {
+        TestRunId runId;
+        QString caseId;
+        QString stepId;
+        communication::RequestId requestId;
+    };
+    std::optional<GuidedProbeContext> guidedProbe_;
 };
 
 } // namespace oms555tv::testing

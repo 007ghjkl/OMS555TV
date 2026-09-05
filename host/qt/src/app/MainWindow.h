@@ -5,6 +5,7 @@
 class QComboBox;
 class QCheckBox;
 class QDoubleSpinBox;
+class QGroupBox;
 class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
@@ -130,6 +131,16 @@ private:
     QLabel *testProgressLabel_ = nullptr;
     QLabel *testCurrentStepLabel_ = nullptr;
     QLabel *testStatisticsLabel_ = nullptr;
+    QGroupBox *guidedPanel_ = nullptr;
+    QLabel *guidedPromptTitleLabel_ = nullptr;
+    QLabel *guidedInstructionLabel_ = nullptr;
+    QLabel *guidedSafetyLabel_ = nullptr;
+    QLabel *guidedCountdownLabel_ = nullptr;
+    QLabel *guidedObservationProgressLabel_ = nullptr;
+    QLabel *guidedRecoveryTimingLabel_ = nullptr;
+    QPushButton *guidedConfirmButton_ = nullptr;
+    QPushButton *guidedCancelButton_ = nullptr;
+    QLabel *guidedRestorationReminderLabel_ = nullptr;
     QPlainTextEdit *testLoadErrors_ = nullptr;
     QTableWidget *testCaseTable_ = nullptr;
     QPlainTextEdit *testCaseDetails_ = nullptr;

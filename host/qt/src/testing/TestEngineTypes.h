@@ -61,6 +61,12 @@ struct TestRunSubmission {
     [[nodiscard]] bool accepted() const noexcept { return runId.has_value(); }
 };
 
+struct GuidedProbeSubmission {
+    std::optional<communication::RequestId> requestId;
+    std::optional<TestError> rejection;
+    [[nodiscard]] bool accepted() const noexcept { return requestId.has_value(); }
+};
+
 struct TestRequestAttemptResult {
     quint64 sequence = 0;
     TestStepPurpose purpose = TestStepPurpose::Read;

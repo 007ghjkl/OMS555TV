@@ -37,6 +37,8 @@ TestAutomationController::TestAutomationController(
     , appState_(appState)
     , engine_(engine)
     , results_(results)
+    , guided_(std::make_unique<GuidedTestCoordinator>(
+          appState, engine, results, engine.sessionLog(), engine.scheduler(), this))
 {
     connect(&appState_, &app::AppStateController::commandCompleted,
             this, &TestAutomationController::handleAppCommandCompleted);
@@ -77,6 +79,23 @@ TestAutomationController::TestAutomationController(
         }
     });
     connect(&engine_, &TestEngine::runCompleted,
+            this, [this](const TestSuiteResult &) { handleRunCompleted(); });
+    connect(guided_.get(), &GuidedTestCoordinator::viewChanged,
+            this, [this] {
+        const auto view = guided_->view();
+        if (guided_->active() || view.visible) {
+            currentCaseId_ = view.caseId;
+            currentStep_.reset();
+            currentRequestId_ = view.currentRequestId;
+            currentAttempt_ = view.currentRequestId ? 1 : 0;
+            currentLogicalStepId_ = view.stepId;
+            currentLogicalStepIndex_ = -1;
+            currentRepetition_ = 0;
+        }
+        emit currentStepChanged();
+        emit stateChanged();
+    });
+    connect(guided_.get(), &GuidedTestCoordinator::runCompleted,
             this, [this](const TestSuiteResult &) { handleRunCompleted(); });
     connect(&results_, &TestResultManager::snapshotChanged,
             this, [this] { emit stateChanged(); });
@@ -159,6 +178,16 @@ int TestAutomationController::currentRepetition() const noexcept
     return currentRepetition_;
 }
 
+GuidedExecutionView TestAutomationController::guidedView() const
+{
+    return guided_->view();
+}
+
+bool TestAutomationController::guidedRunActive() const noexcept
+{
+    return guided_->active();
+}
+
 void TestAutomationController::setResumeMonitoring(bool enabled)
 {
     if (busy() || resumeMonitoring_ == enabled) {
@@ -218,7 +247,8 @@ bool TestAutomationController::runSelected(const QSet<QString> &caseIds,
 
 bool TestAutomationController::skipCase(const QString &caseId)
 {
-    if (state_ != TestAutomationState::Running || !engine_.skipCase(caseId)) {
+    if (state_ != TestAutomationState::Running || guided_->active()
+        || !engine_.skipCase(caseId)) {
         setError(QStringLiteral("只能跳过本次运行中尚未开始的用例"));
         return false;
     }
@@ -229,13 +259,36 @@ bool TestAutomationController::skipCase(const QString &caseId)
 
 bool TestAutomationController::abort()
 {
-    if (state_ != TestAutomationState::Running || !engine_.abort()) {
+    const bool accepted = state_ == TestAutomationState::Running
+        && (guided_->active() ? guided_->abort() : engine_.abort());
+    if (!accepted) {
         setError(QStringLiteral("当前没有可中止的测试运行"));
         return false;
     }
     lastError_.clear();
     emit stateChanged();
     return true;
+}
+
+GuidedActionRejection TestAutomationController::submitGuidedAction(
+    const GuidedActionCommand &command)
+{
+    return guided_->submitAction(command);
+}
+
+GuidedActionRejection TestAutomationController::confirmGuidedAction(const QString &token)
+{
+    const auto view = guided_->view();
+    return submitGuidedAction({view.runId.value, view.caseId, view.stepId, token,
+                               GuidedOperatorAction::Confirm, {}});
+}
+
+GuidedActionRejection TestAutomationController::cancelGuidedAction(
+    const QString &token, QString note)
+{
+    const auto view = guided_->view();
+    return submitGuidedAction({view.runId.value, view.caseId, view.stepId, token,
+                               GuidedOperatorAction::Cancel, std::move(note)});
 }
 
 void TestAutomationController::setState(TestAutomationState state)
@@ -335,14 +388,20 @@ void TestAutomationController::startEngine()
         return;
     }
     resultVisible_ = true;
-    const auto submission = engine_.runSuite(*suite_, selectedCaseIds_);
-    if (submission.accepted()) {
+    const bool guidedSuite = suite_->schemaVersion == testSuiteSchemaVersionV3;
+    const auto submission = guidedSuite
+        ? TestRunSubmission{} : engine_.runSuite(*suite_, selectedCaseIds_);
+    const bool accepted = guidedSuite
+        ? guided_->runSuite(*suite_, selectedCaseIds_) : submission.accepted();
+    if (accepted) {
         pendingAction_ = PendingAction::None;
         pendingOperationId_.reset();
         setState(TestAutomationState::Running);
         return;
     }
-    lastError_ = submission.rejection
+    lastError_ = guidedSuite
+        ? QStringLiteral("引导协调器拒绝运行：%1").arg(guided_->lastError())
+        : submission.rejection
         ? QStringLiteral("测试引擎拒绝运行：%1").arg(submission.rejection->diagnostic)
         : QStringLiteral("测试引擎拒绝运行");
     resultVisible_ = false;
@@ -414,6 +473,10 @@ void TestAutomationController::handleRunCompleted()
     currentLogicalStepIndex_ = -1;
     currentRepetition_ = 0;
     emit currentStepChanged();
+    if (appState_.state() == app::AppState::Testing) {
+        failWorkflow(QStringLiteral("测试执行完成但 Testing owner 尚未释放"));
+        return;
+    }
     if (wasMonitoring_ && resumeMonitoring_) {
         const auto submission = appState_.startMonitoring(savedMonitorConfig_);
         if (!submission.accepted()) {

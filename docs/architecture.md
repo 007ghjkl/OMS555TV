@@ -127,6 +127,8 @@ TASK-020 已在当前约 20 cm 安全低压点对点台架上关闭 Phase 6。�
 
 TASK-021 已新增独立 Schema v3 与纯数据引导模型，同时保持 v1/v2 自动套件语义不变。`guided_recovery` 固定为断线提示、中断观察、重连提示、恢复观察四步；人工动作必须匹配 run/case/step/一次性 token，确认只推进流程，连续结构化 `ResponseTimeout` 和连续合法 0x03 响应才构成自动证据。人工等待、观察 deadline 与总预算均有界，恢复结果同时保留首个成功和稳定恢复耗时，并把人工动作、观察探测、RequestId/TX/RX/RTT、终态原因和未恢复接线指引纳入不可变快照。TASK-022 负责协调器与 UI，详细契约见 `specs/host_phase7_guided_test_schema.md`。
 
+TASK-022 已实现无 QWidget 依赖的 `GuidedTestCoordinator`。v3 路径由 `TestAutomationController` 取得 Testing owner 后交给协调器，协调器在整个人工等待与观察期间持续持有 owner，并在终态受控释放；v1/v2 仍由既有 TestEngine 套件路径执行。TestEngine 仅新增与普通运行互斥的单读探测入口，继续独占唯一 `IModbusClient`，因此 UI 和协调器都不能绕过通信所有权。协调器使用注入调度器管理一次性 token、人工/观察 deadline、严格串行探测、连续计数、迟到回调和恢复耗时，并把动作、探测证据与恢复提醒发布到不可变结果和 TEST 日志。自动化页只渲染只读视图与提交动作，PASS 仍完全来自自动观察。详细契约见 `specs/host_phase7_guided_execution_ui.md`。
+
 ## 9. 部署与构建
 
 - Host：Windows x64，Qt 6.8.3、MSVC 2022、CMake、Ninja。

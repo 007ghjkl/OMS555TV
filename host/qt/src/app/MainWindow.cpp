@@ -27,6 +27,7 @@
 #include <QTableWidget>
 #include <QTabWidget>
 #include <QTextCursor>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -159,6 +160,10 @@ QString testExpectedText(const oms555tv::testing::ExpectedAssertion &expected)
 
 QString testResultActualText(const oms555tv::testing::TestCaseResult &result)
 {
+    if (result.guidedRecovery) {
+        return oms555tv::testing::guidedTerminalReasonName(
+            result.guidedRecovery->terminalReason);
+    }
     if (result.assertion) return result.assertion->actualSummary;
     if (result.error) return result.error->diagnostic;
     if (result.skipReason) {
@@ -476,6 +481,7 @@ MainWindow::MainWindow(
         diagnosticRequestFilter_->setObjectName(QStringLiteral("diagnosticRequestFilter"));
         diagnosticRequestFilter_->setPlaceholderText(QStringLiteral("精确 RequestId"));
         clearDiagnosticsButton_ = new QPushButton(QStringLiteral("清空诊断记录"));
+        clearDiagnosticsButton_->setObjectName(QStringLiteral("clearDiagnosticsButton"));
         filters->addWidget(diagnosticLevelFilter_);
         filters->addWidget(diagnosticResultFilter_);
         filters->addWidget(diagnosticRequestFilter_);
@@ -566,6 +572,53 @@ MainWindow::MainWindow(
             stateRow->addWidget(new QLabel(QStringLiteral("统计：")), 2, 0);
             stateRow->addWidget(testStatisticsLabel_, 2, 1, 1, 3);
             testingLayout->addLayout(stateRow);
+
+            guidedPanel_ = new QGroupBox(QStringLiteral("引导式人工操作"));
+            guidedPanel_->setObjectName(QStringLiteral("guidedPanel"));
+            auto *guidedLayout = new QVBoxLayout(guidedPanel_);
+            guidedPromptTitleLabel_ = new QLabel;
+            guidedPromptTitleLabel_->setObjectName(QStringLiteral("guidedPromptTitleLabel"));
+            guidedPromptTitleLabel_->setWordWrap(true);
+            guidedInstructionLabel_ = new QLabel;
+            guidedInstructionLabel_->setObjectName(QStringLiteral("guidedInstructionLabel"));
+            guidedInstructionLabel_->setWordWrap(true);
+            guidedSafetyLabel_ = new QLabel;
+            guidedSafetyLabel_->setObjectName(QStringLiteral("guidedSafetyLabel"));
+            guidedSafetyLabel_->setWordWrap(true);
+            guidedCountdownLabel_ = new QLabel;
+            guidedCountdownLabel_->setObjectName(QStringLiteral("guidedCountdownLabel"));
+            guidedObservationProgressLabel_ = new QLabel;
+            guidedObservationProgressLabel_->setObjectName(
+                QStringLiteral("guidedObservationProgressLabel"));
+            guidedRecoveryTimingLabel_ = new QLabel;
+            guidedRecoveryTimingLabel_->setObjectName(
+                QStringLiteral("guidedRecoveryTimingLabel"));
+            guidedRestorationReminderLabel_ = new QLabel;
+            guidedRestorationReminderLabel_->setObjectName(
+                QStringLiteral("guidedRestorationReminderLabel"));
+            guidedRestorationReminderLabel_->setWordWrap(true);
+            auto *guidedButtons = new QHBoxLayout;
+            guidedConfirmButton_ = new QPushButton(QStringLiteral("确认已完成"));
+            guidedConfirmButton_->setObjectName(QStringLiteral("guidedConfirmButton"));
+            guidedCancelButton_ = new QPushButton(QStringLiteral("取消测试"));
+            guidedCancelButton_->setObjectName(QStringLiteral("guidedCancelButton"));
+            guidedButtons->addWidget(guidedConfirmButton_);
+            guidedButtons->addWidget(guidedCancelButton_);
+            guidedButtons->addStretch();
+            guidedLayout->addWidget(guidedPromptTitleLabel_);
+            guidedLayout->addWidget(guidedInstructionLabel_);
+            guidedLayout->addWidget(guidedSafetyLabel_);
+            guidedLayout->addWidget(guidedCountdownLabel_);
+            guidedLayout->addWidget(guidedObservationProgressLabel_);
+            guidedLayout->addWidget(guidedRecoveryTimingLabel_);
+            guidedLayout->addWidget(guidedRestorationReminderLabel_);
+            guidedLayout->addLayout(guidedButtons);
+            testingLayout->addWidget(guidedPanel_);
+            auto *guidedRefreshTimer = new QTimer(this);
+            guidedRefreshTimer->setInterval(100);
+            connect(guidedRefreshTimer, &QTimer::timeout,
+                    this, &MainWindow::renderTesting);
+            guidedRefreshTimer->start();
 
             auto *testSplitter = new QSplitter(Qt::Vertical);
             testCaseTable_ = new QTableWidget(testSplitter);
@@ -744,6 +797,14 @@ MainWindow::MainWindow(
             });
             connect(abortTestsButton_, &QPushButton::clicked,
                     automation_, &oms555tv::testing::TestAutomationController::abort);
+            connect(guidedConfirmButton_, &QPushButton::clicked, this, [this] {
+                const auto guided = automation_->guidedView();
+                (void)automation_->confirmGuidedAction(guided.token);
+            });
+            connect(guidedCancelButton_, &QPushButton::clicked, this, [this] {
+                const auto guided = automation_->guidedView();
+                (void)automation_->cancelGuidedAction(guided.token);
+            });
             connect(testCaseTable_, &QTableWidget::itemSelectionChanged,
                     this, &MainWindow::renderTestDetails);
         }
@@ -980,11 +1041,65 @@ void MainWindow::renderTesting()
     runSelectedTestsButton_->setEnabled(
         hasSuite && !busy && !configurationBusy && runnableState);
     skipTestButton_->setEnabled(
-        automation_->state() == oms555tv::testing::TestAutomationState::Running);
+        automation_->state() == oms555tv::testing::TestAutomationState::Running
+        && !automation_->guidedRunActive());
     abortTestsButton_->setEnabled(
         automation_->state() == oms555tv::testing::TestAutomationState::Running);
     testWorkflowStateLabel_->setText(
         oms555tv::testing::testAutomationStateName(automation_->state()));
+
+    const auto guided = automation_->guidedView();
+    guidedPanel_->setVisible(guided.visible);
+    if (guided.visible) {
+        guidedPromptTitleLabel_->setText(
+            QStringLiteral("%1（%2）").arg(
+                guided.title.isEmpty()
+                    ? oms555tv::testing::guidedRunStateName(guided.state)
+                    : guided.title,
+                oms555tv::testing::guidedRunStateName(guided.state)));
+        guidedInstructionLabel_->setText(
+            guided.instruction.isEmpty() ? QStringLiteral("自动观察正在进行，请勿改变接线。")
+                                         : guided.instruction);
+        guidedSafetyLabel_->setText(
+            guided.safetyNotice.isEmpty() ? QStringLiteral("安全提示：按当前步骤操作。")
+                                          : QStringLiteral("安全提示：%1").arg(guided.safetyNotice));
+        guidedCountdownLabel_->setText(
+            QStringLiteral("剩余时间：%1 ms").arg(guided.remaining.count()));
+        guidedObservationProgressLabel_->setText(
+            guided.requiredConsecutiveMatches > 0
+                ? QStringLiteral("连续样本：%1/%2；RequestId=%3")
+                      .arg(guided.consecutiveMatches)
+                      .arg(guided.requiredConsecutiveMatches)
+                      .arg(guided.currentRequestId
+                               ? QString::number(guided.currentRequestId->value)
+                               : QStringLiteral("--"))
+                : QStringLiteral("连续样本：--"));
+        const auto timingText = [](const std::optional<std::chrono::milliseconds> &value) {
+            return value ? QString::number(value->count()) + QStringLiteral(" ms")
+                         : QStringLiteral("--");
+        };
+        const std::optional<std::chrono::milliseconds> first = guided.recoveryTiming
+            ? std::optional(guided.recoveryTiming->toFirstSuccessfulResponse) : std::nullopt;
+        const std::optional<std::chrono::milliseconds> stable = guided.recoveryTiming
+            ? std::optional(guided.recoveryTiming->toStableRecovery) : std::nullopt;
+        guidedRecoveryTimingLabel_->setText(
+            QStringLiteral("恢复耗时：首次响应 %1；稳定恢复 %2")
+                .arg(timingText(first), timingText(stable)));
+        guidedRestorationReminderLabel_->setText(
+            guided.restorationReminder.isEmpty()
+                ? QString{} : QStringLiteral("接线恢复提醒：%1（软件尚未观察到稳定恢复）")
+                                  .arg(guided.restorationReminder));
+        const bool awaiting = guided.state
+                == oms555tv::testing::GuidedRunState::WaitingForDisconnectConfirmation
+            || guided.state
+                == oms555tv::testing::GuidedRunState::WaitingForReconnectConfirmation;
+        guidedConfirmButton_->setEnabled(
+            awaiting && guided.allowedActions.contains(
+                            oms555tv::testing::GuidedOperatorAction::Confirm));
+        guidedCancelButton_->setEnabled(
+            awaiting && guided.allowedActions.contains(
+                            oms555tv::testing::GuidedOperatorAction::Cancel));
+    }
 
     QStringList errorLines;
     if (!automation_->lastError().isEmpty()) errorLines << automation_->lastError();
@@ -1206,6 +1321,41 @@ void MainWindow::renderTestDetails()
                 .arg(statistics.validRttSamples).arg(statistics.missingRttSamples)
                 .arg(rttText(statistics.minimumRttMs), rttText(statistics.averageRttMs),
                      rttText(statistics.maximumRttMs));
+        }
+        if (result.guidedRecovery) {
+            const auto &guidedResult = *result.guidedRecovery;
+            lines << QStringLiteral("\n=== 引导式恢复结果 ===");
+            lines << QStringLiteral("终态：%1；原因：%2；物理链路已观察恢复：%3")
+                .arg(oms555tv::testing::guidedRunStateName(guidedResult.finalState),
+                     oms555tv::testing::guidedTerminalReasonName(
+                         guidedResult.terminalReason),
+                     guidedResult.physicalLinkRestored ? QStringLiteral("是")
+                                                       : QStringLiteral("否"));
+            if (guidedResult.recoveryTiming) {
+                lines << QStringLiteral("恢复耗时：首次=%1 ms，稳定=%2 ms")
+                    .arg(guidedResult.recoveryTiming->toFirstSuccessfulResponse.count())
+                    .arg(guidedResult.recoveryTiming->toStableRecovery.count());
+            }
+            if (guidedResult.recoveryInstructionRequired) {
+                lines << QStringLiteral("接线恢复提醒：%1")
+                    .arg(guidedResult.recoveryInstruction);
+            }
+            for (const auto &action : guidedResult.operatorActions) {
+                lines << QStringLiteral("人工步骤 %1：token=%2，动作=%3，等待=%4 ms")
+                    .arg(action.stepId, action.oneTimeToken,
+                         action.action
+                             ? oms555tv::testing::guidedOperatorActionName(*action.action)
+                             : QStringLiteral("未操作"))
+                    .arg(action.waitDuration.count());
+            }
+            for (const auto &observation : guidedResult.observations) {
+                lines << QStringLiteral("观察 %1：目标=%2，结果=%3，连续=%4/%5")
+                    .arg(observation.stepId,
+                         oms555tv::testing::guidedObservationTargetName(observation.target))
+                    .arg(static_cast<int>(observation.outcome))
+                    .arg(observation.achievedConsecutiveMatches)
+                    .arg(observation.requiredConsecutiveMatches);
+            }
         }
         const auto &retention = result.evidenceRetention;
         lines << QStringLiteral("\n=== 证据保留摘要 ===");

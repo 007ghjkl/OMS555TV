@@ -13,6 +13,7 @@
 
 #include <QCheckBox>
 #include <QFile>
+#include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPlainTextEdit>
@@ -125,6 +126,35 @@ QByteArray selectionSuite()
     {"id":"two","name":"第二条","category":"functional","type":"read_register","request":{"function":3,"address":1,"count":1},"expected":{"type":"equals","value":2}},
     {"id":"three","name":"第三条","category":"functional","type":"read_register","request":{"function":3,"address":2,"count":1},"expected":{"type":"equals","value":3}}
   ]
+})JSON";
+}
+
+QByteArray guidedSuite()
+{
+    return R"JSON({
+  "schema_version": 3,
+  "id": "ui-guided",
+  "name": "UI 引导套件",
+  "cases": [{
+    "id": "guided", "name": "RS485 引导恢复", "category": "recovery",
+    "environment": "fake", "type": "guided_recovery",
+    "timeout": {"request_ms": 50, "case_ms": 5000},
+    "steps": [
+      {"id":"disconnect","type":"operator_prompt","purpose":"disconnect_rs485",
+       "title":"断开 A/B","instruction":"断开开发板侧 A/B 后确认。","safety_notice":"不要触碰电源端子。",
+       "allowed_actions":["confirm","cancel"],"wait_timeout_ms":1000,
+       "cancel_recovery_instruction":"按原极性恢复 A/B。"},
+      {"id":"outage","type":"observe_outage","probe":{"function":3,"address":16,"count":1},
+       "interval_ms":50,"deadline_ms":100,"consecutive_matches":1},
+      {"id":"reconnect","type":"operator_prompt","purpose":"reconnect_rs485",
+       "title":"恢复 A/B","instruction":"按原极性接回 A/B 后确认。","safety_notice":"确认 A/B 极性。",
+       "allowed_actions":["confirm","cancel"],"wait_timeout_ms":1000,
+       "cancel_recovery_instruction":"检查并恢复正确 A/B 接线。"},
+      {"id":"recovery","type":"observe_recovery","probe":{"function":3,"address":16,"count":1},
+       "interval_ms":50,"deadline_ms":100,"consecutive_matches":1,
+       "business_assertion":{"type":"equals","value":42}}
+    ]
+  }]
 })JSON";
 }
 
@@ -424,6 +454,114 @@ private slots:
             widget<QPlainTextEdit>(rig.window, "testCaseDetails")->toPlainText();
         QVERIFY(stabilityDetails.contains(QStringLiteral("稳定性聚合统计")));
         QVERIFY(stabilityDetails.contains(QStringLiteral("证据保留摘要")));
+        QCOMPARE(rig.appState.state(), app::AppState::ConnectedIdle);
+        QCOMPARE(rig.client.activeOwner(), communication::CommunicationOwner::None);
+    }
+
+    void guidedSuccessRendersPromptProgressTimingAndGates()
+    {
+        UiRig rig;
+        const QString path = writeFile(rig.output, QStringLiteral("guided.json"),
+                                       guidedSuite());
+        QVERIFY(!path.isEmpty());
+        rig.load(path, 1);
+        rig.connectDevice();
+        auto outageStep = readStep(
+            communication::CommunicationOwner::Testing, 16,
+            outcome(communication::FakeOutcomeKind::Timeout), 50);
+        outageStep.virtualDelay = std::chrono::milliseconds(1);
+        rig.client.enqueueStep(std::move(outageStep));
+        rig.client.enqueueStep(readStep(
+            communication::CommunicationOwner::Testing, 16, readSuccess(42), 50));
+
+        widget<QPushButton>(rig.window, "runAllTestsButton")->click();
+        rig.scheduler->advanceBy(std::chrono::milliseconds(0));
+        auto *panel = widget<QGroupBox>(rig.window, "guidedPanel");
+        QVERIFY(!panel->isHidden());
+        QVERIFY(widget<QLabel>(rig.window, "guidedPromptTitleLabel")->text()
+                    .contains(QStringLiteral("断开 A/B")));
+        QVERIFY(widget<QLabel>(rig.window, "guidedInstructionLabel")->text()
+                    .contains(QStringLiteral("开发板侧")));
+        QVERIFY(widget<QLabel>(rig.window, "guidedSafetyLabel")->text()
+                    .contains(QStringLiteral("电源端子")));
+        QVERIFY(widget<QLabel>(rig.window, "guidedCountdownLabel")->text()
+                    .contains(QStringLiteral("1000 ms")));
+        QVERIFY(widget<QPushButton>(rig.window, "guidedConfirmButton")->isEnabled());
+        QVERIFY(widget<QPushButton>(rig.window, "guidedCancelButton")->isEnabled());
+        QVERIFY(!widget<QPushButton>(rig.window, "disconnectButton")->isEnabled());
+        QVERIFY(!widget<QPushButton>(rig.window, "writeThresholdsButton")->isEnabled());
+        QVERIFY(!widget<QPushButton>(rig.window, "clearDiagnosticsButton")->isEnabled());
+
+        widget<QPushButton>(rig.window, "guidedConfirmButton")->click();
+        QVERIFY(!widget<QPushButton>(rig.window, "guidedConfirmButton")->isEnabled());
+        QVERIFY(widget<QLabel>(rig.window, "guidedObservationProgressLabel")->text()
+                    .contains(QStringLiteral("0/1")));
+        rig.scheduler->advanceBy(std::chrono::milliseconds(0));
+        rig.scheduler->advanceBy(std::chrono::milliseconds(1));
+        const auto reconnectTitle = widget<QLabel>(
+            rig.window, "guidedPromptTitleLabel")->text();
+        QVERIFY2(reconnectTitle.contains(QStringLiteral("恢复 A/B")),
+                 qPrintable(QStringLiteral("title=%1 state=%2 fake=%3")
+                                .arg(reconnectTitle,
+                                     testing::guidedRunStateName(
+                                         rig.automation.guidedView().state),
+                                     rig.client.verificationError())
+                                + QStringLiteral(" reason=%1")
+                                      .arg(testing::guidedTerminalReasonName(
+                                          rig.automation.guidedView().terminalReason))));
+        widget<QPushButton>(rig.window, "guidedConfirmButton")->click();
+        rig.scheduler->advanceBy(std::chrono::milliseconds(0));
+
+        QCOMPARE(rig.automation.state(), testing::TestAutomationState::Idle);
+        QCOMPARE(rig.results.snapshot()->status, testing::TestStatus::Pass);
+        QVERIFY(widget<QLabel>(rig.window, "guidedPromptTitleLabel")->text()
+                    .contains(QStringLiteral("FINISHED")));
+        QVERIFY(widget<QLabel>(rig.window, "guidedRecoveryTimingLabel")->text()
+                    .contains(QStringLiteral("首次响应 0 ms")));
+        auto *table = widget<QTableWidget>(rig.window, "testCaseTable");
+        table->selectRow(0);
+        const auto details = widget<QPlainTextEdit>(
+            rig.window, "testCaseDetails")->toPlainText();
+        QVERIFY(details.contains(QStringLiteral("引导式恢复结果")));
+        QVERIFY(details.contains(QStringLiteral("RequestId=")));
+        QVERIFY(details.contains(QStringLiteral("TX=")));
+        QVERIFY(details.contains(QStringLiteral("物理链路已观察恢复：是")));
+    }
+
+    void guidedFailureAndCancellationShowSafeRestorationReminder()
+    {
+        UiRig rig;
+        const QString path = writeFile(rig.output, QStringLiteral("guided.json"),
+                                       guidedSuite());
+        QVERIFY(!path.isEmpty());
+        rig.load(path, 1);
+        rig.connectDevice();
+        rig.client.enqueueStep(readStep(
+            communication::CommunicationOwner::Testing, 16, readSuccess(42), 50));
+        widget<QPushButton>(rig.window, "runAllTestsButton")->click();
+        rig.scheduler->advanceBy(std::chrono::milliseconds(0));
+        widget<QPushButton>(rig.window, "guidedConfirmButton")->click();
+        rig.scheduler->advanceBy(std::chrono::milliseconds(100));
+        QCOMPARE(rig.results.snapshot()->status, testing::TestStatus::Fail);
+        QVERIFY(widget<QLabel>(rig.window, "guidedRestorationReminderLabel")->text()
+                    .contains(QStringLiteral("软件尚未观察到稳定恢复")));
+        QCOMPARE(widget<QTableWidget>(rig.window, "testCaseTable")
+                     ->item(0, 4)->text(), QStringLiteral("FAIL"));
+
+        rig.load(path, 1);
+        widget<QPushButton>(rig.window, "runAllTestsButton")->click();
+        rig.scheduler->advanceBy(std::chrono::milliseconds(0));
+        widget<QPushButton>(rig.window, "guidedCancelButton")->click();
+        rig.scheduler->advanceBy(std::chrono::milliseconds(0));
+        QCOMPARE(rig.results.snapshot()->status, testing::TestStatus::Skipped);
+        QCOMPARE(widget<QTableWidget>(rig.window, "testCaseTable")
+                     ->item(0, 4)->text(), QStringLiteral("SKIPPED"));
+        const auto reminder = widget<QLabel>(
+            rig.window, "guidedRestorationReminderLabel")->text();
+        QVERIFY(reminder.contains(QStringLiteral("恢复")));
+        QVERIFY(reminder.contains(QStringLiteral("A/B")));
+        QVERIFY(!widget<QLabel>(rig.window, "guidedRestorationReminderLabel")->text()
+                     .contains(QStringLiteral("已安全恢复")));
         QCOMPARE(rig.appState.state(), app::AppState::ConnectedIdle);
         QCOMPARE(rig.client.activeOwner(), communication::CommunicationOwner::None);
     }

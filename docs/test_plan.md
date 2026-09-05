@@ -1,6 +1,6 @@
 # 测试计划
 
-> 状态：开发中基线 1.7（TASK-021 引导式模型与 Schema v3 已验证）
+> 状态：开发中基线 1.8（TASK-022 半自动协调器与 UI 已验证）
 
 ## 1. 目标
 
@@ -52,10 +52,10 @@
 - TASK-011 的应用状态与监控核心、TASK-012 的实时 UI、TASK-013 的参数配置/通信诊断/会话日志均已通过自动化测试；TASK-012 另完成 30 分钟真实 RS485、设备复位、陈旧状态、UI 响应和显式重连验收；TASK-013 完成四路阈值真实写回读、原值恢复和 20/20 请求会话证据核对。
 - Host Phase 5 的 TASK-014 测试模型/JSON Schema/断言、TASK-015 TestEngine 和 TASK-016 自动化测试 UI/真实 RS485 基础套件均已完成。TASK-016 全新构建和 19/19 CTest 通过，COM6 上 8/8 基础用例 PASS，11 个测试 RequestId 与诊断/TEST 日志一致，阈值前后独立读取一致。
 - Host Phase 6 的 TASK-017 覆盖模型/Schema v2、TASK-018 复合/超时/稳定性执行核心、TASK-019 完整 20+ 套件/UI 集成和 TASK-020 真实 RS485 全量验收均已完成。TASK-020 最终 20/20 CTest 与 COM6 实机预检/中止专项通过；正式主套件 20/20 PASS，真实稳定性持续 600001 ms、599/599 请求成功、0 失败、0 超时，647 个 Testing RequestId 的跨层证据一致且阈值最终恢复。
-- Host Phase 7 已拆分为 TASK-021 引导式模型/Schema v3、TASK-022 半自动控制器/UI、TASK-023 RS485 A/B 物理断线恢复实机验收；TASK-021 已完成全新构建和 21/21 CTest，后两项尚未实施。
+- Host Phase 7 已拆分为 TASK-021 引导式模型/Schema v3、TASK-022 半自动控制器/UI、TASK-023 RS485 A/B 物理断线恢复实机验收；TASK-021/022 已完成，TASK-022 全新构建和 22/22 CTest 通过，TASK-023 尚未实施。
 - 标准 Modbus Client 未必能发送 CRC 错误帧，可能需要后续 Raw Frame 接口。
 - 8/24 小时稳定性测试只能在具备持续硬件环境后执行。
 
 ## 8. 结果真实性
 
-未实际运行的测试不得标记通过。TASK-003、TASK-005、TASK-008、TASK-009、TASK-010、TASK-011、TASK-012、TASK-013、TASK-014、TASK-015、TASK-016、TASK-017、TASK-018、TASK-019、TASK-020 和 TASK-021 只能按各自记录标记通过。TASK-021 只证明 Schema、纯数据模型和兼容性，TASK-022/023 尚未实施；TASK-019 的 Fake/虚拟时间结果与 TASK-020 的真实 RS485 20 条/10 分钟结果保持独立口径，既有物理恢复记录也不能替代 Phase 7 引导式流程、人工动作证据和软件自动判定。正式 HTML/PDF 报告仍未验证。当前短距离 RS485 结果不得外推为 8/24 小时稳定性、工业长线、隔离或 EMC 验证。
+未实际运行的测试不得标记通过。TASK-003、TASK-005、TASK-008、TASK-009、TASK-010、TASK-011、TASK-012、TASK-013、TASK-014、TASK-015、TASK-016、TASK-017、TASK-018、TASK-019、TASK-020、TASK-021 和 TASK-022 只能按各自记录标记通过。TASK-022 只证明 Fake/虚拟时间协调流程和 offscreen UI，TASK-023 真实人工断线—恢复尚未实施；TASK-019 的 Fake/虚拟时间结果与 TASK-020 的真实 RS485 20 条/10 分钟结果保持独立口径，既有物理恢复记录也不能替代 Phase 7 正式引导式实机验收。正式 HTML/PDF 报告仍未验证。当前短距离 RS485 结果不得外推为 8/24 小时稳定性、工业长线、隔离或 EMC 验证。
