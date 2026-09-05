@@ -96,6 +96,15 @@ target_compile_definitions(tst_testcaseloader PRIVATE
 target_link_libraries(tst_testcaseloader PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.testing.testcase_loader COMMAND tst_testcaseloader)
 
+add_executable(tst_guidedtestmodel
+    testing/tst_guidedtestmodel.cpp
+)
+target_compile_definitions(tst_guidedtestmodel PRIVATE
+    OMS555TV_TESTCASES_DIR="${CMAKE_SOURCE_DIR}/../../testcases"
+)
+target_link_libraries(tst_guidedtestmodel PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.testing.guided_model COMMAND tst_guidedtestmodel)
+
 add_executable(tst_testassertions
     testing/tst_testassertions.cpp
 )
@@ -150,6 +159,7 @@ set_tests_properties(
     host.monitoring.ui
     host.configuration_diagnostics.ui
     host.testing.testcase_loader
+    host.testing.guided_model
     host.testing.assertions
     host.testing.engine
     host.testing.phase6_suite

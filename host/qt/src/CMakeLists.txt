@@ -39,12 +39,16 @@ add_library(oms555tv_core STATIC
     monitor/MonitorTypes.h
     testing/TestAssertions.cpp
     testing/TestAssertions.h
+    testing/GuidedTestModel.cpp
+    testing/GuidedTestModel.h
     testing/TestAutomationController.cpp
     testing/TestAutomationController.h
     testing/TestCaseLoader.cpp
     testing/TestCaseLoader.h
     testing/TestCaseLoaderV2.cpp
     testing/TestCaseLoaderV2.h
+    testing/TestCaseLoaderV3.cpp
+    testing/TestCaseLoaderV3.h
     testing/TestCaseTypes.cpp
     testing/TestCaseTypes.h
     testing/TestCaseHandlers.cpp

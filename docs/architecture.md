@@ -125,6 +125,8 @@ TASK-019 已将上述能力落成 20 条真实 RS485 主套件和 4 条独立 Fa
 
 TASK-020 已在当前约 20 cm 安全低压点对点台架上关闭 Phase 6。专用验收工具复用生产 MainWindow、唯一 QSerialPort 后端、集中状态机、配置服务、诊断/会话日志和自动化执行链；短时预检、独立中止与正式完整会话彼此隔离。真实等待使用 `Qt::PreciseTimer`，仍按实际请求开始时刻串行调度且不追赶积压。最终 20 条主套件全部 PASS，10 分钟稳定性 599/599 成功，结果/诊断/通信日志/TEST 日志的 647 个 RequestId 一致，阈值恢复和 UI 心跳通过。详细门禁与证据见 `specs/host_phase6_rs485_full_validation.md` 和对应验证记录；该结论不包含 Phase 7 人工物理恢复或 Phase 8 正式报告。
 
+TASK-021 已新增独立 Schema v3 与纯数据引导模型，同时保持 v1/v2 自动套件语义不变。`guided_recovery` 固定为断线提示、中断观察、重连提示、恢复观察四步；人工动作必须匹配 run/case/step/一次性 token，确认只推进流程，连续结构化 `ResponseTimeout` 和连续合法 0x03 响应才构成自动证据。人工等待、观察 deadline 与总预算均有界，恢复结果同时保留首个成功和稳定恢复耗时，并把人工动作、观察探测、RequestId/TX/RX/RTT、终态原因和未恢复接线指引纳入不可变快照。TASK-022 负责协调器与 UI，详细契约见 `specs/host_phase7_guided_test_schema.md`。
+
 ## 9. 部署与构建
 
 - Host：Windows x64，Qt 6.8.3、MSVC 2022、CMake、Ninja。

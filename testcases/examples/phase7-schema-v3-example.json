@@ -1,0 +1,22 @@
+{
+  "schema_version": 3,
+  "id": "phase7-guided-example",
+  "name": "Phase 7 RS485 断线恢复中文示例",
+  "description": "该文件仅展示配置格式，不计入正式验收用例。",
+  "cases": [
+    {
+      "id": "TC-G-EXAMPLE",
+      "name": "RS485 断线与恢复",
+      "category": "recovery",
+      "environment": "real_rs485",
+      "type": "guided_recovery",
+      "timeout": { "request_ms": 500, "case_ms": 150000 },
+      "steps": [
+        { "id": "disconnect", "type": "operator_prompt", "purpose": "disconnect_rs485", "title": "断开通信线", "instruction": "断开 RS485 A/B 后确认。", "safety_notice": "仅操作安全低压信号线。", "allowed_actions": ["confirm", "cancel"], "wait_timeout_ms": 60000, "cancel_recovery_instruction": "若已断开，请恢复 A/B 接线。" },
+        { "id": "outage", "type": "observe_outage", "probe": { "function": 3, "address": 16, "count": 1 }, "interval_ms": 500, "deadline_ms": 10000, "consecutive_matches": 3 },
+        { "id": "reconnect", "type": "operator_prompt", "purpose": "reconnect_rs485", "title": "恢复通信线", "instruction": "按原极性接回 RS485 A/B 后确认。", "safety_notice": "不要交换 A/B 或触碰电源端子。", "allowed_actions": ["confirm", "cancel"], "wait_timeout_ms": 60000, "cancel_recovery_instruction": "恢复正确接线并人工核对通信状态。" },
+        { "id": "recovery", "type": "observe_recovery", "probe": { "function": 3, "address": 16, "count": 1 }, "interval_ms": 500, "deadline_ms": 10000, "consecutive_matches": 3, "business_assertion": { "type": "range", "min": 0, "max": 65535 } }
+      ]
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 #include "communication/CommunicationTypes.h"
 #include "testing/TestAssertions.h"
+#include "testing/GuidedTestModel.h"
 
 #include <QDateTime>
 #include <QMetaType>
@@ -102,6 +103,54 @@ struct TestEvidenceRetentionSummary {
     QString description;
 };
 
+struct GuidedOperatorActionRecord {
+    TestRunId runId;
+    QString caseId;
+    QString stepId;
+    QString oneTimeToken;
+    QDateTime promptShownUtc;
+    std::optional<GuidedOperatorAction> action;
+    std::optional<QDateTime> actionUtc;
+    std::chrono::milliseconds waitDuration{0};
+    QString note;
+};
+
+enum class GuidedObservationOutcome {
+    Pending,
+    Matched,
+    DeadlineExpired,
+    FatalCommunicationError,
+    Aborted,
+};
+
+struct GuidedObservationResult {
+    TestRunId runId;
+    QString caseId;
+    QString stepId;
+    GuidedObservationTarget target = GuidedObservationTarget::ConsecutiveResponseTimeouts;
+    GuidedObservationOutcome outcome = GuidedObservationOutcome::Pending;
+    QDateTime startedUtc;
+    QDateTime finishedUtc;
+    std::chrono::milliseconds duration{0};
+    int requiredConsecutiveMatches = 1;
+    int achievedConsecutiveMatches = 0;
+    std::optional<communication::RequestId> firstMatchingRequestId;
+    std::optional<communication::RequestId> stableMatchingRequestId;
+    QVector<TestRequestAttemptResult> probes;
+    std::optional<TestError> error;
+};
+
+struct GuidedRecoveryCaseResult {
+    GuidedRunState finalState = GuidedRunState::Idle;
+    GuidedTerminalReason terminalReason = GuidedTerminalReason::None;
+    QVector<GuidedOperatorActionRecord> operatorActions;
+    QVector<GuidedObservationResult> observations;
+    std::optional<RecoveryTiming> recoveryTiming;
+    bool physicalLinkRestored = false;
+    bool recoveryInstructionRequired = false;
+    QString recoveryInstruction;
+};
+
 struct TestCaseResult {
     QString caseId;
     TestCaseType declaredType = TestCaseType::ReadRegisters;
@@ -119,6 +168,7 @@ struct TestCaseResult {
     QVector<TestRequestAttemptResult> attempts;
     QVector<TestCompositeStepResult> steps;
     std::optional<StabilityStatistics> stability;
+    std::optional<GuidedRecoveryCaseResult> guidedRecovery;
     TestEvidenceRetentionSummary evidenceRetention;
     QString sessionId;
 };

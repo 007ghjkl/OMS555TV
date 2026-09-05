@@ -1,0 +1,62 @@
+{
+  "schema_version": 3,
+  "id": "phase7-guided-fixture",
+  "name": "Phase 7 引导式恢复有效样例",
+  "description": "验证人工断线、结构化超时、人工重连、合法响应与业务断言。",
+  "tags": ["phase7", "guided"],
+  "metadata": { "owner": "host" },
+  "cases": [
+    {
+      "id": "TC-G001",
+      "name": "RS485 物理断线恢复",
+      "category": "recovery",
+      "description": "由操作员改变物理链路，软件自动观察并判定。",
+      "environment": "real_rs485",
+      "type": "guided_recovery",
+      "enabled": true,
+      "tags": ["rs485", "manual-action"],
+      "timeout": { "request_ms": 500, "case_ms": 150000 },
+      "steps": [
+        {
+          "id": "disconnect",
+          "type": "operator_prompt",
+          "purpose": "disconnect_rs485",
+          "title": "断开 RS485 A/B",
+          "instruction": "仅断开开发板侧 RS485 A/B 信号线，完成后点击确认。",
+          "safety_notice": "仅在安全低压台架操作，不要短接电源或带电触碰其他端子。",
+          "allowed_actions": ["confirm", "cancel"],
+          "wait_timeout_ms": 60000,
+          "cancel_recovery_instruction": "若已断线，请先按原极性恢复 A/B 接线，再结束测试。"
+        },
+        {
+          "id": "observe-outage",
+          "type": "observe_outage",
+          "probe": { "function": 3, "address": 16, "count": 1 },
+          "interval_ms": 500,
+          "deadline_ms": 10000,
+          "consecutive_matches": 3
+        },
+        {
+          "id": "reconnect",
+          "type": "operator_prompt",
+          "purpose": "reconnect_rs485",
+          "title": "恢复 RS485 A/B",
+          "instruction": "按断线前极性重新连接 A/B，确认端子牢固后点击确认。",
+          "safety_notice": "不要交换 A/B 极性，不要操作电源端子。",
+          "allowed_actions": ["cancel", "confirm"],
+          "wait_timeout_ms": 60000,
+          "cancel_recovery_instruction": "保持或恢复正确 A/B 接线，并由人工确认设备通信状态。"
+        },
+        {
+          "id": "observe-recovery",
+          "type": "observe_recovery",
+          "probe": { "function": 3, "address": 16, "count": 1 },
+          "interval_ms": 500,
+          "deadline_ms": 10000,
+          "consecutive_matches": 3,
+          "business_assertion": { "type": "range", "min": 0, "max": 65535 }
+        }
+      ]
+    }
+  ]
+}

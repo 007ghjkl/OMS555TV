@@ -1,5 +1,6 @@
 #include "testing/TestCaseLoader.h"
 #include "testing/TestCaseLoaderV2.h"
+#include "testing/TestCaseLoaderV3.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -818,6 +819,10 @@ LoadResult TestCaseLoader::load(const QByteArray &utf8Json)
     if (rawVersion.isDouble() && std::floor(rawVersion.toDouble()) == rawVersion.toDouble()
         && rawVersion.toInt() == testSuiteSchemaVersionV2) {
         return loadTestSuiteV2(root);
+    }
+    if (rawVersion.isDouble() && std::floor(rawVersion.toDouble()) == rawVersion.toDouble()
+        && rawVersion.toInt() == testSuiteSchemaVersionV3) {
+        return loadTestSuiteV3(root);
     }
     const auto id = parser.requiredString(root, QStringLiteral("id"), QString{}, 64, true);
     if (id) parser.setSuiteId(*id);

@@ -15,6 +15,7 @@ namespace oms555tv::testing {
 
 inline constexpr int testSuiteSchemaVersion = 1;
 inline constexpr int testSuiteSchemaVersionV2 = 2;
+inline constexpr int testSuiteSchemaVersionV3 = 3;
 inline constexpr int defaultRequestTimeoutMs = 500;
 inline constexpr int maximumRequestTimeoutMs = 60000;
 inline constexpr int maximumCaseTimeoutMs = 300000;
@@ -34,6 +35,16 @@ inline constexpr int defaultEvidenceSampleLimit = 64;
 inline constexpr int minimumEvidenceSampleLimit = 8;
 inline constexpr int maximumEvidenceSampleLimit = 256;
 inline constexpr int failureRateScalePpm = 1000000;
+inline constexpr int guidedRecoveryStepCount = 4;
+inline constexpr int maximumGuidedSteps = guidedRecoveryStepCount;
+inline constexpr int minimumOperatorWaitMs = 1000;
+inline constexpr int maximumOperatorWaitMs = 300000;
+inline constexpr int minimumObservationIntervalMs = 50;
+inline constexpr int maximumObservationIntervalMs = 10000;
+inline constexpr int minimumObservationDeadlineMs = 100;
+inline constexpr int maximumObservationDeadlineMs = 120000;
+inline constexpr int maximumObservationConsecutiveMatches = 20;
+inline constexpr int maximumGuidedCaseTimeoutMs = 900000;
 
 enum class TestStatus { NotRun, Running, Pass, Fail, Skipped, Error };
 
@@ -47,6 +58,7 @@ enum class TestCaseType {
     ExpectTimeout,
     Consistency,
     Stability,
+    GuidedRecovery,
 };
 
 enum class ModbusFunction : quint8 {
@@ -79,6 +91,11 @@ enum class UInt32Comparison { Range, NonDecreasing, StrictlyIncreasing };
 enum class UInt32WordOrder { LowWordFirst };
 
 enum class RetryError { Timeout, Connection, Serial, Crc, Protocol };
+
+enum class GuidedStepType { OperatorPrompt, ObserveOutage, ObserveRecovery };
+enum class GuidedPromptPurpose { DisconnectRs485, ReconnectRs485 };
+enum class GuidedOperatorAction { Confirm, Cancel };
+enum class GuidedObservationTarget { ConsecutiveResponseTimeouts, ConsecutiveValidResponses };
 
 struct TimeoutPolicy {
     std::chrono::milliseconds request{defaultRequestTimeoutMs};
@@ -177,6 +194,36 @@ struct StabilityPolicy {
     int evidenceSampleLimit = defaultEvidenceSampleLimit;
 };
 
+struct GuidedOperatorStep {
+    GuidedPromptPurpose purpose = GuidedPromptPurpose::DisconnectRs485;
+    QString title;
+    QString instruction;
+    QString safetyNotice;
+    QVector<GuidedOperatorAction> allowedActions;
+    std::chrono::milliseconds waitTimeout{minimumOperatorWaitMs};
+    QString cancelRecoveryInstruction;
+};
+
+struct GuidedObservationStep {
+    GuidedObservationTarget target = GuidedObservationTarget::ConsecutiveResponseTimeouts;
+    TestRequest probe;
+    std::chrono::milliseconds interval{minimumObservationIntervalMs};
+    std::chrono::milliseconds deadline{minimumObservationDeadlineMs};
+    int consecutiveMatches = 1;
+    std::optional<ExpectedAssertion> businessAssertion;
+};
+
+struct GuidedStep {
+    QString id;
+    GuidedStepType type = GuidedStepType::OperatorPrompt;
+    std::optional<GuidedOperatorStep> operatorStep;
+    std::optional<GuidedObservationStep> observationStep;
+};
+
+struct GuidedRecoveryPolicy {
+    QVector<GuidedStep> steps;
+};
+
 struct TestCase {
     QString id;
     QString name;
@@ -196,6 +243,7 @@ struct TestCase {
     SequencePolicy sequence;
     ConsistencyPolicy consistency;
     StabilityPolicy stability;
+    GuidedRecoveryPolicy guidedRecovery;
 };
 
 struct TestSuite {
@@ -220,6 +268,8 @@ enum class ConfigErrorCode {
     InvalidIdentifier,
     OutOfRange,
     UnknownCaseType,
+    UnknownStepType,
+    UnknownAction,
     UnknownAssertionType,
     DuplicateId,
     DuplicateTag,
@@ -253,5 +303,9 @@ struct LoadResult {
 [[nodiscard]] QString assertionTypeName(AssertionType type);
 [[nodiscard]] QString configErrorCodeName(ConfigErrorCode code);
 [[nodiscard]] QString executionEnvironmentName(ExecutionEnvironment environment);
+[[nodiscard]] QString guidedStepTypeName(GuidedStepType type);
+[[nodiscard]] QString guidedPromptPurposeName(GuidedPromptPurpose purpose);
+[[nodiscard]] QString guidedOperatorActionName(GuidedOperatorAction action);
+[[nodiscard]] QString guidedObservationTargetName(GuidedObservationTarget target);
 
 } // namespace oms555tv::testing

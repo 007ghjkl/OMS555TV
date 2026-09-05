@@ -27,6 +27,7 @@ QString testCaseTypeName(const TestCaseType type)
     case TestCaseType::ExpectTimeout: return QStringLiteral("expect_timeout");
     case TestCaseType::Consistency: return QStringLiteral("consistency");
     case TestCaseType::Stability: return QStringLiteral("stability");
+    case TestCaseType::GuidedRecovery: return QStringLiteral("guided_recovery");
     }
     return {};
 }
@@ -61,6 +62,8 @@ QString configErrorCodeName(const ConfigErrorCode code)
     case ConfigErrorCode::InvalidIdentifier: return QStringLiteral("InvalidIdentifier");
     case ConfigErrorCode::OutOfRange: return QStringLiteral("OutOfRange");
     case ConfigErrorCode::UnknownCaseType: return QStringLiteral("UnknownCaseType");
+    case ConfigErrorCode::UnknownStepType: return QStringLiteral("UnknownStepType");
+    case ConfigErrorCode::UnknownAction: return QStringLiteral("UnknownAction");
     case ConfigErrorCode::UnknownAssertionType: return QStringLiteral("UnknownAssertionType");
     case ConfigErrorCode::DuplicateId: return QStringLiteral("DuplicateId");
     case ConfigErrorCode::DuplicateTag: return QStringLiteral("DuplicateTag");
@@ -79,6 +82,45 @@ QString executionEnvironmentName(const ExecutionEnvironment environment)
     case ExecutionEnvironment::Both: return QStringLiteral("both");
     case ExecutionEnvironment::RealRs485: return QStringLiteral("real_rs485");
     case ExecutionEnvironment::Fake: return QStringLiteral("fake");
+    }
+    return {};
+}
+
+QString guidedStepTypeName(const GuidedStepType type)
+{
+    switch (type) {
+    case GuidedStepType::OperatorPrompt: return QStringLiteral("operator_prompt");
+    case GuidedStepType::ObserveOutage: return QStringLiteral("observe_outage");
+    case GuidedStepType::ObserveRecovery: return QStringLiteral("observe_recovery");
+    }
+    return {};
+}
+
+QString guidedPromptPurposeName(const GuidedPromptPurpose purpose)
+{
+    switch (purpose) {
+    case GuidedPromptPurpose::DisconnectRs485: return QStringLiteral("disconnect_rs485");
+    case GuidedPromptPurpose::ReconnectRs485: return QStringLiteral("reconnect_rs485");
+    }
+    return {};
+}
+
+QString guidedOperatorActionName(const GuidedOperatorAction action)
+{
+    switch (action) {
+    case GuidedOperatorAction::Confirm: return QStringLiteral("confirm");
+    case GuidedOperatorAction::Cancel: return QStringLiteral("cancel");
+    }
+    return {};
+}
+
+QString guidedObservationTargetName(const GuidedObservationTarget target)
+{
+    switch (target) {
+    case GuidedObservationTarget::ConsecutiveResponseTimeouts:
+        return QStringLiteral("consecutive_response_timeouts");
+    case GuidedObservationTarget::ConsecutiveValidResponses:
+        return QStringLiteral("consecutive_valid_responses");
     }
     return {};
 }
