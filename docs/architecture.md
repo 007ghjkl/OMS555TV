@@ -129,6 +129,8 @@ TASK-021 已新增独立 Schema v3 与纯数据引导模型，同时保持 v1/v2
 
 TASK-022 已实现无 QWidget 依赖的 `GuidedTestCoordinator`。v3 路径由 `TestAutomationController` 取得 Testing owner 后交给协调器，协调器在整个人工等待与观察期间持续持有 owner，并在终态受控释放；v1/v2 仍由既有 TestEngine 套件路径执行。TestEngine 仅新增与普通运行互斥的单读探测入口，继续独占唯一 `IModbusClient`，因此 UI 和协调器都不能绕过通信所有权。协调器使用注入调度器管理一次性 token、人工/观察 deadline、严格串行探测、连续计数、迟到回调和恢复耗时，并把动作、探测证据与恢复提醒发布到不可变结果和 TEST 日志。自动化页只渲染只读视图与提交动作，PASS 仍完全来自自动观察。详细契约见 `specs/host_phase7_guided_execution_ui.md`。
 
+TASK-023 已用正式 Schema v3 `TC-R001` 关闭 Phase 7。专用可见验收工具仍复用生产 MainWindow、唯一 QSerialPort 后端、监控预检、应用状态机、自动化控制器、诊断和会话日志；`preflight` 与 `full` 使用独立进程/会话。正式探测只读 Firmware minor（PDU 40），中断必须连续 3 次结构化 `ResponseTimeout`，恢复必须在 4900 ms deadline 内连续 3 次合法响应且值为 2。COM6 实测稳定恢复 716 ms，6 个 Testing RequestId 跨结果、诊断、通信日志与 TEST 日志一致，随后生产监控再次读取 Firmware 0.2 并释放全部 owner。详细门禁与证据见 `specs/host_phase7_rs485_guided_recovery.md` 和对应验证记录；该结论不包含 USB 自动重连、STM32 Reset、传感器人工操作或工业环境。
+
 ## 9. 部署与构建
 
 - Host：Windows x64，Qt 6.8.3、MSVC 2022、CMake、Ninja。

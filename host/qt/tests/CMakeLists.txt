@@ -141,6 +141,15 @@ target_compile_definitions(tst_phase6suite PRIVATE
 target_link_libraries(tst_phase6suite PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.testing.phase6_suite COMMAND tst_phase6suite)
 
+add_executable(tst_phase7suite
+    testing/tst_phase7suite.cpp
+)
+target_compile_definitions(tst_phase7suite PRIVATE
+    OMS555TV_PHASE7_RS485_SUITE="${CMAKE_SOURCE_DIR}/../../testcases/phase7/phase7-rs485-disconnect-recovery.json"
+)
+target_link_libraries(tst_phase7suite PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.testing.phase7_suite COMMAND tst_phase7suite)
+
 add_executable(tst_automationui
     monitor/ManualMonitorScheduler.h
     ui/tst_automationui.cpp
@@ -174,6 +183,7 @@ set_tests_properties(
     host.testing.assertions
     host.testing.engine
     host.testing.phase6_suite
+    host.testing.phase7_suite
     host.testing.automation_ui
     host.application.smoke
     PROPERTIES

@@ -46,11 +46,13 @@ TASK-020 在当前安全低压 RS485 台架上从同一正式 JSON 原样执行�
 - Phase 5 `testcases/functional/phase5-smoke.json` 的 COM6 8/8 实测结论继续有效，但不能替代 Phase 6 主套件实测。
 - TC-P003 非法功能码依赖 Raw Frame，未纳入本阶段。
 - 原候选 TC-P005 与 TC-B005 目标重复，不作为另一个正式 ID 计数。
-- TC-R001 物理拔插、TC-R002 设备复位和传感器人工操作属于 Phase 7。
-- TASK-020 已关闭 Phase 6；该结论仍不得外推到 Phase 7 人工恢复、Phase 8 正式报告、8/24 小时、工业长线、隔离或 EMC。
+- TC-R001 物理 A/B 断线—恢复已由 TASK-023 正式验收；TC-R002 设备复位和传感器人工操作属于后续增强。
+- TASK-020 已关闭 Phase 6，TASK-023 已关闭 Phase 7；结论仍不得外推到 Phase 8 正式报告、USB 自动重连、8/24 小时、工业长线、隔离或 EMC。
 
-## 4. Phase 7 规划
+## 4. Phase 7 正式目录
 
-Phase 7 已规划为 TASK-021～TASK-023：TASK-021 已定义并验证 Schema v3、固定四段引导步骤、人工动作 token 和不可变结果证据；TASK-022 已实现半自动协调器与 UI，并用 Fake、虚拟时间和 offscreen Qt 验证成功/失败/取消路径；下一步在当前安全低压台架执行 `TC-R001` RS485 A/B 物理断线—重连。正式流程必须记录提示、确认/取消、连续 ResponseTimeout、连续合法响应、恢复耗时和软件最终判定；用户确认本身不能作为 PASS 证据。
+| ID | 类别 | 名称 | 类型 | 环境 | 套件 | 当前状态 |
+|---|---|---|---|---|---|---|
+| TC-R001 | 恢复 | RS485 A/B 物理断线与稳定恢复 | guided_recovery | real_rs485 | Phase 7 正式套件 | TASK-023 实机 PASS |
 
-`TC-R001` 是 Phase 7 的最低关闭用例，当前仍为待实机执行。`TC-R002` STM32 Reset、传感器断开和人工改变输入暂列后续增强，不在 TASK-021～TASK-023 的关闭范围。TASK-021/022 已完成，TASK-023 尚未实施，因此当前可以宣称半自动软件流程已通过自动验证，但不能宣称真实物理恢复或 Phase 7 已通过。
+正式文件为 `testcases/phase7/phase7-rs485-disconnect-recovery.json`。TASK-021 定义 Schema v3、固定四段引导步骤、人工动作 token 和不可变结果证据；TASK-022 实现半自动协调器与 UI；TASK-023 在当前安全低压台架完整执行 `TC-R001`。用户确认后，软件实际观察到连续 3 次 `ResponseTimeout` 和连续 3 次 Firmware minor=2 合法响应，稳定恢复 716 ms 并自动判定 PASS。`TC-R002` STM32 Reset、传感器断开和人工改变输入暂列后续增强，不在 Phase 7 关闭范围。

@@ -30,6 +30,14 @@ add_executable(task016_rs485_validation
 add_executable(task020_rs485_validation
     tools/task020_rs485_validation.cpp
 )
+add_executable(task023_rs485_validation
+    tools/task023_rs485_validation.cpp
+)
+target_link_libraries(task023_rs485_validation PRIVATE
+    oms555tv_widgets
+    Qt6::Widgets
+    Qt6::SerialPort
+)
 target_link_libraries(task020_rs485_validation PRIVATE
     oms555tv_widgets
     Qt6::Widgets

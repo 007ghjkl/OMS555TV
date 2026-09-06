@@ -296,10 +296,13 @@ private slots:
             QStringLiteral(OMS555TV_PHASE6_TEST_CASES)));
         QVERIFY(!coverage.isEmpty());
         QVERIFY(!catalog.isEmpty());
+        const qsizetype phase7Section = catalog.indexOf(QStringLiteral("## 4. Phase 7"));
+        QVERIFY(phase7Section > 0);
+        const QString phase6Catalog = catalog.left(phase7Section);
         QCOMPARE(tableIdRowCount(coverage), qsizetype(24));
-        QCOMPARE(tableIdRowCount(catalog), qsizetype(24));
+        QCOMPARE(tableIdRowCount(phase6Catalog), qsizetype(24));
         QCOMPARE(tableIds(coverage), all);
-        QCOMPARE(tableIds(catalog), all);
+        QCOMPARE(tableIds(phase6Catalog), all);
     }
 
     void executesAllFormalCasesWithFakeAndVirtualTenMinutes()

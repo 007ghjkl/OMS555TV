@@ -1,0 +1,81 @@
+{
+  "schema_version": 3,
+  "id": "phase7-rs485-disconnect-recovery",
+  "name": "Phase 7 RS485 物理断线恢复正式套件",
+  "description": "在安全低压短距离台架上，由操作员只断开并恢复 RS485 A/B，软件自动确认连续超时、连续合法响应和稳定恢复耗时。",
+  "tags": ["phase7", "guided", "rs485", "recovery"],
+  "metadata": {
+    "owner": "host",
+    "task": "TASK-023",
+    "hardware_scope": "safe-low-voltage-short-bench"
+  },
+  "cases": [
+    {
+      "id": "TC-R001",
+      "name": "RS485 A/B 物理断线与稳定恢复",
+      "category": "recovery",
+      "description": "预检在线后，只断开 A/B 并确认连续 3 次 ResponseTimeout；按原极性恢复后，连续 3 次读取 Firmware minor=2，稳定恢复耗时必须小于 5 秒。",
+      "environment": "real_rs485",
+      "type": "guided_recovery",
+      "enabled": true,
+      "tags": ["manual-action", "physical-disconnect", "firmware-identity"],
+      "timeout": {
+        "request_ms": 500,
+        "case_ms": 180000
+      },
+      "steps": [
+        {
+          "id": "disconnect",
+          "type": "operator_prompt",
+          "purpose": "disconnect_rs485",
+          "title": "只断开 RS485 A/B",
+          "instruction": "请只断开 TTL-RS485 模块与 USB-RS485 转换器之间的 A、B 两根信号线；保持 USB 转换器、开发板供电和公共地连接。完成后点击“确认已完成”。",
+          "safety_notice": "仅操作安全低压 A/B 信号线。不要拔 USB，不要断开发板电源或公共地，不要触碰电源端子，也不要交换 A/B 极性。",
+          "allowed_actions": ["confirm", "cancel"],
+          "wait_timeout_ms": 60000,
+          "cancel_recovery_instruction": "若已经断开 A/B，请按断线前的原极性恢复两根信号线，并确认端子牢固。"
+        },
+        {
+          "id": "observe-outage",
+          "type": "observe_outage",
+          "probe": {
+            "function": 3,
+            "address": 40,
+            "count": 1
+          },
+          "interval_ms": 250,
+          "deadline_ms": 5000,
+          "consecutive_matches": 3
+        },
+        {
+          "id": "reconnect",
+          "type": "operator_prompt",
+          "purpose": "reconnect_rs485",
+          "title": "按原极性恢复 RS485 A/B",
+          "instruction": "请按断线前的原极性重新连接 A、B 两根信号线，确认端子牢固；保持 USB、开发板供电和公共地不变。完成后点击“确认已完成”。",
+          "safety_notice": "不要交换 A/B，不要插拔 USB，不要操作开发板电源、公共地或其他线路。",
+          "allowed_actions": ["confirm", "cancel"],
+          "wait_timeout_ms": 60000,
+          "cancel_recovery_instruction": "请按原极性恢复 A/B 接线，并通过预检或监控确认 Firmware 0.2 可正常读取。"
+        },
+        {
+          "id": "observe-recovery",
+          "type": "observe_recovery",
+          "probe": {
+            "function": 3,
+            "address": 40,
+            "count": 1
+          },
+          "interval_ms": 250,
+          "deadline_ms": 4900,
+          "consecutive_matches": 3,
+          "business_assertion": {
+            "type": "equals",
+            "value": 2,
+            "representation": "uint16"
+          }
+        }
+      ]
+    }
+  ]
+}

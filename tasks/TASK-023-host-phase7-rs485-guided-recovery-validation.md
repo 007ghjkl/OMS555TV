@@ -90,4 +90,4 @@ Phase 6 的 TC-R-AUTO-001 只验证远端 Modbus 异常后下一合法请求成�
 
 ## 当前状态
 
-待实施。任务文档已于 2026-09-05 创建，尚未派发；必须等待 TASK-022 完成。
+已完成（2026-09-06）。已完成 Technical Spec、正式 Schema v3 `TC-R001`、安全操作说明、套件目录测试和可见实机验收工具；全新 Host 153 步构建及 23/23 CTest 通过。COM6 独立预检确认端口身份、Firmware 0.2 与五个生产监控读块；正式会话完整记录两次人工确认，观察到 3 次连续 `ResponseTimeout` 和 3 次连续合法 Firmware minor=2 响应，首次/稳定恢复为 51/716 ms。6 个 Testing RequestId 在不可变结果、诊断、通信日志与 TEST 日志中一致，最终在线读取、owner 释放、UI 心跳和日志哈希均通过。最终 Review 无必须修复项，Phase 7 已关闭。详见 `docs/test_results/task023_phase7_rs485_guided_recovery.md`。
