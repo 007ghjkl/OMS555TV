@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`～`TASK-023`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 的覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件、UI 集成与真实 RS485 全量验收均已完成。Host Phase 7 的引导式模型、Schema v3、半自动协调器/UI 和真实 RS485 A/B 物理断线—恢复验收均已完成。
+当前状态：`TASK-001`～`TASK-023`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 的覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件、UI 集成与真实 RS485 全量验收均已完成。Host Phase 7 的引导式模型、Schema v3、半自动协调器/UI 和真实 RS485 A/B 物理断线—恢复验收均已完成。Host Phase 8 已制定 `TASK-024`～`TASK-026`，当前仅完成任务规划，尚未派发或实施。
 
 ## 项目目标
 
@@ -86,6 +86,9 @@
 - [TASK-023 Host Phase 7 RS485 断线恢复半自动验收](tasks/TASK-023-host-phase7-rs485-guided-recovery-validation.md)
 - [Host Phase 7 RS485 断线恢复半自动验收技术规范](specs/host_phase7_rs485_guided_recovery.md)
 - [TASK-023 RS485 断线恢复半自动验证记录](docs/test_results/task023_phase7_rs485_guided_recovery.md)
+- [TASK-024 Host Phase 8 报告契约与元数据策略](tasks/TASK-024-host-phase8-report-contract-metadata.md)
+- [TASK-025 Host Phase 8 自包含 HTML 报告生成器](tasks/TASK-025-host-phase8-html-report-generator.md)
+- [TASK-026 Host Phase 8 报告 UI、一键导出与验收](tasks/TASK-026-host-phase8-report-ui-export-validation.md)
 
 ## 仓库结构
 
@@ -212,9 +215,11 @@ $revision = git rev-parse HEAD
 5. Phase 6 按 `TASK-017` 覆盖模型/Schema v2、`TASK-018` 复合与稳定性执行核心、`TASK-019` 完整 20+ 套件/UI、`TASK-020` 真实 RS485 全量验收的顺序推进；前置任务未验收时不得跨层临时实现；
 6. `TASK-017/018/019/020` 与 Phase 6 已关闭；
 7. Phase 7 按 `TASK-021` 引导式模型/Schema v3、`TASK-022` 半自动控制器/UI、`TASK-023` RS485 物理断线恢复实机验收的顺序推进；前置任务未验收时不得跨层临时实现；
-8. `TASK-021/022/023` 与 Phase 7 已完成。STM32 Reset 与传感器人工操作作为后续增强，Phase 8 HTML 报告继续留待后续拆分；
-9. TASK-014 的中文示例与 fixture 不属于正式用例，TASK-016 的 8 条基础用例不能替代已独立记录的 TASK-020 Phase 6 实机结果；
-10. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
+8. `TASK-021/022/023` 与 Phase 7 已完成；STM32 Reset 与传感器人工操作作为后续增强；
+9. Phase 8 按 `TASK-024` 报告契约/元数据、`TASK-025` 自包含 HTML 生成器、`TASK-026` 报告 UI/一键导出验收的顺序推进；前置任务未验收时不得跨层临时实现；
+10. `TASK-024`～`TASK-026` 当前仅已制定、尚未派发；HTML 是 Phase 8 强制交付，原生 PDF 保持可选且不阻塞本阶段；
+11. TASK-014 的中文示例与 fixture 不属于正式用例，TASK-016 的 8 条基础用例不能替代已独立记录的 TASK-020 Phase 6 实机结果；
+12. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
 
 详细未决项见架构与 Phase 0 任务文档。
 
