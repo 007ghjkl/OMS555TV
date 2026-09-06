@@ -131,6 +131,8 @@ TASK-022 已实现无 QWidget 依赖的 `GuidedTestCoordinator`。v3 路径由 `
 
 TASK-023 已用正式 Schema v3 `TC-R001` 关闭 Phase 7。专用可见验收工具仍复用生产 MainWindow、唯一 QSerialPort 后端、监控预检、应用状态机、自动化控制器、诊断和会话日志；`preflight` 与 `full` 使用独立进程/会话。正式探测只读 Firmware minor（PDU 40），中断必须连续 3 次结构化 `ResponseTimeout`，恢复必须在 4900 ms deadline 内连续 3 次合法响应且值为 2。COM6 实测稳定恢复 716 ms，6 个 Testing RequestId 跨结果、诊断、通信日志与 TEST 日志一致，随后生产监控再次读取 Firmware 0.2 并释放全部 owner。详细门禁与证据见 `specs/host_phase7_rs485_guided_recovery.md` 和对应验证记录；该结论不包含 USB 自动重连、STM32 Reset、传感器人工操作或工业环境。
 
+TASK-024 已建立无 QObject/WIdgets 依赖的报告数据边界。`ReportModelBuilder` 只消费终态 `TestSuiteResult`、连接配置、应用构建信息、操作员显式输入和 SessionLog 工件描述，生成值语义 `ReportDocumentModel`；它不读取 UI、串口、Windows 用户身份或 JSONL，也不重算断言/套件状态。所有元数据保存 `system-observed`、`suite-configured`、`operator-entered` 或 `unavailable` 来源；Firmware 版本只从本次通过断言的 major/minor 实际读取提取。模型保留基础、sequence、consistency、stability、guided recovery 的层级、实际值、人工提示/动作、恢复时间和事务证据，并明确有界内存证据与外部日志工件边界。完整契约见 `specs/host_phase8_report_contract.md`；HTML 转义、渲染和原子写入仍属于 TASK-025。
+
 ## 9. 部署与构建
 
 - Host：Windows x64，Qt 6.8.3、MSVC 2022、CMake、Ninja。

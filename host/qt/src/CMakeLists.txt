@@ -37,6 +37,10 @@ add_library(oms555tv_core STATIC
     monitor/MonitorService.h
     monitor/MonitorTypes.cpp
     monitor/MonitorTypes.h
+    report/ReportModelBuilder.cpp
+    report/ReportModelBuilder.h
+    report/ReportTypes.cpp
+    report/ReportTypes.h
     testing/TestAssertions.cpp
     testing/TestAssertions.h
     testing/GuidedTestModel.cpp
