@@ -87,4 +87,4 @@
 
 ## 当前状态
 
-待实施。TASK-024 已于 2026-09-06 完成并冻结 `ReportDocumentModel` 契约，本任务前置依赖已满足，尚未派发。
+已完成（2026-09-06）。Technical Spec、纯模型 HTML 生成器、安全转义、内联打印样式、稳定文件名、拒绝重名的 `QSaveFile` 原子写入和 deterministic/golden 测试均已完成；全新 Host 构建与 25/25 CTest 通过。报告 UI、一键导出、真实结果示例和浏览器人工视觉验收仍属于 TASK-026。

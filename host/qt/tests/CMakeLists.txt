@@ -156,6 +156,12 @@ add_executable(tst_reportmodel
 target_link_libraries(tst_reportmodel PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.report.model COMMAND tst_reportmodel)
 
+add_executable(tst_htmlreport
+    report/tst_htmlreport.cpp
+)
+target_link_libraries(tst_htmlreport PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.report.html COMMAND tst_htmlreport)
+
 add_executable(tst_automationui
     monitor/ManualMonitorScheduler.h
     ui/tst_automationui.cpp
@@ -191,6 +197,7 @@ set_tests_properties(
     host.testing.phase6_suite
     host.testing.phase7_suite
     host.report.model
+    host.report.html
     host.testing.automation_ui
     host.application.smoke
     PROPERTIES

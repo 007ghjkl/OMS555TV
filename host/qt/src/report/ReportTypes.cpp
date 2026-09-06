@@ -36,6 +36,14 @@ QString reportErrorCodeName(const ReportErrorCode code)
     case ReportErrorCode::InvalidArtifact: return QStringLiteral("InvalidArtifact");
     case ReportErrorCode::InconsistentFirmwareVersion:
         return QStringLiteral("InconsistentFirmwareVersion");
+    case ReportErrorCode::InvalidGenerationTime:
+        return QStringLiteral("InvalidGenerationTime");
+    case ReportErrorCode::InvalidOutputPath: return QStringLiteral("InvalidOutputPath");
+    case ReportErrorCode::TargetAlreadyExists:
+        return QStringLiteral("TargetAlreadyExists");
+    case ReportErrorCode::OutputOpenFailed: return QStringLiteral("OutputOpenFailed");
+    case ReportErrorCode::OutputWriteFailed: return QStringLiteral("OutputWriteFailed");
+    case ReportErrorCode::OutputCommitFailed: return QStringLiteral("OutputCommitFailed");
     }
     return QStringLiteral("SummaryInvariantViolation");
 }

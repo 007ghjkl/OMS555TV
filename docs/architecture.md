@@ -133,6 +133,8 @@ TASK-023 已用正式 Schema v3 `TC-R001` 关闭 Phase 7。专用可见验收工
 
 TASK-024 已建立无 QObject/WIdgets 依赖的报告数据边界。`ReportModelBuilder` 只消费终态 `TestSuiteResult`、连接配置、应用构建信息、操作员显式输入和 SessionLog 工件描述，生成值语义 `ReportDocumentModel`；它不读取 UI、串口、Windows 用户身份或 JSONL，也不重算断言/套件状态。所有元数据保存 `system-observed`、`suite-configured`、`operator-entered` 或 `unavailable` 来源；Firmware 版本只从本次通过断言的 major/minor 实际读取提取。模型保留基础、sequence、consistency、stability、guided recovery 的层级、实际值、人工提示/动作、恢复时间和事务证据，并明确有界内存证据与外部日志工件边界。完整契约见 `specs/host_phase8_report_contract.md`；HTML 转义、渲染和原子写入仍属于 TASK-025。
 
+TASK-025 已实现同样无 QObject/QWidget 依赖的 `HtmlReportGenerator`。生成入口只消费 `ReportDocumentModel`，生成时间通过构造时 UTC 时钟注入，确保生产实时与 golden 测试确定性兼容。渲染器统一规范化控制字符并转义所有外部文本，输出带 CSP、内联 CSS、原生 `<details>` 和打印规则的 UTF-8 自包含 HTML；不会读取或嵌入 SessionLog。文件名由 suite ID、运行开始 UTC 和 run ID 稳定生成，写入使用禁用直接回退的 `QSaveFile`，非法路径、重名、打开、写入和提交失败均返回结构化 `ReportError`。完整契约见 `specs/host_phase8_html_report.md`；结果生命周期、异步 UI 和一键导出仍属于 TASK-026。
+
 ## 9. 部署与构建
 
 - Host：Windows x64，Qt 6.8.3、MSVC 2022、CMake、Ninja。

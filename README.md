@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`～`TASK-024`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 的覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件、UI 集成与真实 RS485 全量验收均已完成。Host Phase 7 的引导式模型、Schema v3、半自动协调器/UI 和真实 RS485 A/B 物理断线—恢复验收均已完成。Host Phase 8 已完成 `TASK-024` 报告契约与元数据策略；HTML 生成器和导出 UI 仍由 `TASK-025/026` 完成。
+当前状态：`TASK-001`～`TASK-025`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 的覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件、UI 集成与真实 RS485 全量验收均已完成。Host Phase 7 的引导式模型、Schema v3、半自动协调器/UI 和真实 RS485 A/B 物理断线—恢复验收均已完成。Host Phase 8 已完成 `TASK-024` 报告契约/元数据策略和 `TASK-025` 自包含 HTML 生成器；报告 UI 与一键导出验收仍由 `TASK-026` 完成。
 
 ## 项目目标
 
@@ -187,6 +187,8 @@ $env:Path = "$bundleRoot\gnu-tools-for-stm32\14.3.1+st.2\bin;$bundleRoot\ninja\1
 
 2026-09-06 的 TASK-024 最终结果：新增纯数据 `ReportInput`、带来源标签的 `ReportMetadata`、`ReportSummary`、完整 `ReportDocumentModel`、结构化 `ReportError` 和 `ReportModelBuilder`。映射层只消费不可变 suite 结果与显式快照，校验 Engine 终态、计数、时间、证据保留及 SessionLog 工件，不读取 UI、串口、用户名或 JSONL；Firmware 只从通过断言的 major/minor 实际读取提取。基础、sequence、consistency、stability 和 guided recovery 的 expected/actual、步骤、人工提示/动作、恢复时间、RequestId、TX/RX、RTT、错误及有界证据均已结构化保留。全新 Host 构建和 24/24 CTest 通过；本任务未生成 HTML/PDF，也未访问硬件。
 
+2026-09-06 的 TASK-025 最终结果：新增纯 Qt Core `HtmlReportGenerator`，以固定模型和可注入 UTC 时钟生成 UTF-8、自包含、无脚本 HTML。报告完整呈现元数据来源、汇总、四终态、基础/sequence/consistency/stability/guided recovery、RequestId、TX/RX/RTT、错误、清理错误、证据保留与 SessionLog 工件边界；全部外部文本统一转义并规范化控制字符。CSS/CSP 内联，`<details>` 无 JavaScript，打印规则会展开折叠内容。安全文件名包含 suite/运行时间/run ID，`QSaveFile` 写入拒绝重名并返回结构化路径/打开/写入/提交错误。全新 Host 构建和 25/25 CTest 通过；本任务没有 UI、真实 RS485 或原生 PDF 结论。
+
 实板联调工具会运行时枚举 ST-LINK，不写死 COM 号：
 
 ```powershell
@@ -218,8 +220,8 @@ $revision = git rev-parse HEAD
 6. `TASK-017/018/019/020` 与 Phase 6 已关闭；
 7. Phase 7 按 `TASK-021` 引导式模型/Schema v3、`TASK-022` 半自动控制器/UI、`TASK-023` RS485 物理断线恢复实机验收的顺序推进；前置任务未验收时不得跨层临时实现；
 8. `TASK-021/022/023` 与 Phase 7 已完成；STM32 Reset 与传感器人工操作作为后续增强；
-9. Phase 8 按 `TASK-024` 报告契约/元数据、`TASK-025` 自包含 HTML 生成器、`TASK-026` 报告 UI/一键导出验收的顺序推进；`TASK-024` 已完成，后续不得绕过其文档模型直接解释日志或 UI；
-10. `TASK-025/026` 尚未实施；HTML 是 Phase 8 强制交付，原生 PDF 保持可选且不阻塞本阶段；
+9. Phase 8 按 `TASK-024` 报告契约/元数据、`TASK-025` 自包含 HTML 生成器、`TASK-026` 报告 UI/一键导出验收的顺序推进；`TASK-024/025` 已完成，后续不得绕过其文档模型、转义和原子写入边界直接解释日志或拼接 HTML；
+10. `TASK-026` 尚未实施；HTML 生成核心已完成，但正式一键导出与真实报告仍未验收；原生 PDF 保持可选且不阻塞本阶段；
 11. TASK-014 的中文示例与 fixture 不属于正式用例，TASK-016 的 8 条基础用例不能替代已独立记录的 TASK-020 Phase 6 实机结果；
 12. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
 

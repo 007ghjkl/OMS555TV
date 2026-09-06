@@ -43,6 +43,12 @@ enum class ReportErrorCode {
     EvidenceInvariantViolation,
     InvalidArtifact,
     InconsistentFirmwareVersion,
+    InvalidGenerationTime,
+    InvalidOutputPath,
+    TargetAlreadyExists,
+    OutputOpenFailed,
+    OutputWriteFailed,
+    OutputCommitFailed,
 };
 
 struct ReportError {
