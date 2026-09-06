@@ -63,4 +63,4 @@ TASK-024 已完成报告输入、元数据来源、汇总、五类用例映射�
 
 ## 6. Phase 9 审计结论
 
-TASK-027 已核对正式 Schema v1/v2/v3 套件分别包含 8、20+4、1 条用例，并确认真实、Fake、虚拟时间、短报告和人工操作证据边界没有混用。审计只修正文档状态和链接，不新增、删除或重新判定任何用例；完整检查记录见 [TASK-027 审计记录](test_results/task027_phase9_documentation_audit.md)。TASK-028/029 的截图和演示不得改变本目录中的既有结论。
+TASK-027 已核对正式 Schema v1/v2/v3 套件分别包含 8、20+4、1 条用例，并确认真实、Fake、虚拟时间、短报告和人工操作证据边界没有混用。TASK-028 已采集六张真实脱敏素材并复核示例报告；新采集的 Phase 5 smoke 只用于展示且与 TASK-026 报告明确区分，不新增或替代正式套件结论。完整记录见 [TASK-027 审计记录](test_results/task027_phase9_documentation_audit.md) 与 [TASK-028 验收记录](test_results/task028_phase9_demo_assets.md)。TASK-029 的最终演示仍不得改变本目录中的既有结论。

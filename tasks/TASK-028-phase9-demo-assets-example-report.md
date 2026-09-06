@@ -72,4 +72,4 @@
 
 ## 当前状态
 
-待实施（2026-09-06 制定），依赖 TASK-027，暂未派发或执行。
+已完成（2026-09-06）。六张真实硬件/生产 Host 素材已采集并完成脱敏、视觉、来源、尺寸、SHA-256 与链接检查；Phase 5 smoke 8/8 PASS，唯一阈值写入已回读并恢复。TASK-026 示例报告哈希与内容一致，报告相关 CTest 4/4 通过。完整记录见 `docs/assets/README.md` 和 `docs/test_results/task028_phase9_demo_assets.md`，最终 Review 无必须修复项，允许进入 TASK-029。

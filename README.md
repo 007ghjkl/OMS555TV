@@ -2,7 +2,7 @@
 
 本项目面向嵌入式产品测试验证场景，已实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`～`TASK-027`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 的覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件、UI 集成与真实 RS485 全量验收均已完成。Host Phase 7 的引导式模型、Schema v3、半自动协调器/UI 和真实 RS485 A/B 物理断线—恢复验收均已完成。Host Phase 8 的报告契约、自包含 HTML 生成器、报告 UI、一键导出、真实结果示例和视觉验收均已完成。Phase 9 的 TASK-027 文档/架构事实基线已完成，TASK-028/029 尚未派发或执行。
+当前状态：`TASK-001`～`TASK-028`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 的覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件、UI 集成与真实 RS485 全量验收均已完成。Host Phase 7 的引导式模型、Schema v3、半自动协调器/UI 和真实 RS485 A/B 物理断线—恢复验收均已完成。Host Phase 8 的报告契约、自包含 HTML 生成器、报告 UI、一键导出、真实结果示例和视觉验收均已完成。Phase 9 的 TASK-027 文档/架构事实基线与 TASK-028 真实展示素材/示例报告复核已完成，TASK-029 尚未执行。
 
 ## 项目目标
 
@@ -96,6 +96,8 @@
 - [TASK-027 工程文档与架构基线审计记录](docs/test_results/task027_phase9_documentation_audit.md)
 - [MVP 平台支持基线 ADR](docs/decisions/2026-09-06-MVP平台支持基线.md)
 - [TASK-028 Phase 9 展示素材、截图与示例报告](tasks/TASK-028-phase9-demo-assets-example-report.md)
+- [TASK-028 真实展示素材清单](docs/assets/README.md)
+- [TASK-028 展示素材与示例报告验收记录](docs/test_results/task028_phase9_demo_assets.md)
 - [TASK-029 Phase 9 最终 README、复现与现场演示验收](tasks/TASK-029-phase9-final-readme-demo-acceptance.md)
 
 ## 仓库结构
@@ -237,7 +239,7 @@ $revision = git rev-parse HEAD
 11. TASK-014 的中文示例与 fixture 不属于正式用例，TASK-016 的 8 条基础用例不能替代已独立记录的 TASK-020 Phase 6 实机结果；
 12. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
 13. Phase 9 按 `TASK-027` 文档/架构事实基线、`TASK-028` 真实展示素材、`TASK-029` 最终 README/复现与现场演示验收的顺序推进；前置任务未验收时不得提前关闭 MVP；
-14. `TASK-027` 已关闭文档事实基线与平台未决项；`TASK-028/029` 尚未派发或执行。Phase 9 不引入 Linux 支持、Raw Frame、自动重连、原生 PDF 或其他进阶功能。
+14. `TASK-027/028` 已关闭文档事实基线、平台未决项、真实展示素材和示例报告复核；`TASK-029` 尚未执行。Phase 9 不引入 Linux 支持、Raw Frame、自动重连、原生 PDF 或其他进阶功能。
 
 详细架构决策与后续边界见系统架构文档和 ADR。
 
