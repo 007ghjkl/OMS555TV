@@ -1,14 +1,14 @@
 # 硬件与通信基线
 
-> 状态：基线 1.2，真实 RS485 双向 Modbus 与恢复验收已通过
+> 状态：MVP 硬件基线 2.0，真实 RS485 双向 Modbus、长时运行与恢复验收已通过，TASK-027 已完成文档审计
 >
-> 日期：2026-09-04
+> 日期：2026-09-06
 >
 > 验证范围：传感器、VCP/UART Modbus、USART1/真实 RS485 Firmware、Host 全量联调、物理断线恢复和设备复位恢复均已完成实机验证。
 
 ## 1. 基线结论
 
-当前硬件足以生成唯一的 STM32CubeMX 工程并开展 Phase 0/Phase 1：使用 NUCLEO-F411RE、STM32F411RET6、板载 ST-LINK/V2-1、三路独立 I2C 的 DHTC12，以及一路 PA0/ADC1 光敏模拟量。
+当前硬件已支撑完成 MVP 的 Firmware 采集/Modbus、Host 监控/配置/测试/报告与真实 RS485 验收：使用 NUCLEO-F411RE、STM32F411RET6、板载 ST-LINK/V2-1、三路独立 I2C 的 DHTC12，以及一路 PA0/ADC1 光敏模拟量。
 
 真实 RS485 基线使用 USART1、自动换向 MAX13487EESA 系列 TTL-RS485 模块和 DTECH USB-RS485 转换器。第三方 Master 与 Host 生产后端均已通过 COM6 完成双向 Modbus、连续请求、断线和复位恢复；TASK-002/009/010 已关闭。该结论仅适用于当前约 20 cm 的安全低压点对点台架。
 
@@ -19,20 +19,20 @@
 | 开发板 | NUCLEO-F411RE，参考板 MB1136 |
 | MCU | STM32F411RET6，LQFP64，512 KiB Flash，128 KiB SRAM |
 | 调试器 | 板载 ST-LINK/V2-1，SWD 调试与虚拟串口 |
-| 实物板标识 | 贴纸 `MB1136-F411RE-C04`，编号 `A232203276`（2026-09-03 记录） |
+| 实物板标识 | 贴纸 `MB1136-F411RE-C04`（2026-09-03 记录）；唯一设备编号不作为公开工程基线 |
 | 温湿度传感器 | DHTC12 ×3，固定 7 位 I2C 地址 `0x44` |
 | 模拟传感器 | 4 线制光敏电阻模块，使用 AO，DO 暂不连接 |
 | 供电 | NUCLEO 由 ST-LINK USB 供电；传感器使用板载 3.3 V；TTL-RS485 模块使用板载 5 V；全链路公共 GND |
 | RS485 | MAX13487EESA 系列自动换向 TTL-RS485 + DTECH USB-RS485，真实双向 Modbus 与恢复已通过 |
 
-必须在首次接线前记录开发板底部 MB1136 的 `C-xx` 修订号。该信息不阻塞当前工程，因为时钟基线不依赖板载 HSE 焊桥状态。
+当前实物已记录为 MB1136 C04 修订。更换开发板时必须重新记录 `C-xx` 修订号；该信息不阻塞当前工程，因为时钟基线不依赖板载 HSE 焊桥状态。
 
 ## 3. 开发工具基线
 
 | 项目 | 已确认值 |
 |---|---|
 | STM32CubeMX | 6.18.1-RC2，`D:\Dev\STM32CubeMX` |
-| STM32CubeF4 | v1.28.3，`C:\Users\rainbow\STM32Cube\Repository\STM32Cube_FW_F4_V1.28.3` |
+| STM32CubeF4 | v1.28.3；用户本地 Repository 路径不作为仓库基线 |
 | VS Code STM32 扩展 | `stmicroelectronics.stm32-vscode-extension-3.10.0` 及配套 1.4.0 组件 |
 | 工程模型 | STM32CubeMX + HAL，裸机事件循环，第一阶段不使用 FreeRTOS |
 | ARM GCC | bundle `gnu-tools-for-stm32\14.3.1+st.2`，14.3.1，已完成固件构建 |
@@ -41,7 +41,7 @@
 | Programmer | bundle STM32CubeProgrammer 2.23.0，已枚举开发板 |
 | GDB Server | bundle ST-LINK GDB Server 7.14.0 |
 
-以上 bundle 位于 `C:\Users\rainbow\AppData\Local\stm32cube\bundles`，不修改系统 `PATH`；构建命令只在当前 PowerShell 进程内追加所需目录。2026-09-01 已完成交叉编译和链接，未执行烧录或调试。
+以上 bundle 位于 `%LOCALAPPDATA%\stm32cube\bundles`，不修改系统 `PATH`；构建命令只在当前 PowerShell 进程内追加所需目录。2026-09-01 首次完成交叉编译和链接，TASK-003/005/009 后续已完成烧录、调试与生产 RS485 固件实机验证。
 
 ## 4. 时钟与基础工程配置
 
@@ -97,7 +97,7 @@ RS485 使用 USART1 的 PA9/PA10；PA9/USART1_TX 接模块 RXD，PA10/USART1_RX 
 - 产品手册给出的采样周期为 2 s，固件对同一只传感器的主动测量间隔不得小于 2 s。
 - 温度工作范围为 -40.0～80.0 ℃，寄存器工程值使用 `int16`、缩放 ×0.1 ℃。
 
-手册给出的温度换算式为 `T = 40 + St / 256`，但没有明确说明 `St` 的有符号性。Phase 1 必须用室温实测原始数据确认符号解释后再固化转换单元测试；确认前不得声称测量值已经校准。湿度数据可用于传感器诊断，暂不进入 MVP 公共寄存器表。
+手册给出的温度换算式为 `T = 40 + St / 256`，但没有明确说明 `St` 的有符号性。TASK-003 已用室温实测原始数据确认 `St` 按大端 `int16` 解释并固化转换测试；该结果只确认编码解释，不表示测量值已经计量校准。湿度数据可用于传感器诊断，暂不进入 MVP 公共寄存器表。
 
 ### 6.2 光敏电阻模块
 
@@ -117,7 +117,7 @@ RS485 使用 USART1 的 PA9/PA10；PA9/USART1_TX 接模块 RXD，PA10/USART1_RX 
 |---|---|
 | 生产实测物理通道 | USART1 + 自动换向 TTL-RS485 + 两线 RS485 + USB-RS485 |
 | VCP 回归通道 | ST-LINK USB Virtual COM Port + USART2，2026-09-04 枚举为 COM3 |
-| RS485 端口 | 2026-09-04 枚举为 COM6，`MacroSilicon USB Serial Ports`，VID `0x345F`、PID `0x3020`、实例尾号 `A02001JS`；端口号不固定 |
+| RS485 端口 | 2026-09-04 枚举为 COM6，`MacroSilicon USB Serial Ports`，VID `0x345F`、PID `0x3020`；唯一实例标识不入库，端口号不固定 |
 | RS485 证据 | 第三方 Master 与 Host 生产后端均完成真实双向读写、异常、连续请求和恢复验证 |
 | 上层帧格式 | Modbus RTU |
 | Slave ID | 1 |
@@ -164,9 +164,9 @@ USART2/ST-LINK VCP 是历史协议与回归通道；USART1/RS485 是本次真实
 | `hardware_info/USB转485/IOT5081 Manual.pdf` | DTECH 两线 RS485 的 T/R+、T/R-、GND 接线和自动换向 |
 | Analog Devices MAX13487E/MAX13488E Rev.3 数据手册 | MAX13487E 的 5 V、AutoDirection、500 kbps 和 DI 门限 |
 
-## 11. 实物观察与尚未进行的验证
+## 11. 实物观察与验证边界
 
-- 实物贴纸标识已记录为 `MB1136-F411RE-C04`，对应 C04 修订；贴纸编号为 `A232203276`。
+- 实物贴纸标识已记录为 `MB1136-F411RE-C04`，对应 C04 修订；唯一设备编号只用于本地核验，不作为公开工程文档内容。
 - 2026-09-02 已枚举并使用 ST-LINK：V2J38M27、NUCLEO-F411RE、COM5；固件烧录、校验、软件复位和 USART2 日志均成功。
 - 2026-09-02 首次诊断记录中，三路 DHTC12 共发生 45 次 `I2C_TRIGGER` 失败，均未获得原始帧。SWD 只读 GPIO 输入寄存器显示 I2C1/2/3 的 SCL（PB8/PB10/PA8）为高电平，SDA（PB9/PB3/PC9）均持续为低电平。进一步临时关闭 I2C 并把六根线改为带内部上拉的普通输入后，三路 SDA 仍为低电平，排除了 MCU 推挽输出或错误复用主动拉低；外部引脚顺序、接线、传感器状态和供电路径仍待逐路隔离验证。
 - 摘除 B/C 传感器、仅连接 A 后，PB3 恢复为高电平，PB9 仍为低电平；把 PB8/PB9 单独改为带内部上拉的普通输入后现象不变。故障已隔离到 A 路外部连接或当前 A 传感器，不应通过反插传感器测试。

@@ -1,5 +1,9 @@
 # 缺陷记录
 
+> 状态：MVP 缺陷基线 1.1；TASK-027 已按复现、根因、修复与回归证据完成审计。
+>
+> 记录原则：只收录具有真实证据的缺陷；未复现的风险和规划项不得包装为 Bug。
+
 ## BUG-001 USART2 逐字节接收偶发丢帧
 
 | 字段 | 内容 |
@@ -9,7 +13,7 @@
 | 关联任务 | TASK-005 |
 | 环境 | NUCLEO-F411RE、ST-LINK VCP/COM3、115200 8N1、PyModbus 3.13.1 |
 | 关联测试 | 500 次连续 0x03 读取 |
-| 修复提交 | TASK-005 本次提交 |
+| 修复提交 | `0150121 feat(firmware): 完成 TASK-005 Modbus RTU 从站` |
 
 ### 现象
 
@@ -37,6 +41,6 @@
 - 响应时间最小/平均/最大为 6.045/7.868/9.708 ms；
 - 后续完整功能回归、Raw 错误帧与恢复验证均通过。
 
-详细证据见 `docs/test_results/task005_vcp_uart_modbus_validation.md`。
+详细证据见 `test_results/task005_vcp_uart_modbus_validation.md`，当前生产实现位于 `../firmware/stm32/App/platform/platform_stm32.c`。
 
 不得为展示而伪造缺陷或测试数据。可故意注入用于演示的问题必须位于独立分支或测试夹具中，主分支保持修复状态。

@@ -1,6 +1,6 @@
 # 测试用例目录
 
-> 状态：Phase 5 基础套件与 Phase 6 正式 20 条主套件均已完成真实 RS485 验收；4 条 Fake 边界用例保持 Fake-only。
+> 状态：MVP 用例基线 2.0；Phase 5 基础套件、Phase 6 正式 20 条主套件与 Phase 7 半自动用例均已完成真实 RS485 验收，4 条边界用例保持 Fake-only。
 
 ## 1. Phase 6 正式目录
 
@@ -37,7 +37,7 @@
 
 TASK-019 自动测试从正式 JSON 原样加载并执行：主套件 20/20 PASS，Fake 边界套件 4/4 PASS；正式稳定性配置保持 10 分钟，CTest 通过共享虚拟单调时钟完成 600 次采样。另有受控断言 FAIL、通信 ERROR、恢复失败升级 ERROR 和中止路径，因此“Fake PASS”表示测试资产及 Host 执行语义通过，不表示真实设备通过。
 
-TASK-020 在当前安全低压 RS485 台架上从同一正式 JSON 原样执行主套件：20/20 PASS，六类覆盖 8/4/4/2/1/1；TC-S001 真实持续 600001 ms，599/599 请求成功、0 失败、0 超时。该实机结论不改变 4 条 Fake-only 用例的环境边界。
+TASK-020 在当前安全低压 RS485 台架上从同一正式 JSON 原样执行主套件：20/20 PASS，六类覆盖 8/4/4/2/1/1；TC-S001 真实持续 600001 ms，599/599 请求成功、0 失败、0 超时。该实机结论不改变 4 条 Fake-only 用例的环境边界。完整证据见 [TASK-020 验证记录](test_results/task020_phase6_rs485_full_validation.md)。
 
 所有成功阈值写入均先保存原值、独立回读并恢复；被 Firmware 以 0x03 拒绝的 TC-B005 不产生成功写入。自动恢复 TC-R-AUTO-001 只证明协议异常后新的合法请求成功，不包含隐式重连、物理拔插或设备复位。
 
@@ -55,8 +55,12 @@ TASK-020 在当前安全低压 RS485 台架上从同一正式 JSON 原样执行�
 |---|---|---|---|---|---|---|
 | TC-R001 | 恢复 | RS485 A/B 物理断线与稳定恢复 | guided_recovery | real_rs485 | Phase 7 正式套件 | TASK-023 实机 PASS |
 
-正式文件为 `testcases/phase7/phase7-rs485-disconnect-recovery.json`。TASK-021 定义 Schema v3、固定四段引导步骤、人工动作 token 和不可变结果证据；TASK-022 实现半自动协调器与 UI；TASK-023 在当前安全低压台架完整执行 `TC-R001`。用户确认后，软件实际观察到连续 3 次 `ResponseTimeout` 和连续 3 次 Firmware minor=2 合法响应，稳定恢复 716 ms 并自动判定 PASS。`TC-R002` STM32 Reset、传感器断开和人工改变输入暂列后续增强，不在 Phase 7 关闭范围。
+正式文件为 [Phase 7 RS485 断线恢复套件](../testcases/phase7/phase7-rs485-disconnect-recovery.json)。TASK-021 定义 Schema v3、固定四段引导步骤、人工动作 token 和不可变结果证据；TASK-022 实现半自动协调器与 UI；TASK-023 在当前安全低压台架完整执行 `TC-R001`。用户确认后，软件实际观察到连续 3 次 `ResponseTimeout` 和连续 3 次 Firmware minor=2 合法响应，稳定恢复 716 ms 并自动判定 PASS。完整证据见 [TASK-023 验证记录](test_results/task023_phase7_rs485_guided_recovery.md)。`TC-R002` STM32 Reset、传感器断开和人工改变输入暂列后续增强，不在 Phase 7 关闭范围。
 
 ## 5. Phase 8 报告边界
 
-TASK-024 已完成报告输入、元数据来源、汇总、五类用例映射、事务证据和结构化错误契约。TASK-025 已完成只消费该模型的自包含 HTML 生成器。TASK-026 已完成最近完整结果 UI、人工必填元数据、后台一键导出、四类确定性 fixture、真实 COM6 Phase 5 短套件报告和人工视觉验收；真实结果为 8/8 PASS，报告保留 11 个 RequestId/TX/RX/RTT、Firmware 0.2、Session ID 及阈值恢复证据。报告生成不得新增、删除或重新判定用例，也不得用报告展示状态覆盖本目录中的真实执行状态；稳定性 HTML 只能展示内存保留证据和外部 SessionLog 摘要，不能声称内含已丢弃的全部 attempt。脱敏示例见 `docs/examples/task026-phase5-rs485-report.html`，原生 PDF 为可选未实现能力。
+TASK-024 已完成报告输入、元数据来源、汇总、五类用例映射、事务证据和结构化错误契约。TASK-025 已完成只消费该模型的自包含 HTML 生成器。TASK-026 已完成最近完整结果 UI、人工必填元数据、后台一键导出、四类确定性 fixture、真实 COM6 Phase 5 短套件报告和人工视觉验收；真实结果为 8/8 PASS，报告保留 11 个 RequestId/TX/RX/RTT、Firmware 0.2、Session ID 及阈值恢复证据。报告生成不得新增、删除或重新判定用例，也不得用报告展示状态覆盖本目录中的真实执行状态；稳定性 HTML 只能展示内存保留证据和外部 SessionLog 摘要，不能声称内含已丢弃的全部 attempt。证据见 [TASK-026 记录](test_results/task026_phase8_report_export.md) 与 [真实脱敏示例](examples/task026-phase5-rs485-report.html)，原生 PDF 为可选未实现能力。
+
+## 6. Phase 9 审计结论
+
+TASK-027 已核对正式 Schema v1/v2/v3 套件分别包含 8、20+4、1 条用例，并确认真实、Fake、虚拟时间、短报告和人工操作证据边界没有混用。审计只修正文档状态和链接，不新增、删除或重新判定任何用例；完整检查记录见 [TASK-027 审计记录](test_results/task027_phase9_documentation_audit.md)。TASK-028/029 的截图和演示不得改变本目录中的既有结论。

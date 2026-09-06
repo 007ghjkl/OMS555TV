@@ -1,7 +1,8 @@
-# 系统架构设计草案
+# 系统架构设计
 
-> 状态：评审草案 1.0，Host 后端、RS485 物理接口与 Phase 4～6 已确认
-> 日期：2026-09-05
+> 状态：MVP 实现基线 2.0，Phase 0～8 已完成，TASK-027 已完成一致性审计
+>
+> 日期：2026-09-06
 
 ## 1. 架构目标
 
@@ -9,20 +10,24 @@
 
 ## 2. 系统边界
 
-```text
-安全低压传感器/模拟输入
-          │
-          ▼
- STM32 DUT（采集、告警、寄存器、Modbus Slave）
-          │ RS485 / Modbus RTU
-          ▼
- Qt Host（通信、监控、测试、日志、报告）
-          │
-          ├── JSON 测试用例
-          └── 本地日志与 HTML 报告
+```mermaid
+flowchart LR
+    Sensors[三路 DHTC12<br/>光敏模拟输入] --> Acquisition[采集、缩放与故障识别]
+    Ambient[环境温度模拟源] --> Model[DeviceModel<br/>阈值、告警、状态]
+    Acquisition --> Model
+    Model --> Registers[Holding Register 映射]
+    Registers --> Slave[Modbus RTU Slave<br/>0x03 / 0x06]
+    Slave --> UART1[USART1 PA9 / PA10]
+    UART1 --> TTL485[自动换向 TTL-RS485]
+    TTL485 --> Bus[约 20 cm A/B/GND<br/>安全低压点对点台架]
+    Bus --> USB485[USB-RS485]
+    USB485 --> HostApp[Qt Host<br/>监控、配置、测试、日志、报告]
+    Cases[JSON 测试套件] --> HostApp
+    HostApp --> Artifacts[本地 JSONL 日志<br/>自包含 HTML 报告]
+    Slave -. 编译期可选回归端点 .-> VCP[USART2 / ST-LINK VCP]
 ```
 
-数据库、Web 后台、云服务、IEC 61850 和真实高压系统不在 MVP 边界内。
+生产镜像只启用 USART1/RS485 端点；USART2/VCP 仅为编译期互斥的历史回归端点。数据库、Web 后台、云服务、IEC 61850 和真实高压系统不在 MVP 边界内。
 
 ## 3. 固件模块
 
@@ -64,6 +69,39 @@
 
 `IModbusClient` 是监控与测试共同依赖的边界；Fake 实现用于无硬件单元测试。
 
+```mermaid
+flowchart TB
+    UI[MainWindow / QWidget] --> State[AppStateController]
+    UI --> MonitorVM[MonitoringViewModel]
+    UI --> Config[ConfigurationService]
+    UI --> Automation[TestAutomationController]
+    UI --> ReportExport[ReportExportController]
+
+    State --> Monitor[MonitorService]
+    State --> Ownership[通信 owner 状态机]
+    Config --> Ownership
+    Automation --> State
+    Automation --> Engine[TestEngine]
+    Automation --> Guided[GuidedTestCoordinator]
+    Guided --> Engine
+
+    Monitor --> Client[IModbusClient]
+    Config --> Client
+    Engine --> Client
+    Ownership --> Client
+    Client --> Backend[QSerialPortModbusClient]
+    Backend --> Worker[单通信工作线程<br/>串行请求队列]
+    Worker --> Port[QSerialPort / RTU]
+
+    Client -. 不可变 requestCompleted .-> Diagnostics[CommunicationDiagnosticsModel]
+    Client -. 不可变 requestCompleted .-> SessionLog[SessionLogService / JSONL]
+    Engine --> Results[TestResultManager<br/>不可变结果快照]
+    Guided --> Results
+    Results --> ReportExport
+```
+
+图中的 `Monitor`、`Testing` 和 `ManualDebug` owner 在同一时刻最多存在一个；UI 只能发出意图和呈现结果，不能直接访问串口、构造 RTU 或解释 CRC。
+
 ## 5. 通信并发模型
 
 已确认采用“QSerialPort 受控 RTU 后端 + 单通信工作线程 + 串行请求队列”：
@@ -80,15 +118,19 @@ QSerialPort 后端负责完整 RTU ADU、CRC、分帧、超时和证据；`devic
 
 ## 6. 应用状态机
 
-```text
-DISCONNECTED → CONNECTED_IDLE → MONITORING
-                      │              │
-                      └──────────────┘
-                      │
-                      ▼
-                   TESTING → STOPPING → CONNECTED_IDLE
-
-任意活动状态发生不可恢复错误 → ERROR → DISCONNECTED
+```mermaid
+stateDiagram-v2
+    [*] --> DISCONNECTED
+    DISCONNECTED --> CONNECTED_IDLE: 连接成功
+    CONNECTED_IDLE --> MONITORING: 获取 Monitor owner
+    MONITORING --> STOPPING: 停止监控
+    STOPPING --> CONNECTED_IDLE: 在途请求结束并释放 owner
+    CONNECTED_IDLE --> TESTING: 获取 Testing owner
+    TESTING --> STOPPING: 套件结束或中止
+    CONNECTED_IDLE --> DISCONNECTED: 主动断开
+    MONITORING --> ERROR: 不可恢复错误
+    TESTING --> ERROR: 不可恢复错误
+    ERROR --> DISCONNECTED: 受控清理
 ```
 
 状态迁移必须集中管理；未连接禁止监控和测试，测试与监控互斥。
@@ -117,29 +159,51 @@ TASK-015 已实现无 QWidget 的 `TestEngine`、处理器注册边界和 `TestR
 
 TASK-016 已实现 `TestAutomationController` 和 Qt 自动化测试页面。控制器在线程池读取并加载 JSON，在应用线程编排 `MONITORING -> STOPPING -> CONNECTED_IDLE -> TESTING -> CONNECTED_IDLE`，仅在用户显式选择且运行前确实处于监控时恢复监控；MainWindow 只渲染 Loader、ResultManager 和步骤通知，不访问串口或解释 RTU。Phase 5 基础套件使用 8 条安全用例覆盖动态测量范围、版本、非法地址和阈值恢复，真实 RS485 已验证。完整 UI 和交接契约见 `specs/host_phase5_automation_ui.md`。
 
-TASK-017 已在保持 v1 严格兼容的前提下新增独立 Schema v2、Loader 和不可变规范化模型。v2 固化逐元素断言、受限 sequence、仅限 Fake 确定性故障注入的预期超时、低字在低地址的 uint32 一致性，以及 10 分钟至 24 小时稳定性配置和整数 ppm 汇总边界；覆盖矩阵明确 Fake、真实 RS485 与 Phase 7 人工恢复的责任边界。本阶段只完成输入校验和纯数据断言，运行状态机、20+ 正式套件及实机验收仍由 TASK-018～TASK-020 完成。详细契约见 `specs/host_phase6_testcase_schema.md`。
+TASK-017 已在保持 v1 严格兼容的前提下新增独立 Schema v2、Loader 和不可变规范化模型。v2 固化逐元素断言、受限 sequence、仅限 Fake 确定性故障注入的预期超时、低字在低地址的 uint32 一致性，以及 10 分钟至 24 小时稳定性配置和整数 ppm 汇总边界；覆盖矩阵明确 Fake、真实 RS485 与 Phase 7 人工恢复的责任边界。TASK-018～TASK-020 已继续完成运行状态机、20+ 正式套件和实机验收。详细契约见 `specs/host_phase6_testcase_schema.md`。
 
 TASK-018 已扩展统一处理器决策边界，使处理器可在“下一请求、单次有界延迟、唯一终态”之间推进。sequence 按 repetition/step 顺序保存不可变逻辑步骤和 attempt 关联；expect_timeout 仅识别结构化 `ResponseTimeout`；consistency 聚合 uint32 样本；stability 按实际请求开始间隔串行运行且不追赶积压。Engine 使用注入调度器的单调时间判断 duration、interval 和 case budget，UTC 仅作审计；稳定性结果固定保留首条、均匀样本、失败窗口和末条，完整事务继续写入滚动 JSONL。中止会取消等待或普通在途请求并沿既有状态机释放 Testing owner。详细契约见 `specs/host_phase6_execution_engine.md`。
 
-TASK-019 已将上述能力落成 20 条真实 RS485 主套件和 4 条独立 Fake 边界用例。控制器把 Engine 的逻辑步骤索引、step ID 和 repetition 透传到 UI；MainWindow 只从控制器与 `TestResultManager` 显示 sequence 明细、稳定性迭代/聚合统计、证据保留策略和 Session ID，不重新解释断言。正式 10 分钟配置保持不变，CTest 使用共享虚拟单调时钟完成全套验证。真实 DUT 与长时 RS485 证据仍由 TASK-020 负责。详细契约见 `specs/host_phase6_complete_suite_ui.md`。
+TASK-019 已将上述能力落成 20 条真实 RS485 主套件和 4 条独立 Fake 边界用例。控制器把 Engine 的逻辑步骤索引、step ID 和 repetition 透传到 UI；MainWindow 只从控制器与 `TestResultManager` 显示 sequence 明细、稳定性迭代/聚合统计、证据保留策略和 Session ID，不重新解释断言。正式 10 分钟配置保持不变，CTest 使用共享虚拟单调时钟完成全套验证；TASK-020 已补充真实 DUT 与长时 RS485 证据。详细契约见 `specs/host_phase6_complete_suite_ui.md`。
 
 TASK-020 已在当前约 20 cm 安全低压点对点台架上关闭 Phase 6。专用验收工具复用生产 MainWindow、唯一 QSerialPort 后端、集中状态机、配置服务、诊断/会话日志和自动化执行链；短时预检、独立中止与正式完整会话彼此隔离。真实等待使用 `Qt::PreciseTimer`，仍按实际请求开始时刻串行调度且不追赶积压。最终 20 条主套件全部 PASS，10 分钟稳定性 599/599 成功，结果/诊断/通信日志/TEST 日志的 647 个 RequestId 一致，阈值恢复和 UI 心跳通过。详细门禁与证据见 `specs/host_phase6_rs485_full_validation.md` 和对应验证记录；该结论不包含 Phase 7 人工物理恢复或 Phase 8 正式报告。
 
-TASK-021 已新增独立 Schema v3 与纯数据引导模型，同时保持 v1/v2 自动套件语义不变。`guided_recovery` 固定为断线提示、中断观察、重连提示、恢复观察四步；人工动作必须匹配 run/case/step/一次性 token，确认只推进流程，连续结构化 `ResponseTimeout` 和连续合法 0x03 响应才构成自动证据。人工等待、观察 deadline 与总预算均有界，恢复结果同时保留首个成功和稳定恢复耗时，并把人工动作、观察探测、RequestId/TX/RX/RTT、终态原因和未恢复接线指引纳入不可变快照。TASK-022 负责协调器与 UI，详细契约见 `specs/host_phase7_guided_test_schema.md`。
+TASK-021 已新增独立 Schema v3 与纯数据引导模型，同时保持 v1/v2 自动套件语义不变。`guided_recovery` 固定为断线提示、中断观察、重连提示、恢复观察四步；人工动作必须匹配 run/case/step/一次性 token，确认只推进流程，连续结构化 `ResponseTimeout` 和连续合法 0x03 响应才构成自动证据。人工等待、观察 deadline 与总预算均有界，恢复结果同时保留首个成功和稳定恢复耗时，并把人工动作、观察探测、RequestId/TX/RX/RTT、终态原因和未恢复接线指引纳入不可变快照。TASK-022/023 已继续完成协调器、UI 和真实断线恢复验收，详细契约见 `specs/host_phase7_guided_test_schema.md`。
 
 TASK-022 已实现无 QWidget 依赖的 `GuidedTestCoordinator`。v3 路径由 `TestAutomationController` 取得 Testing owner 后交给协调器，协调器在整个人工等待与观察期间持续持有 owner，并在终态受控释放；v1/v2 仍由既有 TestEngine 套件路径执行。TestEngine 仅新增与普通运行互斥的单读探测入口，继续独占唯一 `IModbusClient`，因此 UI 和协调器都不能绕过通信所有权。协调器使用注入调度器管理一次性 token、人工/观察 deadline、严格串行探测、连续计数、迟到回调和恢复耗时，并把动作、探测证据与恢复提醒发布到不可变结果和 TEST 日志。自动化页只渲染只读视图与提交动作，PASS 仍完全来自自动观察。详细契约见 `specs/host_phase7_guided_execution_ui.md`。
 
 TASK-023 已用正式 Schema v3 `TC-R001` 关闭 Phase 7。专用可见验收工具仍复用生产 MainWindow、唯一 QSerialPort 后端、监控预检、应用状态机、自动化控制器、诊断和会话日志；`preflight` 与 `full` 使用独立进程/会话。正式探测只读 Firmware minor（PDU 40），中断必须连续 3 次结构化 `ResponseTimeout`，恢复必须在 4900 ms deadline 内连续 3 次合法响应且值为 2。COM6 实测稳定恢复 716 ms，6 个 Testing RequestId 跨结果、诊断、通信日志与 TEST 日志一致，随后生产监控再次读取 Firmware 0.2 并释放全部 owner。详细门禁与证据见 `specs/host_phase7_rs485_guided_recovery.md` 和对应验证记录；该结论不包含 USB 自动重连、STM32 Reset、传感器人工操作或工业环境。
 
-TASK-024 已建立无 QObject/WIdgets 依赖的报告数据边界。`ReportModelBuilder` 只消费终态 `TestSuiteResult`、连接配置、应用构建信息、操作员显式输入和 SessionLog 工件描述，生成值语义 `ReportDocumentModel`；它不读取 UI、串口、Windows 用户身份或 JSONL，也不重算断言/套件状态。所有元数据保存 `system-observed`、`suite-configured`、`operator-entered` 或 `unavailable` 来源；Firmware 版本只从本次通过断言的 major/minor 实际读取提取。模型保留基础、sequence、consistency、stability、guided recovery 的层级、实际值、人工提示/动作、恢复时间和事务证据，并明确有界内存证据与外部日志工件边界。完整契约见 `specs/host_phase8_report_contract.md`；HTML 转义、渲染和原子写入仍属于 TASK-025。
+TASK-024 已建立无 QObject/QWidget 依赖的报告数据边界。`ReportModelBuilder` 只消费终态 `TestSuiteResult`、连接配置、应用构建信息、操作员显式输入和 SessionLog 工件描述，生成值语义 `ReportDocumentModel`；它不读取 UI、串口、Windows 用户身份或 JSONL，也不重算断言/套件状态。所有元数据保存 `system-observed`、`suite-configured`、`operator-entered` 或 `unavailable` 来源；Firmware 版本只从本次通过断言的 major/minor 实际读取提取。模型保留基础、sequence、consistency、stability、guided recovery 的层级、实际值、人工提示/动作、恢复时间和事务证据，并明确有界内存证据与外部日志工件边界。完整契约见 `specs/host_phase8_report_contract.md`；TASK-025 已继续完成 HTML 转义、渲染和原子写入。
 
-TASK-025 已实现同样无 QObject/QWidget 依赖的 `HtmlReportGenerator`。生成入口只消费 `ReportDocumentModel`，生成时间通过构造时 UTC 时钟注入，确保生产实时与 golden 测试确定性兼容。渲染器统一规范化控制字符并转义所有外部文本，输出带 CSP、内联 CSS、原生 `<details>` 和打印规则的 UTF-8 自包含 HTML；不会读取或嵌入 SessionLog。文件名由 suite ID、运行开始 UTC 和 run ID 稳定生成，写入使用禁用直接回退的 `QSaveFile`，非法路径、重名、打开、写入和提交失败均返回结构化 `ReportError`。完整契约见 `specs/host_phase8_html_report.md`；结果生命周期、异步 UI 和一键导出仍属于 TASK-026。
+TASK-025 已实现同样无 QObject/QWidget 依赖的 `HtmlReportGenerator`。生成入口只消费 `ReportDocumentModel`，生成时间通过构造时 UTC 时钟注入，确保生产实时与 golden 测试确定性兼容。渲染器统一规范化控制字符并转义所有外部文本，输出带 CSP、内联 CSS、原生 `<details>` 和打印规则的 UTF-8 自包含 HTML；不会读取或嵌入 SessionLog。文件名由 suite ID、运行开始 UTC 和 run ID 稳定生成，写入使用禁用直接回退的 `QSaveFile`，非法路径、重名、打开、写入和提交失败均返回结构化 `ReportError`。完整契约见 `specs/host_phase8_html_report.md`；TASK-026 已继续完成结果生命周期、异步 UI 和一键导出。
 
 TASK-026 已新增无 QWidget 依赖的 `ReportExportController` 和 MainWindow 报告页。控制器在工作流结束时冻结最近一次完整 `TestSuiteResult`、连接参数、构建信息与 SessionLog 身份；新运行期间保留旧预览但禁止导出，新完整终态原子替换旧结果。用户单击生成时再冻结人工元数据和目标路径，线程池负责读取已结束日志、计算 SHA-256、构建文档模型和调用 `HtmlReportGenerator`，完成通知通过 queued invocation 返回应用线程；每个控制器仅允许一个导出作业。UI 不重新计算状态或解析报文，并明确 `NoCompletedResult`、`TestRunInProgress`、`MissingRequiredMetadata`、`ExportInProgress` 及文件错误。真实 COM6 短套件一键报告和脱敏示例已核对，完整契约与证据见 `specs/host_phase8_report_ui_export.md` 和 `docs/test_results/task026_phase8_report_export.md`；Phase 8 已关闭。
 
+```mermaid
+flowchart LR
+    Json[Schema v1/v2/v3 JSON] --> Loader[TestCaseLoader]
+    Loader --> Suite[不可变规范化 TestSuite]
+    Suite --> Controller[TestAutomationController]
+    Controller --> Auto[TestEngine 自动/复合/稳定性]
+    Controller --> Guided[GuidedTestCoordinator 半自动]
+    Auto --> Client[唯一 IModbusClient]
+    Guided --> Auto
+    Client --> Evidence[RequestId、TX/RX、RTT、结构化错误]
+    Evidence --> Results[TestResultManager<br/>不可变 TestSuiteResult]
+    Evidence --> Diagnostics[诊断模型]
+    Evidence --> Jsonl[SessionLog JSONL]
+    Results --> Builder[ReportModelBuilder]
+    Jsonl -. 仅文件描述、大小与 SHA-256 .-> Builder
+    Builder --> Document[ReportDocumentModel]
+    Document --> Html[HtmlReportGenerator]
+    Html --> Save[QSaveFile 原子写入<br/>自包含 HTML]
+```
+
+报告链路只消费冻结结果和显式 SessionLog 工件描述，不解析 JSONL 重建结果，也不重新判定 PASS/FAIL/ERROR/SKIPPED。
+
 ## 9. 部署与构建
 
-- Host：Windows x64，Qt 6.8.3、MSVC 2022、CMake、Ninja。
+- Host：MVP 已验证运行平台为 Windows x64，当前证据基线为 Qt 6.8.3、MSVC 2022、CMake 和 Ninja。Linux 仅保留源码可移植边界，未完成构建与运行验证，不列为已支持平台。
 - Firmware：NUCLEO-F411RE、STM32CubeMX 6.18.1-RC2、STM32CubeF4 v1.28.3、HAL；ARM 编译/调试工具实际路径须在 TASK-001 验证。
 - 两端独立构建，仓库根目录提供统一说明，不混用构建目录。
 
@@ -154,7 +218,8 @@ TASK-026 已新增无 QWidget 依赖的 `ReportExportController` 和 MainWindow 
 
 1. Host Modbus 生产后端采用 QSerialPort 受控 RTU；标准业务和未来经批准的 Raw/错误注入必须复用同一工作线程、串行队列、串口和证据模型。确认日期：2026-09-03。
 2. Firmware Modbus 物理端点采用编译期互斥选择；真实 RS485 使用 USART1 PA9/PA10 和模块自动换向，不使用 PC8/DE/RE。确认日期：2026-09-04。
+3. MVP 对外承诺的已验证 Host 平台为 Windows x64；Qt/CMake 代码继续保持可移植边界，但 Linux 在获得独立构建、测试和串口实机证据前不列为已支持平台。确认日期：2026-09-06。完整决策见 [MVP 平台支持基线 ADR](decisions/2026-09-06-MVP平台支持基线.md)。
 
-## 12. 待确认的架构决策
+## 12. MVP 后续边界
 
-1. 是否只支持 Windows，Linux 仅保留可移植边界。
+TASK-027 已关闭现有平台支持口径未决项，当前没有阻塞 MVP 的架构决策。Linux 验证、自动重连、Raw Frame/CRC 注入、原生 PDF、8/24 小时稳定性以及工业长线、隔离和 EMC 均为后续候选能力；任何一项进入实现前都必须另立任务并重新评审范围与证据要求。

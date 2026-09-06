@@ -1,6 +1,6 @@
 # 测试计划
 
-> 状态：开发中基线 2.1（已同步 Phase 9 工程完善任务计划）
+> 状态：MVP 验证基线 2.2（TASK-027 文档与证据审计已完成；TASK-028/029 待实施）
 
 ## 1. 目标
 
@@ -46,18 +46,18 @@
 
 ## 7. 环境与风险
 
-- 当前硬件与引脚基线已确认；Firmware Phase 1/2 已完成构建、烧录和 VCP/UART 实机验证，证据见 TASK-003 与 TASK-005 记录。
+- 当前硬件与引脚基线已确认；Firmware Phase 1/2 已完成构建、烧录和 VCP/UART 实机验证，证据见 [TASK-005 VCP/UART 验证记录](test_results/task005_vcp_uart_modbus_validation.md) 及 TASK-003 记录。
 - TASK-005/008 已证明 USART2 VCP 下的 Firmware 与 Host Modbus RTU 闭环。
-- TASK-009/010 已证明当前 USART1、自动换向模块、约 20 cm 两线 RS485 和 COM6 转换器下的双向 Modbus、500 次连续请求、物理断线恢复与设备复位恢复。
-- TASK-011 的应用状态与监控核心、TASK-012 的实时 UI、TASK-013 的参数配置/通信诊断/会话日志均已通过自动化测试；TASK-012 另完成 30 分钟真实 RS485、设备复位、陈旧状态、UI 响应和显式重连验收；TASK-013 完成四路阈值真实写回读、原值恢复和 20/20 请求会话证据核对。
-- Host Phase 5 的 TASK-014 测试模型/JSON Schema/断言、TASK-015 TestEngine 和 TASK-016 自动化测试 UI/真实 RS485 基础套件均已完成。TASK-016 全新构建和 19/19 CTest 通过，COM6 上 8/8 基础用例 PASS，11 个测试 RequestId 与诊断/TEST 日志一致，阈值前后独立读取一致。
-- Host Phase 6 的 TASK-017 覆盖模型/Schema v2、TASK-018 复合/超时/稳定性执行核心、TASK-019 完整 20+ 套件/UI 集成和 TASK-020 真实 RS485 全量验收均已完成。TASK-020 最终 20/20 CTest 与 COM6 实机预检/中止专项通过；正式主套件 20/20 PASS，真实稳定性持续 600001 ms、599/599 请求成功、0 失败、0 超时，647 个 Testing RequestId 的跨层证据一致且阈值最终恢复。
-- Host Phase 7 的 TASK-021 引导式模型/Schema v3、TASK-022 半自动控制器/UI、TASK-023 RS485 A/B 物理断线恢复实机验收均已完成。TASK-023 全新构建和 23/23 CTest 通过；COM6 正式 `TC-R001` 观察到 3 次连续超时与 3 次连续合法响应，首次/稳定恢复为 51/716 ms，6 个 Testing RequestId 跨层一致，最终链路在线。
-- Host Phase 8 的 TASK-024/025/026 已完成：报告契约、自包含 HTML、最近完整结果页面、必填元数据门禁和后台一键导出均有自动化覆盖。四类确定性 fixture 覆盖全 PASS、混合终态、stability 有界证据和 guided recovery；真实脱敏示例自动核对 8 个用例、11 个 RequestId/TX/RX/RTT、Firmware、通信参数、日志摘要、离线资源和 SHA-256。全新 Host 构建和 27/27 CTest 通过；COM6 Phase 5 短套件 8/8 PASS，桌面、窄窗口和打印预览通过。
-- Phase 9 的 TASK-027/028/029 已完成规划但尚未执行：先审计文档、寄存器、测试证据并补齐架构图，再采集真实脱敏截图和示例工件，最后进行全新构建、短时真实 RS485 演示彩排与最低验收矩阵核对。Phase 9 不以新增产品功能或重跑长稳态测试为完成条件。
+- TASK-009/010 已证明当前 USART1、自动换向模块、约 20 cm 两线 RS485 和当时枚举为 COM6 的转换器下的双向 Modbus、500 次连续请求、物理断线恢复与设备复位恢复；端口号不作为固定配置。证据见 [Firmware RS485 验证记录](test_results/task009_firmware_rs485_transport_validation.md) 与 [Host RS485 系统联调记录](test_results/task010_host_rs485_system_integration.md)。
+- TASK-011 的应用状态与监控核心、TASK-012 的实时 UI、TASK-013 的参数配置/通信诊断/会话日志均已通过自动化测试；TASK-012 另完成 30 分钟真实 RS485、设备复位、陈旧状态、UI 响应和显式重连验收；TASK-013 完成四路阈值真实写回读、原值恢复和 20/20 请求会话证据核对。证据见 [TASK-012 记录](test_results/task012_monitoring_rs485_30min.md) 与 [TASK-013 记录](test_results/task013_configuration_diagnostics_rs485.md)。
+- Host Phase 5 的 TASK-014 测试模型/JSON Schema/断言、TASK-015 TestEngine 和 TASK-016 自动化测试 UI/真实 RS485 基础套件均已完成。TASK-016 全新构建和 19/19 CTest 通过，COM6 上 8/8 基础用例 PASS，11 个测试 RequestId 与诊断/TEST 日志一致，阈值前后独立读取一致。证据见 [TASK-016 记录](test_results/task016_phase5_automation_rs485.md)。
+- Host Phase 6 的 TASK-017 覆盖模型/Schema v2、TASK-018 复合/超时/稳定性执行核心、TASK-019 完整 20+ 套件/UI 集成和 TASK-020 真实 RS485 全量验收均已完成。TASK-020 最终 20/20 CTest 与 COM6 实机预检/中止专项通过；正式主套件 20/20 PASS，真实稳定性持续 600001 ms、599/599 请求成功、0 失败、0 超时，647 个 Testing RequestId 的跨层证据一致且阈值最终恢复。证据见 [TASK-020 记录](test_results/task020_phase6_rs485_full_validation.md)。
+- Host Phase 7 的 TASK-021 引导式模型/Schema v3、TASK-022 半自动控制器/UI、TASK-023 RS485 A/B 物理断线恢复实机验收均已完成。TASK-023 全新构建和 23/23 CTest 通过；COM6 正式 `TC-R001` 观察到 3 次连续超时与 3 次连续合法响应，首次/稳定恢复为 51/716 ms，6 个 Testing RequestId 跨层一致，最终链路在线。证据见 [TASK-023 记录](test_results/task023_phase7_rs485_guided_recovery.md)。
+- Host Phase 8 的 TASK-024/025/026 已完成：报告契约、自包含 HTML、最近完整结果页面、必填元数据门禁和后台一键导出均有自动化覆盖。四类确定性 fixture 覆盖全 PASS、混合终态、stability 有界证据和 guided recovery；真实脱敏示例自动核对 8 个用例、11 个 RequestId/TX/RX/RTT、Firmware、通信参数、日志摘要、离线资源和 SHA-256。全新 Host 构建和 27/27 CTest 通过；COM6 Phase 5 短套件 8/8 PASS，桌面、窄窗口和打印预览通过。证据见 [TASK-026 记录](test_results/task026_phase8_report_export.md)。
+- Phase 9 的 TASK-027 已完成文档、寄存器、测试证据和缺陷记录审计，并补齐四幅架构图与平台支持 ADR；TASK-028/029 尚未执行。后续只采集真实脱敏素材并完成最终复现/演示验收，不以新增产品功能或重跑长稳态测试为完成条件。审计证据见 [TASK-027 审计记录](test_results/task027_phase9_documentation_audit.md)。
 - 标准 Modbus Client 未必能发送 CRC 错误帧，可能需要后续 Raw Frame 接口。
 - 8/24 小时稳定性测试只能在具备持续硬件环境后执行。
 
 ## 8. 结果真实性
 
-未实际运行的测试不得标记通过。TASK-003、TASK-005、TASK-008～TASK-026 只能按各自记录标记通过；TASK-027～TASK-029 仍为待实施规划。TASK-024 只验证纯数据报告契约，TASK-025 只验证确定性 fixture HTML 与文件行为；真实结果 UI 一键导出和视觉结论只引用 TASK-026。TASK-022 的 Fake/虚拟时间结果与 TASK-023 的真实人工断线—恢复结果保持独立口径，TASK-019 的 Fake/虚拟时间结果与 TASK-020 的真实 RS485 20 条/10 分钟结果也保持独立口径。Phase 9 截图和演示记录不得改变这些证据口径；原生 PDF 仍为可选未实现能力。当前短距离 RS485 结果不得外推为 USB 自动重连、8/24 小时稳定性、工业长线、隔离或 EMC 验证。
+未实际运行的测试不得标记通过。TASK-003、TASK-005、TASK-008～TASK-026 只能按各自记录标记通过；TASK-027 只完成文档与证据一致性审计，不产生新的功能或实机通过结论，TASK-028/029 仍待实施。TASK-024 只验证纯数据报告契约，TASK-025 只验证确定性 fixture HTML 与文件行为；真实结果 UI 一键导出和视觉结论只引用 TASK-026。TASK-022 的 Fake/虚拟时间结果与 TASK-023 的真实人工断线—恢复结果保持独立口径，TASK-019 的 Fake/虚拟时间结果与 TASK-020 的真实 RS485 20 条/10 分钟结果也保持独立口径。Phase 9 截图和演示记录不得改变这些证据口径；原生 PDF 仍为可选未实现能力。当前短距离 RS485 结果不得外推为 USB 自动重连、8/24 小时稳定性、工业长线、隔离或 EMC 验证。

@@ -1,8 +1,8 @@
 # OMS555TV 电力监测终端自动化测试验证平台
 
-本项目面向嵌入式产品测试验证场景，计划实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
+本项目面向嵌入式产品测试验证场景，已实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
 
-当前状态：`TASK-001`～`TASK-026`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 的覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件、UI 集成与真实 RS485 全量验收均已完成。Host Phase 7 的引导式模型、Schema v3、半自动协调器/UI 和真实 RS485 A/B 物理断线—恢复验收均已完成。Host Phase 8 的报告契约、自包含 HTML 生成器、报告 UI、一键导出、真实结果示例和视觉验收均已完成。Phase 9 的 `TASK-027/028/029` 已完成规划，当前仅制定任务，尚未派发或执行。
+当前状态：`TASK-001`～`TASK-027`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 的覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件、UI 集成与真实 RS485 全量验收均已完成。Host Phase 7 的引导式模型、Schema v3、半自动协调器/UI 和真实 RS485 A/B 物理断线—恢复验收均已完成。Host Phase 8 的报告契约、自包含 HTML 生成器、报告 UI、一键导出、真实结果示例和视觉验收均已完成。Phase 9 的 TASK-027 文档/架构事实基线已完成，TASK-028/029 尚未派发或执行。
 
 ## 项目目标
 
@@ -17,9 +17,9 @@
 
 - [项目需求基线](PROJECT_SPEC.md)
 - [产品需求文档](docs/prd.md)
-- [架构设计草案](docs/architecture.md)
+- [系统架构设计](docs/architecture.md)
 - [硬件与通信基线](docs/hardware_baseline.md)
-- [Modbus 寄存器表草案](docs/modbus_register_map.md)
+- [Modbus 寄存器表](docs/modbus_register_map.md)
 - [测试计划](docs/test_plan.md)
 - [测试用例目录](docs/test_cases.md)
 - [Phase 0 调研记录](research/phase0_development_environment.md)
@@ -93,6 +93,8 @@
 - [TASK-026 报告 UI 与一键导出验证记录](docs/test_results/task026_phase8_report_export.md)
 - [TASK-026 真实 RS485 脱敏示例报告](docs/examples/task026-phase5-rs485-report.html)
 - [TASK-027 Phase 9 工程文档基线与架构图](tasks/TASK-027-phase9-documentation-architecture-baseline.md)
+- [TASK-027 工程文档与架构基线审计记录](docs/test_results/task027_phase9_documentation_audit.md)
+- [MVP 平台支持基线 ADR](docs/decisions/2026-09-06-MVP平台支持基线.md)
 - [TASK-028 Phase 9 展示素材、截图与示例报告](tasks/TASK-028-phase9-demo-assets-example-report.md)
 - [TASK-029 Phase 9 最终 README、复现与现场演示验收](tasks/TASK-029-phase9-final-readme-demo-acceptance.md)
 
@@ -111,7 +113,7 @@ output/           本地日志与报告（内容不提交）
 
 ## 当前开发基线
 
-- Windows 10/11
+- Windows x64（MVP 已验证运行平台；Linux 保留可移植边界但未验证）
 - C++17
 - Qt 6.8.3 + MSVC 2022 x64（已完成本机构建验证）
 - CMake + Ninja
@@ -197,6 +199,8 @@ $env:Path = "$bundleRoot\gnu-tools-for-stm32\14.3.1+st.2\bin;$bundleRoot\ninja\1
 
 2026-09-06 的 TASK-026 最终结果：新增报告页和无 QWidget 依赖的 `ReportExportController`，绑定最近一次完整不可变结果，明确无结果/运行中/必填元数据/导出中门禁，并在线程池完成 SessionLog 哈希、模型构建和原子 HTML 写入。offscreen UI 与四类确定性 fixture 覆盖异步、输入冻结、重名/路径失败、最近结果切换及真实脱敏示例；全新 Host 构建和 27/27 CTest 通过。COM6 上 Phase 5 短套件 8/8 PASS，一键报告保留 Firmware 0.2、Session ID 和 11 个 RequestId/TX/RX/RTT，阈值保存/写入/独立回读/恢复四步成功；桌面、窄窗口与打印预览通过。Phase 8 已关闭，原生 PDF 仍为可选未实现能力。
 
+2026-09-06 的 TASK-027 最终结果：完成 README、PRD、架构、硬件、寄存器、测试计划、用例目录、Bug 记录及 20 份验证记录的事实审计；Firmware、Host 与寄存器文档的 16 个 PDU 地址、五个读块、温度范围、状态位、字序和异常语义一致。架构文档更新为 MVP 实现基线并新增系统边界、Host 所有权/线程、状态机及测试—报告数据流四幅 Mermaid 图；平台 ADR 明确 Windows x64 为已验证 Host 平台，Linux 仅保留未验证的可移植边界。本任务只修改文档，未运行新的构建、串口或实机测试。
+
 实板联调工具会运行时枚举 ST-LINK，不写死 COM 号：
 
 ```powershell
@@ -233,9 +237,9 @@ $revision = git rev-parse HEAD
 11. TASK-014 的中文示例与 fixture 不属于正式用例，TASK-016 的 8 条基础用例不能替代已独立记录的 TASK-020 Phase 6 实机结果；
 12. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
 13. Phase 9 按 `TASK-027` 文档/架构事实基线、`TASK-028` 真实展示素材、`TASK-029` 最终 README/复现与现场演示验收的顺序推进；前置任务未验收时不得提前关闭 MVP；
-14. `TASK-027/028/029` 当前仅完成规划，尚未派发或执行；Phase 9 不引入 Linux 支持、Raw Frame、自动重连、原生 PDF 或其他进阶功能。
+14. `TASK-027` 已关闭文档事实基线与平台未决项；`TASK-028/029` 尚未派发或执行。Phase 9 不引入 Linux 支持、Raw Frame、自动重连、原生 PDF 或其他进阶功能。
 
-详细未决项见架构与 Phase 0 任务文档。
+详细架构决策与后续边界见系统架构文档和 ADR。
 
 ## 安全说明
 
