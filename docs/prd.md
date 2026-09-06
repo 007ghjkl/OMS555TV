@@ -1,6 +1,6 @@
 # 产品需求文档
 
-> 状态：MVP 需求基线 1.0（Phase 0～8 已实现，TASK-027 已关闭现有产品未决项）
+> 状态：MVP 最终需求基线 1.1（Phase 0～9 已完成，16 项最低验收标准全部 PASS）
 > 日期：2026-09-04
 > 说明：如本文与 `PROJECT_SPEC.md` 冲突，以后者为准。
 
@@ -75,5 +75,7 @@ IEC 61850、真实高压测量、复杂保护算法、FreeRTOS、Linux 驱动、
 硬件型号、传感器引脚、115200 8N1、温度阈值、迟滞、寄存器字序和 RS485 物理接口已由 `docs/hardware_baseline.md` 确认。TASK-003 已通过实物采样确认 DHTC12 原始温度按有符号 16 位解释；TASK-005/006 已将 0x04、0x10 和公共 Raw Frame 明确排除在当前 MVP 之外；TASK-002/009/010 已完成真实 RS485 迁移和恢复验收。TASK-024 已关闭报告元数据来源，TASK-025 已关闭 HTML 结构、安全转义、离线资源、打印规则、稳定文件名和拒绝覆盖的原子写入策略。TASK-026 已关闭最近完整结果生命周期、人工必填元数据、异步一键导出、文件冲突、真实结果证据和视觉验收：报告 UI 只消费不可变结果，测试运行中不能导出，原始报告留在忽略目录，仓库示例只移除本机绝对路径。完整契约见 `specs/host_phase8_report_contract.md`、`specs/host_phase8_html_report.md` 与 `specs/host_phase8_report_ui_export.md`。
 
 TASK-027 已关闭平台支持口径：MVP 对外承诺的已验证 Host 平台为 Windows x64，当前证据基线为 Qt 6.8.3、MSVC 2022、CMake 和 Ninja；Qt/CMake 源码继续保留可移植边界，但 Linux 未完成独立构建、测试与串口实机验证，因此不列为已支持平台。决策与未来改变条件见 [MVP 平台支持基线 ADR](decisions/2026-09-06-MVP平台支持基线.md)。
+
+TASK-029 已通过最终 README、独立 Host/Firmware 复现、全部自动化回归和生产 UI 现场彩排关闭 Phase 9；16 项最低验收标准及对应证据见 [MVP 证据矩阵](mvp_acceptance_matrix.md) 与 [TASK-029 最终验收记录](test_results/task029_phase9_final_acceptance.md)。该关闭不扩大既有 Windows、短线安全低压 RS485 和未实现能力边界。
 
 当前没有阻塞 MVP 的产品未决项。原生 PDF、报告历史数据库、签名/上传、Linux 验证、Raw Frame、自动重连、8/24 小时稳定性以及工业长线、隔离和 EMC 均保持后续非目标；未来如需改变这些基线必须另立任务评审。

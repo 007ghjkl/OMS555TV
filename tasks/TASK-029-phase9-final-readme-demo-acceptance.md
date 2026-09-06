@@ -76,4 +76,4 @@ Phase 9 的最终目标不是增加功能，而是让首次接触项目的人能
 
 ## 当前状态
 
-待实施（2026-09-06 制定），依赖 TASK-027/028，暂未派发或执行。
+已完成（2026-09-06）。最终 README、现场演示手册、完整任务索引和 16 项 MVP 证据矩阵已落库；Host 全新构建及 27/27 CTest、Firmware USART1/RS485 构建和 35/35 纯 C 测试通过。生产 UI 经 COM6 完成监控、A 相阈值 60.0→60.1→60.0 ℃ 独立回读/恢复、Phase 5 短套件 8/8 PASS 和一键 HTML 报告；SessionLog、报告与 11 个测试 RequestId 一致。最终文档、安全、清洁和 Review 无必须修复项，Phase 9 与当前 MVP 已关闭。完整证据见 `docs/test_results/task029_phase9_final_acceptance.md`。

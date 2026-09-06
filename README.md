@@ -1,248 +1,203 @@
 # OMS555TV 电力监测终端自动化测试验证平台
 
-本项目面向嵌入式产品测试验证场景，已实现 STM32 被测设备（DUT）与 C++/Qt 上位机，通过 RS485 / Modbus RTU 完成实时监控、参数配置、通信调试、自动化与半自动测试，以及 HTML 测试报告生成。
+OMS555TV 是一个可复现的嵌入式软硬件测试项目：STM32 采集三路真实温度、一路模拟环境温度和光敏模拟电压，以 Modbus RTU Slave 暴露数据；Windows/Qt Host 通过真实 RS485 完成实时监控、阈值配置、通信诊断、JSON 驱动的自动化/半自动测试和离线 HTML 报告。
 
-当前状态：`TASK-001`～`TASK-028`（除编号未使用项外）对应的现有任务均已完成。Firmware Slave 与 Host Phase 3 生产后端已分别通过 ST-LINK VCP/UART 和 USART1/真实 RS485 闭环；Host Phase 4 的集中状态、监控核心、实时 UI、参数配置、通信诊断与会话日志已完成。Host Phase 5 已完成 v1 测试输入契约、TestEngine、自动化测试 UI，以及 8 条真实 RS485 基础套件验收。Host Phase 6 的覆盖矩阵、Schema v2、复合/稳定性执行核心、正式 20+4 套件、UI 集成与真实 RS485 全量验收均已完成。Host Phase 7 的引导式模型、Schema v3、半自动协调器/UI 和真实 RS485 A/B 物理断线—恢复验收均已完成。Host Phase 8 的报告契约、自包含 HTML 生成器、报告 UI、一键导出、真实结果示例和视觉验收均已完成。Phase 9 的 TASK-027 文档/架构事实基线与 TASK-028 真实展示素材/示例报告复核已完成，TASK-029 尚未执行。
+当前 MVP 已完成：TASK-029 的最终 README、三个独立目录复现、全量自动化回归和生产 UI 现场彩排均已通过。最终结论与本次量化证据见 [TASK-029 验收记录](docs/test_results/task029_phase9_final_acceptance.md)。
 
-## 项目目标
+> 安全边界：本项目只用于约 20 cm、安全低压、非隔离的点对点实验台架，不接入市电、高压或实际保护回路。
 
-- STM32 采集或模拟 4 路温度数据并提供告警与设备状态。
-- STM32 作为 Modbus RTU Slave，上位机作为 Master。
-- Qt 上位机统一管理监控与测试模式，避免串口并发访问。
-- 通过 JSON 配置测试用例，记录原始报文、耗时和结果。
-- 支持功能、协议、边界、异常恢复、稳定性和半自动测试。
-- 输出可追溯的日志与正式 HTML 测试报告。
+## 效果展示
 
-## 文档导航
+![NUCLEO-F411RE、TTL-RS485 模块、A/B 与公共地、USB-RS485 组成的短线安全低压台架](docs/assets/hardware-rs485-bench.jpg)
 
-- [项目需求基线](PROJECT_SPEC.md)
-- [产品需求文档](docs/prd.md)
-- [系统架构设计](docs/architecture.md)
-- [硬件与通信基线](docs/hardware_baseline.md)
-- [Modbus 寄存器表](docs/modbus_register_map.md)
-- [测试计划](docs/test_plan.md)
-- [测试用例目录](docs/test_cases.md)
-- [Phase 0 调研记录](research/phase0_development_environment.md)
-- [Qt SerialBus 原始帧能力验证](research/qt_serialbus_raw_frame.md)
-- [Phase 0 任务](tasks/TASK-001-phase0-project-skeleton.md)
-- [Phase 0 技术规范](specs/phase0_project_skeleton.md)
-- [TASK-003 Firmware Phase 1 基础采集与设备模型](tasks/TASK-003-firmware-phase1-basic-acquisition.md)
-- [Firmware Phase 1 基础采集技术规范](specs/firmware_phase1_acquisition.md)
-- [Host 设备模型与寄存器编解码任务](tasks/TASK-004-host-device-model-register-codec.md)
-- [Host 设备模型与寄存器编解码技术规范](specs/host_device_model_register_codec.md)
-- [TASK-005 Firmware Phase 2 Modbus RTU Slave](tasks/TASK-005-firmware-phase2-modbus-rtu-slave.md)
-- [Firmware Phase 2 Modbus RTU Slave 技术规范](specs/firmware_phase2_modbus_rtu_slave.md)
-- [TASK-005 VCP/UART 验证记录](docs/test_results/task005_vcp_uart_modbus_validation.md)
-- [TASK-006 Host Modbus 后端决策与异步通信规范](tasks/TASK-006-host-phase3-modbus-backend-decision.md)
-- [Host Modbus 后端 ADR](docs/decisions/2026-09-03-Host-Modbus后端.md)
-- [Host Phase 3 Modbus 异步通信技术规范](specs/host_phase3_modbus_communication.md)
-- [TASK-007 Host Modbus RTU 核心、通信契约与 Fake](tasks/TASK-007-host-phase3-modbus-core-and-fake.md)
-- [TASK-008 Host QSerialPort 异步后端与 VCP 联调](tasks/TASK-008-host-phase3-qserialport-backend-vcp-integration.md)
-- [TASK-008 Host VCP/UART 联调记录](docs/test_results/task008_host_vcp_modbus_integration.md)
-- [TASK-002 RS485 硬件基线与迁移验收总任务](tasks/TASK-002-rs485-hardware-migration.md)
-- [RS485 硬件接口技术规范](specs/rs485_hardware_interface.md)
-- [TASK-009 Firmware USART1/RS485 传输迁移](tasks/TASK-009-firmware-usart1-rs485-transport-migration.md)
-- [Firmware USART1/RS485 传输迁移技术规范](specs/firmware_rs485_transport_migration.md)
-- [TASK-009 Firmware RS485 验证记录](docs/test_results/task009_firmware_rs485_transport_validation.md)
-- [TASK-010 Host 真实 RS485 系统联调与迁移验收](tasks/TASK-010-host-rs485-system-integration.md)
-- [TASK-010 Host RS485 联调记录](docs/test_results/task010_host_rs485_system_integration.md)
-- [TASK-011 Host Phase 4 应用状态与监控核心](tasks/TASK-011-host-phase4-monitoring-core.md)
-- [Host Phase 4 应用状态与监控核心技术规范](specs/host_phase4_monitoring_core.md)
-- [TASK-011 Host 监控核心验证记录](docs/test_results/task011_host_monitoring_core.md)
-- [TASK-012 Host Phase 4 实时监控 UI 与 RS485 长时验证](tasks/TASK-012-host-phase4-monitoring-ui-rs485-validation.md)
-- [Host Phase 4 实时监控 UI 技术规范](specs/host_phase4_monitoring_ui.md)
-- [TASK-012 实时监控与 30 分钟 RS485 验证记录](docs/test_results/task012_monitoring_rs485_30min.md)
-- [TASK-013 Host 参数配置、通信调试与会话日志](tasks/TASK-013-host-configuration-communication-diagnostics.md)
-- [Host Phase 4 参数配置、通信诊断与会话日志技术规范](specs/host_phase4_configuration_and_diagnostics.md)
-- [TASK-013 参数配置、通信诊断与真实 RS485 验证记录](docs/test_results/task013_configuration_diagnostics_rs485.md)
-- [TASK-014 Host Phase 5 测试用例模型、JSON Schema 与断言](tasks/TASK-014-host-phase5-testcase-schema-loader.md)
-- [Host Phase 5 测试用例模型、JSON Schema 与断言技术规范](specs/host_phase5_testcase_schema.md)
-- [TASK-014 测试用例 Schema、Loader 与断言验证记录](docs/test_results/task014_testcase_schema_loader.md)
-- [TASK-015 Host Phase 5 TestEngine 执行核心](tasks/TASK-015-host-phase5-test-engine-core.md)
-- [Host Phase 5 TestEngine 执行核心技术规范](specs/host_phase5_test_engine.md)
-- [TASK-015 TestEngine 执行核心验证记录](docs/test_results/task015_test_engine_core.md)
-- [TASK-016 Host Phase 5 自动化测试 UI 与真实 RS485 验收](tasks/TASK-016-host-phase5-automation-ui-rs485-validation.md)
-- [Host Phase 5 自动化测试 UI 技术规范](specs/host_phase5_automation_ui.md)
-- [TASK-016 自动化测试 UI 与真实 RS485 验收记录](docs/test_results/task016_phase5_automation_rs485.md)
-- [TASK-017 Host Phase 6 覆盖模型与测试 Schema v2](tasks/TASK-017-host-phase6-schema-and-coverage-model.md)
-- [Host Phase 6 覆盖模型与测试 Schema v2 技术规范](specs/host_phase6_testcase_schema.md)
-- [Host Phase 6 覆盖矩阵](docs/phase6_coverage_matrix.md)
-- [TASK-017 Schema v2、覆盖模型与断言验证记录](docs/test_results/task017_phase6_schema_coverage.md)
-- [TASK-018 Host Phase 6 复合测试、超时与稳定性执行核心](tasks/TASK-018-host-phase6-composite-stability-engine.md)
-- [Host Phase 6 复合测试、超时与稳定性执行核心技术规范](specs/host_phase6_execution_engine.md)
-- [TASK-018 复合与稳定性执行核心验证记录](docs/test_results/task018_phase6_execution_engine.md)
-- [TASK-019 Host Phase 6 完整自动化套件与 UI 集成](tasks/TASK-019-host-phase6-complete-test-suite.md)
-- [Host Phase 6 正式自动化套件与 UI 集成技术规范](specs/host_phase6_complete_suite_ui.md)
-- [TASK-019 正式套件与 UI 集成验证记录](docs/test_results/task019_phase6_complete_suite_ui.md)
-- [TASK-020 Host Phase 6 真实 RS485 完整套件验收](tasks/TASK-020-host-phase6-rs485-full-validation.md)
-- [Host Phase 6 真实 RS485 完整套件验收技术规范](specs/host_phase6_rs485_full_validation.md)
-- [TASK-020 真实 RS485 完整套件验证记录](docs/test_results/task020_phase6_rs485_full_validation.md)
-- [TASK-021 Host Phase 7 引导式测试模型与 Schema v3](tasks/TASK-021-host-phase7-guided-test-schema.md)
-- [Host Phase 7 引导式测试模型与 Schema v3 技术规范](specs/host_phase7_guided_test_schema.md)
-- [TASK-021 引导式模型与 Schema v3 验证记录](docs/test_results/task021_phase7_guided_test_schema.md)
-- [TASK-022 Host Phase 7 半自动测试控制器与 UI](tasks/TASK-022-host-phase7-guided-controller-ui.md)
-- [Host Phase 7 引导式执行协调与 UI 技术规范](specs/host_phase7_guided_execution_ui.md)
-- [TASK-022 半自动测试控制器与 UI 验证记录](docs/test_results/task022_phase7_guided_controller_ui.md)
-- [TASK-023 Host Phase 7 RS485 断线恢复半自动验收](tasks/TASK-023-host-phase7-rs485-guided-recovery-validation.md)
-- [Host Phase 7 RS485 断线恢复半自动验收技术规范](specs/host_phase7_rs485_guided_recovery.md)
-- [TASK-023 RS485 断线恢复半自动验证记录](docs/test_results/task023_phase7_rs485_guided_recovery.md)
-- [TASK-024 Host Phase 8 报告契约与元数据策略](tasks/TASK-024-host-phase8-report-contract-metadata.md)
-- [TASK-025 Host Phase 8 自包含 HTML 报告生成器](tasks/TASK-025-host-phase8-html-report-generator.md)
-- [TASK-026 Host Phase 8 报告 UI、一键导出与验收](tasks/TASK-026-host-phase8-report-ui-export-validation.md)
-- [Host Phase 8 报告 UI 与一键导出技术规范](specs/host_phase8_report_ui_export.md)
-- [TASK-026 报告 UI 与一键导出验证记录](docs/test_results/task026_phase8_report_export.md)
-- [TASK-026 真实 RS485 脱敏示例报告](docs/examples/task026-phase5-rs485-report.html)
-- [TASK-027 Phase 9 工程文档基线与架构图](tasks/TASK-027-phase9-documentation-architecture-baseline.md)
-- [TASK-027 工程文档与架构基线审计记录](docs/test_results/task027_phase9_documentation_audit.md)
-- [MVP 平台支持基线 ADR](docs/decisions/2026-09-06-MVP平台支持基线.md)
-- [TASK-028 Phase 9 展示素材、截图与示例报告](tasks/TASK-028-phase9-demo-assets-example-report.md)
-- [TASK-028 真实展示素材清单](docs/assets/README.md)
-- [TASK-028 展示素材与示例报告验收记录](docs/test_results/task028_phase9_demo_assets.md)
-- [TASK-029 Phase 9 最终 README、复现与现场演示验收](tasks/TASK-029-phase9-final-readme-demo-acceptance.md)
+![生产 Host 通过运行时枚举的 RS485 串口显示设备测量值、健康状态和通信统计](docs/assets/host-monitoring.png)
 
-## 仓库结构
+![生产 Host 自动化测试页显示 Phase 5 短套件终态、8 条用例统计和代表性通信证据](docs/assets/host-automation-results.png)
 
-```text
-firmware/stm32/   STM32 固件
-host/qt/          C++ / Qt 上位机
-testcases/        JSON 测试用例
-docs/             产品、架构、协议与测试文档
-research/         调研记录
-specs/            技术规范
-tasks/            可独立验收的任务
-output/           本地日志与报告（内容不提交）
+![生产 Host 生成的离线 HTML 报告显示基本信息、8/8 汇总和用例明细入口](docs/assets/host-report.png)
+
+参数配置、通信诊断等完整图片及真实性/哈希信息见 [展示素材清单](docs/assets/README.md)。
+
+## 已验证能力
+
+| 能力 | 已验证结果 | 证据 |
+|---|---|---|
+| STM32 采集与设备模型 | 三路 DHTC12 各 12 个连续有效周期，36 帧双 CRC 全部通过；光敏明暗方向与传感器故障恢复通过 | [硬件基线](docs/hardware_baseline.md) |
+| Firmware Modbus RTU Slave | 0x03/0x06、异常响应、坏帧恢复及纯 C 测试通过；RS485 500/500 连续请求成功 | [TASK-009 记录](docs/test_results/task009_firmware_rs485_transport_validation.md) |
+| Qt Modbus RTU Master | 生产 QSerialPort 后端经真实 RS485 500/500 请求成功 | [TASK-010 记录](docs/test_results/task010_host_rs485_system_integration.md) |
+| 实时监控 | 30 分钟内 17,620/17,620 请求成功，零失败、零超时 | [TASK-012 记录](docs/test_results/task012_monitoring_rs485_30min.md) |
+| 完整自动化套件 | 20/20 真实 RS485 主套件 PASS；10 分钟 stability 为 599/599 成功 | [TASK-020 记录](docs/test_results/task020_phase6_rs485_full_validation.md) |
+| 半自动故障恢复 | 人工断开/恢复 A/B 后，软件自动观察连续超时与连续合法响应，稳定恢复 716 ms | [TASK-023 记录](docs/test_results/task023_phase7_rs485_guided_recovery.md) |
+| 正式报告 | Phase 5 短套件 8/8 PASS，报告保留 11 个 RequestId/TX/RX/RTT 与 SessionLog 摘要 | [TASK-026 记录](docs/test_results/task026_phase8_report_export.md) · [示例 HTML](docs/examples/task026-phase5-rs485-report.html) |
+
+上述结果分别来自实机、Fake 或虚拟时间的边界均在对应记录中说明；不能相互替代或外推。
+
+## 系统架构
+
+```mermaid
+flowchart LR
+    Sensors[3× DHTC12<br/>光敏 AO] --> Firmware[STM32 Firmware<br/>采集/告警/寄存器/RTU Slave]
+    Firmware -->|USART1 115200 8N1| TTL485[自动换向 TTL-RS485]
+    TTL485 <-->|A / B / GND| USB485[USB-RS485]
+    USB485 --> Serial[QSerialPort<br/>单通信线程与串行队列]
+    Serial --> Core[Host 状态/监控/配置/诊断]
+    Core --> UI[Qt Widgets UI]
+    Core --> Engine[JSON Loader / TestEngine<br/>Guided Coordinator]
+    Engine --> Evidence[RequestId / TX / RX / RTT<br/>SessionLog JSONL]
+    Engine --> Report[不可变结果模型<br/>自包含 HTML 报告]
 ```
 
-## 当前开发基线
+Host 中 `IModbusClient` 是唯一通信边界。监控、配置、自动化和半自动测试通过集中状态机互斥取得通信所有权；QWidget 不直接访问串口、构造 RTU 或解释 CRC。详细模块、状态机、数据流和报告链路见 [架构设计](docs/architecture.md)。
 
-- Windows x64（MVP 已验证运行平台；Linux 保留可移植边界但未验证）
-- C++17
-- Qt 6.8.3 + MSVC 2022 x64（已完成本机构建验证）
-- CMake + Ninja
-- NUCLEO-F411RE / STM32F411RET6
-- STM32CubeMX 6.18.1-RC2 + STM32CubeF4 v1.28.3 + HAL
-- 三只 DHTC12（I2C1/2/3）与一路 PA0/ADC1 光敏模拟量
-- 当前生产协议已通过 ST-LINK VCP/USART2 和真实 RS485/USART1 两条路径验证；RS485 使用自动换向模块、115200 8N1、Slave ID 1
+## 硬件列表与接线
+
+| 硬件 | 当前基线 |
+|---|---|
+| 开发板 | NUCLEO-F411RE / STM32F411RET6，板载 ST-LINK/V2-1 |
+| 温度 | DHTC12 ×3，分别使用 I2C1/2/3，3.3 V、4.7 kΩ 上拉 |
+| 光敏 | 4 线制光敏模块，AO→PA0/ADC1_IN0，3.3 V |
+| TTL-RS485 | MAX13487EESA 系列自动换向模块，5 V；PA9→RXD、PA10←TXD |
+| USB-RS485 | DTECH 两线转换器；端口在运行时枚举 |
+
+总线侧只连接 `A↔T/R+`、`B↔T/R-`、`GND↔GND`。A/B 不得带电短接或反接试错，所有模块必须共地。完整引脚、电气约束、供电和实测边界见 [硬件与通信基线](docs/hardware_baseline.md) 与 [RS485 接口规范](specs/rs485_hardware_interface.md)。
+
+## 软件环境
+
+MVP 已验证平台为 Windows x64；Linux 尚未完成构建或串口实机验证。
+
+| 工具 | 已验证版本/配置 |
+|---|---|
+| Host | C++17、Qt 6.8.3 `msvc2022_64`、MSVC 19.51、CMake、Ninja |
+| Firmware | STM32CubeMX 6.18.1-RC2、STM32CubeF4 v1.28.3、HAL |
+| ARM 工具链 | GNU Tools for STM32 14.3.1；STM32Cube bundle CMake 4.3.1、Ninja 1.13.2 |
+| 烧录 | STM32CubeProgrammer 2.23.0，经板载 ST-LINK/SWD |
+| 通信 | Modbus RTU，Slave ID 1，115200 baud，8N1，无流控，初始超时 500 ms |
 
 ## 构建 Host
 
-在仓库根目录打开 PowerShell 7：
+以下命令在仓库根目录的 PowerShell 7 中执行。`$hostBuild` 应指向一个尚不存在的项目专属目录；Qt 安装路径不同时需调整 `$qtRoot`。
 
 ```powershell
-$projectRoot = (Get-Location).Path
-$vsDevCmd = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat'
-& cmd.exe /d /s /c "call `"$vsDevCmd`" -arch=x64 -host_arch=x64 >nul && cmake -S $projectRoot\host\qt -B $projectRoot\build-host -G Ninja -DCMAKE_PREFIX_PATH=D:\Dev\Qt\6.8.3\msvc2022_64 -DCMAKE_BUILD_TYPE=Debug"
-& cmd.exe /d /s /c "call `"$vsDevCmd`" -arch=x64 -host_arch=x64 >nul && cmake --build $projectRoot\build-host --parallel"
-ctest --test-dir "$projectRoot\build-host" --output-on-failure
+$projectRoot = (git rev-parse --show-toplevel).Trim()
+$hostBuild = Join-Path $projectRoot 'build-local-host'
+$qtRoot = 'D:\Dev\Qt\6.8.3\msvc2022_64'
+$vsDevShell = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\Launch-VsDevShell.ps1'
+
+& $vsDevShell -Arch amd64 -HostArch amd64 -NoLogo
+cmake -S (Join-Path $projectRoot 'host\qt') -B $hostBuild -G Ninja "-DCMAKE_PREFIX_PATH=$qtRoot" -DCMAKE_BUILD_TYPE=Debug
+cmake --build $hostBuild --parallel
+ctest --test-dir $hostBuild --output-on-failure
 ```
 
-当前机器实际使用 Visual Studio 2026 Community 的 MSVC 19.51 编译器；它已通过 Qt `msvc2022_64` 包的配置、链接和运行测试。应用启动烟雾测试使用 Qt 的 offscreen 平台，不访问串口或硬件。
+应用产物为 `$hostBuild\src\oms555tv_host.exe`。`host.application.smoke` 使用 Qt offscreen 平台，不访问串口或硬件。
 
-## 构建 STM32 固件
+## 构建与测试 Firmware
 
-固件由 STM32CubeMX 6.18.1-RC2 生成，构建工具来自 STM32Cube bundles。无需修改系统 `PATH`：
+STM32Cube 工具来自 `%LOCALAPPDATA%\stm32cube\bundles`，只修改当前 PowerShell 进程的 `PATH`。真实 RS485 镜像必须显式选择 `USART1_RS485`，并确认配置输出包含 `Modbus transport: USART1_RS485`。
 
 ```powershell
-$projectRoot = (Get-Location).Path
-$bundleRoot = 'C:\Users\rainbow\AppData\Local\stm32cube\bundles'
-$env:Path = "$bundleRoot\gnu-tools-for-stm32\14.3.1+st.2\bin;$bundleRoot\ninja\1.13.2+st.1\bin;$env:Path"
-& "$bundleRoot\cmake\4.3.1+st.1\bin\cmake.exe" -S "$projectRoot\firmware\stm32" -B "$projectRoot\build-firmware" -G Ninja "-DCMAKE_TOOLCHAIN_FILE=$projectRoot\firmware\stm32\cmake\gcc-arm-none-eabi.cmake" -DCMAKE_BUILD_TYPE=Debug
-& "$bundleRoot\cmake\4.3.1+st.1\bin\cmake.exe" --build "$projectRoot\build-firmware" --parallel
+$projectRoot = (git rev-parse --show-toplevel).Trim()
+$bundleRoot = Join-Path $env:LOCALAPPDATA 'stm32cube\bundles'
+$firmwareBuild = Join-Path $projectRoot 'build-local-firmware-rs485'
+$env:Path = "$(Join-Path $bundleRoot 'gnu-tools-for-stm32\14.3.1+st.2\bin');$(Join-Path $bundleRoot 'ninja\1.13.2+st.1\bin');$env:Path"
+$bundleCmake = Join-Path $bundleRoot 'cmake\4.3.1+st.1\bin\cmake.exe'
+
+& $bundleCmake -S (Join-Path $projectRoot 'firmware\stm32') -B $firmwareBuild -G Ninja "-DCMAKE_TOOLCHAIN_FILE=$(Join-Path $projectRoot 'firmware\stm32\cmake\gcc-arm-none-eabi.cmake')" -DCMAKE_BUILD_TYPE=Debug -DOMS555TV_MODBUS_TRANSPORT=USART1_RS485
+& $bundleCmake --build $firmwareBuild --parallel
 ```
 
-上述默认目标是 `USART2_VCP`。用于当前真实 RS485 台架的镜像必须使用独立构建目录并显式选择端点，且烧录前核对配置输出包含 `Modbus transport: USART1_RS485`：
+固件产物为 `$firmwareBuild\oms555tv_firmware.elf`。纯 C 业务/协议测试使用当前 MSVC 开发环境，在另一个目录执行：
 
 ```powershell
-& "$bundleRoot\cmake\4.3.1+st.1\bin\cmake.exe" -S "$projectRoot\firmware\stm32" -B "$projectRoot\build-firmware-rs485" -G Ninja "-DCMAKE_TOOLCHAIN_FILE=$projectRoot\firmware\stm32\cmake\gcc-arm-none-eabi.cmake" -DCMAKE_BUILD_TYPE=Debug -DOMS555TV_MODBUS_TRANSPORT=USART1_RS485
-& "$bundleRoot\cmake\4.3.1+st.1\bin\cmake.exe" --build "$projectRoot\build-firmware-rs485" --parallel
+$firmwareTests = Join-Path $projectRoot 'build-local-firmware-tests'
+cmake -S (Join-Path $projectRoot 'firmware\stm32\tests') -B $firmwareTests -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build $firmwareTests --parallel
+ctest --test-dir $firmwareTests --output-on-failure
+& (Join-Path $firmwareTests 'phase1_unit_tests.exe')
 ```
 
-2026-09-03 的 TASK-003 最终结果：`oms555tv_firmware.elf` 链接成功，Flash 使用 27,260 B，RAM 使用 2,624 B；22 个本机测试通过，固件已通过 ST-LINK 烧录、校验并运行。GATE-01～04 均已关闭，三路 DHTC12 正式固件各完成 12 个连续有效周期，温度为 25.9～26.2 ℃，36 帧双 CRC 全部通过；光敏 AO 已确认由强光 130～132 mV 上升至完全遮光 2883～2898 mV；B 路断线三周期置位与运行中重连恢复均已验证。实物板标识为 `MB1136-F411RE-C04`、贴纸编号 `A232203276`，TASK-003 已完成。
+## 固件烧录与设备连接
 
-2026-09-03 的 TASK-005 最终结果：35/35 纯 C 测试和 ARM 干净构建通过，Flash 使用 29,124 B，RAM 使用 3,272 B；固件已通过 VCP/UART 完成 0x03、0x06、0x01/0x02/0x03、错误 CRC、短帧和阈值恢复验证。连续 500 次 0x03 请求为 500/500 成功，响应时间最小/平均/最大为 6.045/7.868/9.708 ms。该结果仅证明 USART2/ST-LINK VCP 协议行为，不代表 RS485 电气层已经验证。
+若开发板已经运行已验证的 USART1/RS485 Firmware，无需为普通演示重复烧录。需要更新时：
 
-2026-09-03 的 TASK-007 最终结果：Host 全新配置、构建和 8/8 CTest 通过。新增测试覆盖通信模型、CRC16、0x03/0x06 完整 RTU ADU、正常与异常响应、错误判定优先级、任意分片、确定性 Fake、FIFO、QueueFull、单在途、取消、关闭、所有权交接和恰好一次终态。该结果仅为无串口、无硬件验证，不代表 QSerialPort、VCP/UART 或 RS485 已通过。
+1. 保持 RS485 台架为安全低压状态，用 USB 连接 NUCLEO 的 ST-LINK 口。
+2. 打开 STM32CubeProgrammer 2.23.0，选择 ST-LINK/SWD 并连接目标板。
+3. 选择刚构建的 `oms555tv_firmware.elf`，执行下载、校验和软件复位。
+4. 断开 Programmer 对目标的占用，确认板卡运行；不要误烧录默认 `USART2_VCP` 构建。
+5. 接通 USB-RS485，重新枚举端口；端口号可能变化，不得写死 COM6。
 
-2026-09-03 的 TASK-008 最终结果：Host 全新配置、构建和 9/9 CTest 通过；生产 `QSerialPortModbusClient` 使用单通信线程、有界 FIFO、异步完成、受控取消/关闭/交接和完整 TX/RX/CRC/RTT 证据。运行时枚举 ST-LINK VCP 为 COM3，全部合法读块、TASK-004 快照解码、四路阈值写入/回读/恢复、远端 0x02/0x03 和错误 Slave ID 超时后的关闭/重开恢复均通过。500 次连续 0x03 为 500/500 成功，RTT 最小/平均/最大 3.348/5.674/6.941 ms，Firmware 通信错误计数 0→0。该结论仅限 VCP/UART；RS485 电气层仍未验证。
+烧录会改变设备当前 Firmware，执行前应核对产物目录、`USART1_RS485` 配置输出和 ELF 时间戳。
 
-2026-09-04 的 TASK-009 最终结果：USART2 VCP 与 USART1 RS485 两种 ARM 构建、35/35 纯 C 测试和 RS485 烧录均通过。第三方 Master 经 COM6 完成全量读写、0x01/0x02/0x03、坏 CRC、短帧、阈值恢复和采集并行验证；500 次连续 0x03 为 500/500 成功，RTT 最小/平均/最大 13.312/16.036/18.446 ms。
-
-2026-09-04 的 TASK-010 最终结果：Host 全新构建和 9/9 CTest 通过，生产 `QSerialPortModbusClient` 经真实 RS485 完成全量闭环；500 次连续 0x03 为 500/500 成功，Host API RTT 最小/平均/最大 26.311/32.477/46.087 ms。断开/重连 T/R+ 与保持/释放设备 RESET 的失败和显式恢复均已实测通过。该结论仅限当前约 20 cm 安全低压点对点台架。
-
-2026-09-04 的 TASK-011 最终结果：Host 全新配置、构建和 10/10 CTest 通过。新增 `AppStateController`、`MonitorService` 和可注入调度器，覆盖连接与所有权状态、五个合法块严格串行轮询、完整快照、Online/Degraded/Offline、可审计通信统计、周期超期不积压，以及无在途/queued/in-flight 停止。测试完全使用 Fake 和手动虚拟时间，不访问 QWidget、串口或真实硬件。
-
-2026-09-04 的 TASK-012 最终结果：新增运行时串口枚举、`MonitoringViewModel` 和完整 Qt Widgets 实时监控界面；全新 Host 构建和 11/11 CTest 通过，真实后端与 UI 测试各重复 10 轮通过。COM6/真实 RS485 连续运行 1,800,007 ms，3,524/3,524 批次、17,620/17,620 请求成功，零失败、零超时，UI 最大心跳迟到 244 ms。MCU 复位时 UI 明确显示离线和陈旧快照，显式断开/重连后恢复 Online，最终稳定复检 50/50 请求成功。结论仅限当前约 20 cm 安全低压点对点台架。
-
-2026-09-04 的 TASK-013 最终结果：新增四路阈值配置服务、通信诊断模型、会话 JSONL 日志和对应 Qt Widgets 页面；全新 Host 构建和 15/15 CTest 通过。COM6/真实 RS485 测试前值为 60.0/60.0/60.0/40.0 ℃，测试值 60.1/60.1/60.1/40.1 ℃ 的逐路写回读通过，结束后恢复并最终读取为原值。会话内 20/20 请求成功且均保留 TX/RX，最终 Review 无必须修复项。
-
-2026-09-04 的 TASK-014 最终结果：新增 v1 JSON Schema、严格 UTF-8 Loader、版本化套件/用例/timeout/retry 模型和无通信依赖的五类断言。有效/无效 fixture、中文示例、边界和结构化差异测试均通过；全新 Host 配置、构建和 17/17 CTest 通过。本任务未访问串口、真实硬件或 QWidget，示例不计入正式测试用例。
-
-2026-09-05 的 TASK-015 最终结果：新增无 QWidget 的 `TestEngine`、可注册基础处理器和不可变 `TestResultManager` 快照，支持单条/批量、禁用/选择跳过、timeout、显式 retry、中止、完整 attempt/RequestId/TX/RX 证据及 TEST 日志。`write_and_verify` 执行写前读取、独立写/回读，并在失败或中止后受控恢复原值；全新 Host 构建和 18/18 CTest 通过。验证完全使用 Fake 与虚拟时间，未访问真实 RS485；自动化 UI 与至少 5 条实机套件留给 TASK-016。
-
-2026-09-05 的 TASK-016 最终结果：新增异步 JSON 加载与测试模式编排层、Qt 自动化测试页面、8 条 Phase 5 基础套件和真实 RS485 验收工具。页面支持选中/全部执行、跳过、中止、可选恢复监控，并展示 PASS/FAIL/ERROR/SKIPPED、当前步骤、RequestId、TX/RX、RTT、实际值和结构化错误。全新 Host 构建和 19/19 CTest 通过；COM6 实测 8/8 用例 PASS，11 个测试请求在结果/诊断/TEST 日志中一致，四路阈值最终恢复为 60.0/60.0/60.0/40.0 ℃。本结果只关闭 Phase 5，不代表 Phase 6 的完整 20 条套件、Phase 7 或 Phase 8 已完成。
-
-2026-09-05 的 TASK-017 最终结果：新增独立的 Schema v2、严格 Loader、Phase 6 覆盖矩阵、规范化 sequence/预期超时/uint32/稳定性模型和纯数据断言，并保持 v1 fixture、中文示例和 Phase 5 套件兼容。全新 Host 构建和 19/19 CTest 通过；测试不访问串口、真实硬件或 QWidget。该结果只关闭 Phase 6 的输入与覆盖模型，执行核心、正式 20+ 套件和实机验收仍分别由 TASK-018～TASK-020 完成。
-
-2026-09-05 的 TASK-018 最终结果：TestEngine 与处理器边界新增有界延迟、sequence 重复与失败策略、结构化预期超时、uint32 一致性聚合和 stability 长循环；结果可追溯逻辑步骤、统计、Session ID 与有界代表证据，完整 attempt 仍写入 JSONL。全新 Host 构建和 19/19 CTest 通过，TestEngine 33 个测试包含 10 分钟、1 小时、8 小时及 24 小时虚拟运行。验证未访问串口、真实 RS485 或开发板；正式 20+ 套件和实机验收仍由 TASK-019～TASK-020 完成。
-
-2026-09-05 的 TASK-019 最终结果：新增 20 条真实 RS485 主套件和 4 条 Fake 边界套件，主套件独立满足功能 8、协议 4、边界 4、数据一致性 2、自动恢复 1、稳定性 1 的最低数量。自动化测试从正式 JSON 原样加载，主套件 20/20、Fake 套件 4/4 PASS；10 分钟 stability 通过虚拟时间完成 600 次采样，主套件共核对 648 个唯一 RequestId，另覆盖 FAIL、通信 ERROR、恢复失败和中止。UI 新增 sequence 步骤/重复、稳定性迭代、聚合 RTT 和证据保留摘要。全新 Host 构建和 20/20 CTest 通过，未访问串口或开发板；Phase 6 仍须由 TASK-020 的真实 RS485 全量验收关闭。
-
-2026-09-05 的 TASK-020 最终结果：新增复用生产 MainWindow、QSerialPort 后端、状态机、TestEngine、诊断和会话日志的可见实机验收工具，提供隔离的预检、中止与完整模式；真实调度使用精确定时器，正式 1000 ms 间隔、600000 ms 时长和 594 最低成功门槛保持不变。全新 Host 构建和最终 20/20 CTest 通过；COM6 正式主套件 20/20 PASS，六类覆盖为 8/4/4/2/1/1，稳定性持续 600001 ms 并完成 599/599 次成功请求，0 失败、0 超时，RTT 最小/平均/最大为 20/32/68 ms。正式会话 647 个 Testing RequestId 在结果、诊断、通信日志与 TEST 日志中一致，四路阈值前后保持 60.0/60.0/60.0/40.0 ℃，UI 最大心跳迟到 484 ms。Phase 6 已关闭；结论不外推至 Phase 7 人工恢复、Phase 8 报告或工业环境。
-
-2026-09-05 的 TASK-021 最终结果：新增独立 Schema v3、严格 Loader、固定四段 `guided_recovery` 模型、人工动作 token 校验、结构化中断/恢复观察契约和 Phase 8 可直接消费的不可变证据。恢复时间同时保存首个成功与连续成功完成两个单调时钟口径；未知步骤/动作、缺失恢复指引、非法 deadline、重复 step ID 和写探测均被结构化拒绝。全新 Host 140 步构建及最终 21/21 CTest 通过，v1/v2 与 Phase 5/6 正式套件无回归；测试未访问 QWidget、串口或真实硬件。半自动控制器/UI 与真实 RS485 拔插验收仍分别属于 TASK-022/023。
-
-2026-09-05 的 TASK-022 最终结果：新增无 QWidget 依赖的 `GuidedTestCoordinator`、TestEngine 互斥引导探测入口和自动化页引导面板。人工确认使用 run/case/step/一次性 token 校验；人工等待不发请求，观察严格串行且只以连续结构化超时/合法业务响应判定中断与恢复。结果和 TEST 日志保留人工记录、RequestId、TX/RX、RTT、首次响应/稳定恢复耗时及未恢复接线提醒。全新 Host 145 步构建及最终 22/22 CTest 通过，Fake/虚拟时间与 offscreen UI 覆盖成功、失败、取消、超时、致命错误和中止；未访问串口、开发板或真实 RS485。Phase 7 仍需 TASK-023 实机人工断线—恢复验收。
-
-2026-09-06 的 TASK-023 最终结果：新增正式 Schema v3 `TC-R001`、安全操作 Spec、套件目录测试和复用生产 MainWindow/通信/状态/诊断/日志链路的可见实机验收工具。全新 Host 153 步构建及 23/23 CTest 通过；COM6 独立预检确认 Firmware 0.2 和五个读块。正式会话中人工只断开/恢复 A/B，软件观察到 3 次连续 `ResponseTimeout` 与 3 次连续合法 Firmware minor=2 响应，首次响应 51 ms、稳定恢复 716 ms；6 个 Testing RequestId 在结果、诊断、通信日志与 TEST 日志中一致，最终在线读取、owner 释放和 UI 心跳均通过。Phase 7 已关闭；结论仅适用于当前安全低压约 20 cm 台架，不代表 USB 自动重连、工业长线、隔离或 EMC。
-
-2026-09-06 的 TASK-024 最终结果：新增纯数据 `ReportInput`、带来源标签的 `ReportMetadata`、`ReportSummary`、完整 `ReportDocumentModel`、结构化 `ReportError` 和 `ReportModelBuilder`。映射层只消费不可变 suite 结果与显式快照，校验 Engine 终态、计数、时间、证据保留及 SessionLog 工件，不读取 UI、串口、用户名或 JSONL；Firmware 只从通过断言的 major/minor 实际读取提取。基础、sequence、consistency、stability 和 guided recovery 的 expected/actual、步骤、人工提示/动作、恢复时间、RequestId、TX/RX、RTT、错误及有界证据均已结构化保留。全新 Host 构建和 24/24 CTest 通过；本任务未生成 HTML/PDF，也未访问硬件。
-
-2026-09-06 的 TASK-025 最终结果：新增纯 Qt Core `HtmlReportGenerator`，以固定模型和可注入 UTC 时钟生成 UTF-8、自包含、无脚本 HTML。报告完整呈现元数据来源、汇总、四终态、基础/sequence/consistency/stability/guided recovery、RequestId、TX/RX/RTT、错误、清理错误、证据保留与 SessionLog 工件边界；全部外部文本统一转义并规范化控制字符。CSS/CSP 内联，`<details>` 无 JavaScript，打印规则会展开折叠内容。安全文件名包含 suite/运行时间/run ID，`QSaveFile` 写入拒绝重名并返回结构化路径/打开/写入/提交错误。全新 Host 构建和 25/25 CTest 通过；本任务没有 UI、真实 RS485 或原生 PDF 结论。
-
-2026-09-06 的 TASK-026 最终结果：新增报告页和无 QWidget 依赖的 `ReportExportController`，绑定最近一次完整不可变结果，明确无结果/运行中/必填元数据/导出中门禁，并在线程池完成 SessionLog 哈希、模型构建和原子 HTML 写入。offscreen UI 与四类确定性 fixture 覆盖异步、输入冻结、重名/路径失败、最近结果切换及真实脱敏示例；全新 Host 构建和 27/27 CTest 通过。COM6 上 Phase 5 短套件 8/8 PASS，一键报告保留 Firmware 0.2、Session ID 和 11 个 RequestId/TX/RX/RTT，阈值保存/写入/独立回读/恢复四步成功；桌面、窄窗口与打印预览通过。Phase 8 已关闭，原生 PDF 仍为可选未实现能力。
-
-2026-09-06 的 TASK-027 最终结果：完成 README、PRD、架构、硬件、寄存器、测试计划、用例目录、Bug 记录及 20 份验证记录的事实审计；Firmware、Host 与寄存器文档的 16 个 PDU 地址、五个读块、温度范围、状态位、字序和异常语义一致。架构文档更新为 MVP 实现基线并新增系统边界、Host 所有权/线程、状态机及测试—报告数据流四幅 Mermaid 图；平台 ADR 明确 Windows x64 为已验证 Host 平台，Linux 仅保留未验证的可移植边界。本任务只修改文档，未运行新的构建、串口或实机测试。
-
-实板联调工具会运行时枚举 ST-LINK，不写死 COM 号：
+## 启动和使用 Host
 
 ```powershell
-$env:Path = "D:\Dev\Qt\6.8.3\msvc2022_64\bin;$env:Path"
-& .\build-host\task008_vcp_integration.exe --stress-count 500
+$projectRoot = (git rev-parse --show-toplevel).Trim()
+$qtRoot = 'D:\Dev\Qt\6.8.3\msvc2022_64'
+$env:Path = "$(Join-Path $qtRoot 'bin');$env:Path"
+Push-Location $projectRoot
+& '.\build-local-host\src\oms555tv_host.exe'
+Pop-Location
 ```
 
-如存在多个候选串口，可根据工具打印的枚举结果显式增加 `--port COMx`。工具会在阈值测试前保存基线，并在结束时逐路恢复和整块回读；退出码为 0 且输出 `RESULT=PASS` 才表示全部联调步骤通过。
+1. 在“实时监控”页刷新串口，根据 USB-RS485 设备的运行时枚举结果选择端口，设置 Slave ID 1、500 ms，再连接。
+2. 启动监控后确认应用为“实时监控中”、设备 Online、数据持续更新；失败批次不会覆盖最近成功快照。
+3. 修改阈值前先停止监控，在“参数配置”页读取并保存四路原值；写入后必须独立回读，演示结束后恢复原值并整块复核。
+4. “通信调试”页可按级别、结果或 RequestId 查看功能码、TX/RX、CRC、RTT 和结构化错误。
+5. “会话日志”页在测试前开始会话，在测试完成后结束会话；原始 JSONL 位于忽略目录 `output/logs/`。
 
-Phase 7 半自动恢复复验必须先独立预检，再启动正式会话；`full` 中只按窗口提示断开/恢复 A/B，不得拔 USB 或断开发板电源、公共地：
+推荐的 5～10 分钟流程、预期画面和异常退出步骤见 [现场演示手册](docs/demo_runbook.md)。
 
-```powershell
-$revision = git rev-parse HEAD
-& .\build-host-task023\task023_rs485_validation.exe --mode preflight --port COM6 --suite .\testcases\phase7\phase7-rs485-disconnect-recovery.json --source-revision $revision
-& .\build-host-task023\task023_rs485_validation.exe --mode full --port COM6 --suite .\testcases\phase7\phase7-rs485-disconnect-recovery.json --source-revision $revision
+## Modbus RTU 简介
+
+当前生产链路由 Host Master 发起请求，STM32 Slave ID 1 响应。MVP 支持 0x03（读保持寄存器）和 0x06（写单寄存器），并返回标准 0x01/0x02/0x03 异常。温度以有符号 `int16`、0.1 ℃表示；光敏值为 `uint16` mV；32 位运行时间采用低字在低地址、高字在高地址。完整地址、访问权限、缩放、状态位和异常语义见 [Modbus 寄存器表](docs/modbus_register_map.md)。
+
+## 自动化、半自动测试与报告
+
+- `testcases/functional/phase5-smoke.json`：8 条、约 1 秒的现场短套件，覆盖动态值、Firmware 版本、非法地址和阈值写入/回读/恢复。
+- `testcases/phase6/phase6-rs485-full.json`：20 条正式实机主套件，含 10 分钟稳定性；不用于普通短演示。
+- `testcases/phase6/phase6-fake-boundaries.json`：4 条只能由 Fake 确定性验证的边界用例。
+- `testcases/phase7/phase7-rs485-disconnect-recovery.json`：引导式物理断线—恢复，可作为高级演示段；必须按安全提示操作 A/B。
+
+在“自动化测试”页加载套件后，Host 通过状态机停止监控、取得 Testing owner、串行执行并可按用户选择恢复监控。结果明确区分 PASS/FAIL/ERROR/SKIPPED，并保留 RequestId、TX/RX、RTT、实际值、错误与清理结果。
+
+运行结束且 SessionLog 已结束后，在“测试报告”页填写测试人员并生成 HTML。报告是 UTF-8、自包含、无脚本文件，不覆盖同名文件；原生 PDF 未实现，可用浏览器打印。可直接查看 [真实脱敏示例报告](docs/examples/task026-phase5-rs485-report.html)。
+
+## 项目亮点
+
+- Firmware 采集、协议、Host UI 和测试报告形成真实 RS485 软硬件闭环。
+- 单通信线程、串行请求队列和集中 owner 状态机避免监控/配置/测试争抢串口。
+- Schema v1/v2/v3 JSON 将基础、复合、稳定性和人工引导测试数据化，同时保持严格版本边界。
+- 每次请求贯穿 RequestId、TX/RX、CRC、RTT、诊断、JSONL、不可变结果与 HTML 报告，便于追溯。
+- 参数写入采用写前保存、独立回读、失败清理和最终恢复；半自动恢复的 PASS 由软件观察决定，而不是人工主观确认。
+- 单元、Fake、虚拟时间和真实硬件证据分层保存，量化结论都可回到验证记录。
+
+## 文档与追溯
+
+- [项目需求基线](PROJECT_SPEC.md) · [PRD](docs/prd.md) · [架构设计](docs/architecture.md)
+- [硬件基线](docs/hardware_baseline.md) · [寄存器表](docs/modbus_register_map.md)
+- [测试计划](docs/test_plan.md) · [测试用例目录](docs/test_cases.md) · [缺陷记录](docs/bug_records.md)
+- [MVP 最低验收矩阵](docs/mvp_acceptance_matrix.md) · [现场演示手册](docs/demo_runbook.md)
+- [完整任务历史](docs/task_index.md) · [Phase 9 文档审计](docs/test_results/task027_phase9_documentation_audit.md)
+
+仓库结构：
+
+```text
+firmware/stm32/   STM32 Firmware 与纯 C 测试
+host/qt/          C++/Qt Host、工具与 CTest
+testcases/        Schema v1/v2/v3 JSON 测试资产
+docs/             需求、架构、硬件、协议、测试与展示材料
+research/         调研记录
+specs/            技术规范
+tasks/            可独立验收的任务
+output/           本地日志与报告（只保留 .gitkeep）
 ```
 
-端口必须按运行时枚举结果显式选择；当前 COM6 只属于已记录台架，不能作为正式套件中的固定配置。
+## 已知限制与后续规划
 
-## 当前开发门禁
+- Windows x64 是唯一已验证 Host 平台；Linux 仅保留源码可移植边界。
+- 当前证据来自单台设备、约 20 cm、非隔离点对点 RS485，不代表工业长线、多设备、终端/偏置、隔离或 EMC 结果。
+- 环境温度为明确标记的软件模拟源；光敏值是未校准 ADC 毫伏值，不是照度。
+- USB 自动重连、Raw Frame、CRC 错误注入、原生 PDF、安装包和 CI/CD 不属于当前 MVP。
+- 8/24 小时真实稳定性、Linux 构建/串口实测、工业长线/隔离/EMC 和更多故障注入应分别立项验证，不能由既有短台架结果推定。
 
-硬件与引脚基线、Firmware Phase 1/2、Host Modbus 后端以及 RS485 迁移总验收已经完成。后续阶段必须保持以下门禁：
-
-1. `TASK-002/009/010` 已关闭；改变模块、供电、方向方式、线长、终端或偏置时必须重新评审硬件接口和对应测试范围；
-2. TASK-011/012/013 已关闭；配置和调试日志复用状态/监控核心与 `IModbusClient`，后续功能仍不得在 QWidget 直接操作 QSerialPort；
-3. Phase 4 的实时监控、30 分钟台架、参数配置、通信调试和会话日志已通过；Phase 5 的输入、执行核心、自动化 UI 与 8 条真实 RS485 基础套件也已通过；
-4. Phase 5 的 `TASK-014/015/016` 已关闭；后续仍须复用 TestAutomationController、TestEngine、AppStateController 和唯一 `IModbusClient` 路径，不得在 QWidget 临时实现协议或执行循环；
-5. Phase 6 按 `TASK-017` 覆盖模型/Schema v2、`TASK-018` 复合与稳定性执行核心、`TASK-019` 完整 20+ 套件/UI、`TASK-020` 真实 RS485 全量验收的顺序推进；前置任务未验收时不得跨层临时实现；
-6. `TASK-017/018/019/020` 与 Phase 6 已关闭；
-7. Phase 7 按 `TASK-021` 引导式模型/Schema v3、`TASK-022` 半自动控制器/UI、`TASK-023` RS485 物理断线恢复实机验收的顺序推进；前置任务未验收时不得跨层临时实现；
-8. `TASK-021/022/023` 与 Phase 7 已完成；STM32 Reset 与传感器人工操作作为后续增强；
-9. Phase 8 的 `TASK-024/025/026` 已按报告契约/元数据、自包含 HTML 生成器、报告 UI/一键导出验收顺序完成；后续不得绕过文档模型、转义、原子写入和最近完整结果边界直接解释日志或拼接 HTML；
-10. 正式一键导出和真实报告已验收，Phase 8 已关闭；原生 PDF 保持可选未实现能力；
-11. TASK-014 的中文示例与 fixture 不属于正式用例，TASK-016 的 8 条基础用例不能替代已独立记录的 TASK-020 Phase 6 实机结果；
-12. 8/24 小时稳定性、工业长线、隔离和 EMC 仍未验证，不得从当前短距离台架结果外推。
-13. Phase 9 按 `TASK-027` 文档/架构事实基线、`TASK-028` 真实展示素材、`TASK-029` 最终 README/复现与现场演示验收的顺序推进；前置任务未验收时不得提前关闭 MVP；
-14. `TASK-027/028` 已关闭文档事实基线、平台未决项、真实展示素材和示例报告复核；`TASK-029` 尚未执行。Phase 9 不引入 Linux 支持、Raw Frame、自动重连、原生 PDF 或其他进阶功能。
-
-详细架构决策与后续边界见系统架构文档和 ADR。
-
-## 安全说明
-
-本项目仅用于安全低压环境下的教学与测试验证，不接入真实高压、电流或市电设备，不实现工业保护功能。
+Phase 9 与当前 MVP 已关闭；最终复现和现场彩排证据见 [TASK-029 验收记录](docs/test_results/task029_phase9_final_acceptance.md)。

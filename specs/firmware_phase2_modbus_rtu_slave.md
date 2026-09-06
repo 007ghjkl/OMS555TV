@@ -543,7 +543,7 @@ Address, Function | 0x80, ExceptionCode, CrcLo, CrcHi
 
 ### 18.1 前置记录
 
-- 开发板：`MB1136-F411RE-C04`，编号 `A232203276`；
+- 开发板：`MB1136-F411RE-C04`；唯一设备编号不进入仓库；
 - 固件版本、提交或构建标识；
 - 实际枚举 COM 端口，禁止沿用固定 COM3/COM5 假设；
 - 第三方 Master 名称和版本；

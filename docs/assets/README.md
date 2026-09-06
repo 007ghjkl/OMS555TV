@@ -59,5 +59,5 @@ Host UI 使用 `build-host-task026/src/oms555tv_host.exe`，对应产品源码�
 - 结果边界：2026-09-06 单次短套件 8/8 PASS、11 个 RequestId/通信证据、Firmware 0.2；不能替代 Phase 6 主套件或长期稳定性结论。
 - SHA-256：`CA02E7C326901648188A17EB32FC110EB779BAE086EAA66301F7D9844ADF394C`
 - 离线性：无 HTTP/HTTPS URL，无 `src`/`href` 外部资源，无脚本。
-- 脱敏性：未发现 Windows 绝对路径、`rainbow` 用户名或设备序列号；保留的 `COM6` 仅属于该次真实运行记录。
+- 脱敏性：未发现 Windows 绝对路径、本机用户名或设备序列号；保留的 `COM6` 仅属于该次真实运行记录。
 - 一致性：报告显示 8/8 PASS、100.0000%、Firmware 0.2，其哈希与 TASK-026 验收记录一致。

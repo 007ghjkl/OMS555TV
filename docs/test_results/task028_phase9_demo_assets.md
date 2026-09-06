@@ -40,7 +40,7 @@ TASK-028 已完成。仓库新增六张真实、脱敏、可在 GitHub Markdown 
 
 - SHA-256 为 `CA02E7C326901648188A17EB32FC110EB779BAE086EAA66301F7D9844ADF394C`，与 TASK-026 记录一致；
 - 8/8 PASS、100.0000%、Firmware 0.2、COM6 运行快照、RequestId/TX/RX/RTT 和 Session 摘要未被改写；
-- 无 HTTP/HTTPS URL、外部 `src`/`href`、脚本、Windows 绝对路径或 `rainbow` 用户名；
+- 无 HTTP/HTTPS URL、外部 `src`/`href`、脚本、Windows 绝对路径或本机用户名；
 - COM6 只作为 2026-09-06 那次真实运行的通信快照，不作为通用端口；
 - 报告离线、自包含，可用于 README 链接和浏览器演示。
 

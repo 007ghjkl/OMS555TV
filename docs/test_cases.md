@@ -1,6 +1,6 @@
 # 测试用例目录
 
-> 状态：MVP 用例基线 2.0；Phase 5 基础套件、Phase 6 正式 20 条主套件与 Phase 7 半自动用例均已完成真实 RS485 验收，4 条边界用例保持 Fake-only。
+> 状态：MVP 最终用例基线 3.0；Phase 5 基础套件、Phase 6 正式 20 条主套件与 Phase 7 半自动用例均已完成真实 RS485 验收，4 条边界用例保持 Fake-only，TASK-029 现场彩排通过。
 
 ## 1. Phase 6 正式目录
 
@@ -63,4 +63,4 @@ TASK-024 已完成报告输入、元数据来源、汇总、五类用例映射�
 
 ## 6. Phase 9 审计结论
 
-TASK-027 已核对正式 Schema v1/v2/v3 套件分别包含 8、20+4、1 条用例，并确认真实、Fake、虚拟时间、短报告和人工操作证据边界没有混用。TASK-028 已采集六张真实脱敏素材并复核示例报告；新采集的 Phase 5 smoke 只用于展示且与 TASK-026 报告明确区分，不新增或替代正式套件结论。完整记录见 [TASK-027 审计记录](test_results/task027_phase9_documentation_audit.md) 与 [TASK-028 验收记录](test_results/task028_phase9_demo_assets.md)。TASK-029 的最终演示仍不得改变本目录中的既有结论。
+TASK-027 已核对正式 Schema v1/v2/v3 套件分别包含 8、20+4、1 条用例，并确认真实、Fake、虚拟时间、短报告和人工操作证据边界没有混用。TASK-028 已采集六张真实脱敏素材并复核示例报告。TASK-029 使用同一 Phase 5 smoke 完成彩排前 CLI 预检和生产 UI 现场演示，两次均为 8/8 PASS、阈值恢复成功；它们只关闭最终复现/演示门禁，不新增或替代 TASK-020 的正式套件结论。完整记录见 [TASK-027 审计记录](test_results/task027_phase9_documentation_audit.md)、[TASK-028 验收记录](test_results/task028_phase9_demo_assets.md) 与 [TASK-029 最终验收](test_results/task029_phase9_final_acceptance.md)。
