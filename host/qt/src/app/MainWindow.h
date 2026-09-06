@@ -16,6 +16,7 @@ class QTableWidget;
 namespace oms555tv::configuration { class ConfigurationService; }
 namespace oms555tv::diagnostics { class CommunicationDiagnosticsModel; }
 namespace oms555tv::logging { class SessionLogService; }
+namespace oms555tv::report { class ReportExportController; }
 namespace oms555tv::testing { class TestAutomationController; }
 namespace oms555tv::ui { class MonitoringViewModel; }
 
@@ -35,6 +36,13 @@ public:
                oms555tv::logging::SessionLogService &sessionLog,
                oms555tv::testing::TestAutomationController &automation,
                QWidget *parent = nullptr);
+    MainWindow(oms555tv::ui::MonitoringViewModel &viewModel,
+               oms555tv::configuration::ConfigurationService &configuration,
+               oms555tv::diagnostics::CommunicationDiagnosticsModel &diagnostics,
+               oms555tv::logging::SessionLogService &sessionLog,
+               oms555tv::testing::TestAutomationController &automation,
+               oms555tv::report::ReportExportController &reportExport,
+               QWidget *parent = nullptr);
 
 private:
     MainWindow(oms555tv::ui::MonitoringViewModel &viewModel,
@@ -42,6 +50,7 @@ private:
                oms555tv::diagnostics::CommunicationDiagnosticsModel *diagnostics,
                oms555tv::logging::SessionLogService *sessionLog,
                oms555tv::testing::TestAutomationController *automation,
+               oms555tv::report::ReportExportController *reportExport,
                QWidget *parent);
     QLabel *makeValueLabel(const QString &objectName);
     void render();
@@ -51,12 +60,14 @@ private:
     void renderSessionLog();
     void renderTesting();
     void renderTestDetails();
+    void renderReport();
 
     oms555tv::ui::MonitoringViewModel &viewModel_;
     oms555tv::configuration::ConfigurationService *configuration_ = nullptr;
     oms555tv::diagnostics::CommunicationDiagnosticsModel *diagnostics_ = nullptr;
     oms555tv::logging::SessionLogService *sessionLog_ = nullptr;
     oms555tv::testing::TestAutomationController *automation_ = nullptr;
+    oms555tv::report::ReportExportController *reportExport_ = nullptr;
 
     QComboBox *portCombo_ = nullptr;
     QComboBox *periodCombo_ = nullptr;
@@ -144,4 +155,21 @@ private:
     QPlainTextEdit *testLoadErrors_ = nullptr;
     QTableWidget *testCaseTable_ = nullptr;
     QPlainTextEdit *testCaseDetails_ = nullptr;
+
+    QLabel *reportGateLabel_ = nullptr;
+    QLabel *reportRunLabel_ = nullptr;
+    QLabel *reportSummaryLabel_ = nullptr;
+    QLabel *reportEvidenceLabel_ = nullptr;
+    QLabel *reportConfiguredMetadataLabel_ = nullptr;
+    QLineEdit *reportTesterEdit_ = nullptr;
+    QLineEdit *reportDeviceModelEdit_ = nullptr;
+    QLineEdit *reportTestBenchEdit_ = nullptr;
+    QPlainTextEdit *reportEnvironmentEdit_ = nullptr;
+    QLineEdit *reportOutputDirectoryEdit_ = nullptr;
+    QLineEdit *reportFileNameEdit_ = nullptr;
+    QPushButton *reportBrowseDirectoryButton_ = nullptr;
+    QPushButton *generateHtmlReportButton_ = nullptr;
+    QPushButton *openHtmlReportButton_ = nullptr;
+    QLabel *reportExportStateLabel_ = nullptr;
+    QLabel *reportExportResultLabel_ = nullptr;
 };

@@ -3,6 +3,7 @@
 #include "configuration/ConfigurationService.h"
 #include "diagnostics/CommunicationDiagnostics.h"
 #include "logging/SessionLogService.h"
+#include "report/ReportExportController.h"
 #include "testing/TestAutomationController.h"
 #include "ui/MonitoringViewModel.h"
 
@@ -10,7 +11,10 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDoubleSpinBox>
+#include <QDesktopServices>
+#include <QDir>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFormLayout>
 #include <QGridLayout>
 #include <QGroupBox>
@@ -28,6 +32,7 @@
 #include <QTabWidget>
 #include <QTextCursor>
 #include <QTimer>
+#include <QUrl>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -216,7 +221,7 @@ std::array<oms555tv::device::Temperature, 4> thresholdArray(
 
 MainWindow::MainWindow(oms555tv::ui::MonitoringViewModel &viewModel,
                        QWidget *parent)
-    : MainWindow(viewModel, nullptr, nullptr, nullptr, nullptr, parent)
+    : MainWindow(viewModel, nullptr, nullptr, nullptr, nullptr, nullptr, parent)
 {
 }
 
@@ -226,7 +231,8 @@ MainWindow::MainWindow(
     oms555tv::diagnostics::CommunicationDiagnosticsModel &diagnostics,
     oms555tv::logging::SessionLogService &sessionLog,
     QWidget *parent)
-    : MainWindow(viewModel, &configuration, &diagnostics, &sessionLog, nullptr, parent)
+    : MainWindow(viewModel, &configuration, &diagnostics, &sessionLog, nullptr,
+                 nullptr, parent)
 {
 }
 
@@ -238,7 +244,20 @@ MainWindow::MainWindow(
     oms555tv::testing::TestAutomationController &automation,
     QWidget *parent)
     : MainWindow(viewModel, &configuration, &diagnostics, &sessionLog,
-                 &automation, parent)
+                 &automation, nullptr, parent)
+{
+}
+
+MainWindow::MainWindow(
+    oms555tv::ui::MonitoringViewModel &viewModel,
+    oms555tv::configuration::ConfigurationService &configuration,
+    oms555tv::diagnostics::CommunicationDiagnosticsModel &diagnostics,
+    oms555tv::logging::SessionLogService &sessionLog,
+    oms555tv::testing::TestAutomationController &automation,
+    oms555tv::report::ReportExportController &reportExport,
+    QWidget *parent)
+    : MainWindow(viewModel, &configuration, &diagnostics, &sessionLog,
+                 &automation, &reportExport, parent)
 {
 }
 
@@ -248,6 +267,7 @@ MainWindow::MainWindow(
     oms555tv::diagnostics::CommunicationDiagnosticsModel *diagnostics,
     oms555tv::logging::SessionLogService *sessionLog,
     oms555tv::testing::TestAutomationController *automation,
+    oms555tv::report::ReportExportController *reportExport,
     QWidget *parent)
     : QMainWindow(parent)
     , viewModel_(viewModel)
@@ -255,6 +275,7 @@ MainWindow::MainWindow(
     , diagnostics_(diagnostics)
     , sessionLog_(sessionLog)
     , automation_(automation)
+    , reportExport_(reportExport)
 {
     setWindowTitle(QStringLiteral("OMS555TV 监控与诊断平台"));
     resize(1180, 860);
@@ -643,6 +664,125 @@ MainWindow::MainWindow(
             tabs->addTab(testingPage, QStringLiteral("自动化测试"));
         }
 
+        if (reportExport_) {
+            auto *reportPage = new QWidget;
+            auto *reportLayout = new QVBoxLayout(reportPage);
+            auto *notice = new QLabel(
+                QStringLiteral("报告只绑定最近一次完整终态结果。测试运行中禁止导出；"
+                               "HTML 为离线自包含文件，PDF 可通过浏览器打印，"
+                               "本应用不提供原生 PDF。"), reportPage);
+            notice->setWordWrap(true);
+            reportLayout->addWidget(notice);
+
+            reportGateLabel_ = new QLabel(reportPage);
+            reportGateLabel_->setObjectName(QStringLiteral("reportGateLabel"));
+            reportGateLabel_->setWordWrap(true);
+            reportLayout->addWidget(reportGateLabel_);
+
+            auto *previewGroup = new QGroupBox(QStringLiteral("最近一次完整结果"), reportPage);
+            auto *previewLayout = new QVBoxLayout(previewGroup);
+            reportRunLabel_ = new QLabel(previewGroup);
+            reportRunLabel_->setObjectName(QStringLiteral("reportRunLabel"));
+            reportRunLabel_->setWordWrap(true);
+            reportRunLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+            reportSummaryLabel_ = new QLabel(previewGroup);
+            reportSummaryLabel_->setObjectName(QStringLiteral("reportSummaryLabel"));
+            reportSummaryLabel_->setWordWrap(true);
+            reportEvidenceLabel_ = new QLabel(previewGroup);
+            reportEvidenceLabel_->setObjectName(QStringLiteral("reportEvidenceLabel"));
+            reportEvidenceLabel_->setWordWrap(true);
+            reportConfiguredMetadataLabel_ = new QLabel(previewGroup);
+            reportConfiguredMetadataLabel_->setObjectName(
+                QStringLiteral("reportConfiguredMetadataLabel"));
+            reportConfiguredMetadataLabel_->setWordWrap(true);
+            previewLayout->addWidget(reportRunLabel_);
+            previewLayout->addWidget(reportSummaryLabel_);
+            previewLayout->addWidget(reportEvidenceLabel_);
+            previewLayout->addWidget(reportConfiguredMetadataLabel_);
+            reportLayout->addWidget(previewGroup);
+
+            auto *metadataGroup = new QGroupBox(QStringLiteral("报告元数据"), reportPage);
+            auto *metadataLayout = new QFormLayout(metadataGroup);
+            auto *projectName = new QLineEdit(QStringLiteral("OMS555TV"), metadataGroup);
+            projectName->setObjectName(QStringLiteral("reportProjectName"));
+            projectName->setReadOnly(true);
+            reportTesterEdit_ = new QLineEdit(metadataGroup);
+            reportTesterEdit_->setObjectName(QStringLiteral("reportTesterEdit"));
+            reportTesterEdit_->setPlaceholderText(
+                QStringLiteral("必填；仅由操作员输入，不读取 Windows 用户名"));
+            reportDeviceModelEdit_ = new QLineEdit(metadataGroup);
+            reportDeviceModelEdit_->setObjectName(QStringLiteral("reportDeviceModelEdit"));
+            reportDeviceModelEdit_->setPlaceholderText(
+                QStringLiteral("仅在套件未配置设备型号时补缺"));
+            reportTestBenchEdit_ = new QLineEdit(metadataGroup);
+            reportTestBenchEdit_->setObjectName(QStringLiteral("reportTestBenchEdit"));
+            reportTestBenchEdit_->setPlaceholderText(
+                QStringLiteral("仅在套件未配置测试台架时补缺"));
+            reportEnvironmentEdit_ = new QPlainTextEdit(metadataGroup);
+            reportEnvironmentEdit_->setObjectName(QStringLiteral("reportEnvironmentEdit"));
+            reportEnvironmentEdit_->setMaximumHeight(80);
+            reportEnvironmentEdit_->setPlaceholderText(
+                QStringLiteral("仅在套件未配置环境说明时补缺"));
+            metadataLayout->addRow(QStringLiteral("项目名称（system-observed）："), projectName);
+            metadataLayout->addRow(QStringLiteral("测试人员（operator-entered，必填）："),
+                                   reportTesterEdit_);
+            metadataLayout->addRow(QStringLiteral("设备型号补充（operator-entered）："),
+                                   reportDeviceModelEdit_);
+            metadataLayout->addRow(QStringLiteral("测试台架补充（operator-entered）："),
+                                   reportTestBenchEdit_);
+            metadataLayout->addRow(QStringLiteral("环境说明补充（operator-entered）："),
+                                   reportEnvironmentEdit_);
+            reportLayout->addWidget(metadataGroup);
+
+            auto *outputGroup = new QGroupBox(QStringLiteral("HTML 输出"), reportPage);
+            auto *outputLayout = new QFormLayout(outputGroup);
+            auto *directoryRow = new QWidget(outputGroup);
+            auto *directoryLayout = new QHBoxLayout(directoryRow);
+            directoryLayout->setContentsMargins(0, 0, 0, 0);
+            reportOutputDirectoryEdit_ = new QLineEdit(directoryRow);
+            reportOutputDirectoryEdit_->setObjectName(
+                QStringLiteral("reportOutputDirectoryEdit"));
+            reportOutputDirectoryEdit_->setText(
+                oms555tv::report::ReportExportController::defaultOutputDirectory());
+            reportBrowseDirectoryButton_ = new QPushButton(
+                QStringLiteral("选择目录"), directoryRow);
+            reportBrowseDirectoryButton_->setObjectName(
+                QStringLiteral("reportBrowseDirectoryButton"));
+            directoryLayout->addWidget(reportOutputDirectoryEdit_, 1);
+            directoryLayout->addWidget(reportBrowseDirectoryButton_);
+            reportFileNameEdit_ = new QLineEdit(outputGroup);
+            reportFileNameEdit_->setObjectName(QStringLiteral("reportFileNameEdit"));
+            outputLayout->addRow(QStringLiteral("输出目录："), directoryRow);
+            outputLayout->addRow(QStringLiteral("文件名（不覆盖）："), reportFileNameEdit_);
+            reportLayout->addWidget(outputGroup);
+
+            auto *reportButtons = new QHBoxLayout;
+            generateHtmlReportButton_ = new QPushButton(
+                QStringLiteral("生成 HTML 报告"), reportPage);
+            generateHtmlReportButton_->setObjectName(
+                QStringLiteral("generateHtmlReportButton"));
+            openHtmlReportButton_ = new QPushButton(
+                QStringLiteral("打开报告"), reportPage);
+            openHtmlReportButton_->setObjectName(QStringLiteral("openHtmlReportButton"));
+            reportExportStateLabel_ = new QLabel(reportPage);
+            reportExportStateLabel_->setObjectName(QStringLiteral("reportExportStateLabel"));
+            reportButtons->addWidget(generateHtmlReportButton_);
+            reportButtons->addWidget(openHtmlReportButton_);
+            reportButtons->addWidget(reportExportStateLabel_);
+            reportButtons->addStretch();
+            reportLayout->addLayout(reportButtons);
+            reportExportResultLabel_ = new QLabel(reportPage);
+            reportExportResultLabel_->setObjectName(QStringLiteral("reportExportResultLabel"));
+            reportExportResultLabel_->setWordWrap(true);
+            reportExportResultLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+            reportLayout->addWidget(reportExportResultLabel_);
+            reportLayout->addStretch();
+            auto *reportScroll = new QScrollArea;
+            reportScroll->setWidgetResizable(true);
+            reportScroll->setWidget(reportPage);
+            tabs->addTab(reportScroll, QStringLiteral("测试报告"));
+        }
+
         auto *sessionPage = new QWidget;
         auto *sessionLayout = new QVBoxLayout(sessionPage);
         auto *sessionButtons = new QHBoxLayout;
@@ -808,12 +948,45 @@ MainWindow::MainWindow(
             connect(testCaseTable_, &QTableWidget::itemSelectionChanged,
                     this, &MainWindow::renderTestDetails);
         }
+        if (reportExport_) {
+            connect(reportExport_, &oms555tv::report::ReportExportController::stateChanged,
+                    this, &MainWindow::renderReport);
+            connect(reportTesterEdit_, &QLineEdit::textChanged,
+                    this, &MainWindow::renderReport);
+            connect(reportBrowseDirectoryButton_, &QPushButton::clicked, this, [this] {
+                const QString path = QFileDialog::getExistingDirectory(
+                    this, QStringLiteral("选择报告输出目录"),
+                    reportOutputDirectoryEdit_->text());
+                if (!path.isEmpty()) reportOutputDirectoryEdit_->setText(path);
+            });
+            connect(generateHtmlReportButton_, &QPushButton::clicked, this, [this] {
+                oms555tv::report::ReportExportRequest request;
+                request.operatorMetadata.tester = reportTesterEdit_->text();
+                request.operatorMetadata.deviceModel = reportDeviceModelEdit_->text();
+                request.operatorMetadata.testBench = reportTestBenchEdit_->text();
+                request.operatorMetadata.environmentDescription =
+                    reportEnvironmentEdit_->toPlainText();
+                request.outputDirectory = reportOutputDirectoryEdit_->text();
+                request.fileName = reportFileNameEdit_->text();
+                (void)reportExport_->exportHtml(request);
+            });
+            connect(openHtmlReportButton_, &QPushButton::clicked, this, [this] {
+                const auto &outcome = reportExport_->lastOutcome();
+                if (outcome.succeeded()
+                    && !QDesktopServices::openUrl(QUrl::fromLocalFile(*outcome.filePath))) {
+                    reportExportResultLabel_->setText(
+                        QStringLiteral("报告已生成，但无法调用系统浏览器打开：%1")
+                            .arg(*outcome.filePath));
+                }
+            });
+        }
     }
     render();
     renderConfiguration();
     renderDiagnostics();
     renderSessionLog();
     renderTesting();
+    renderReport();
 }
 
 QLabel *MainWindow::makeValueLabel(const QString &objectName)
@@ -1379,4 +1552,98 @@ void MainWindow::renderTestDetails()
         lines << QStringLiteral("状态：NOT_RUN");
     }
     testCaseDetails_->setPlainText(lines.join(QLatin1Char('\n')));
+}
+
+void MainWindow::renderReport()
+{
+    if (!reportExport_ || !reportRunLabel_) return;
+
+    const auto &preview = reportExport_->preview();
+    if (!preview) {
+        reportRunLabel_->setText(QStringLiteral("尚无完整测试结果"));
+        reportSummaryLabel_->setText(QStringLiteral("--"));
+        reportEvidenceLabel_->setText(QStringLiteral("证据：--"));
+        reportConfiguredMetadataLabel_->setText(QStringLiteral("套件元数据：--"));
+    } else {
+        reportRunLabel_->setText(
+            QStringLiteral("suite=%1（%2），run=%3，Session ID=%4，终态=%5\n"
+                           "UTC：%6 ～ %7；耗时 %8 ms")
+                .arg(preview->suiteId, preview->suiteName)
+                .arg(preview->runId)
+                .arg(preview->sessionId.isEmpty() ? QStringLiteral("未采集")
+                                                   : preview->sessionId,
+                     oms555tv::testing::testStatusName(preview->status),
+                     preview->startedUtc, preview->finishedUtc)
+                .arg(preview->durationMs));
+        reportSummaryLabel_->setText(
+            QStringLiteral("用例 %1：PASS %2 / FAIL %3 / ERROR %4 / SKIPPED %5")
+                .arg(preview->total).arg(preview->passed).arg(preview->failed)
+                .arg(preview->errors).arg(preview->skipped));
+        reportEvidenceLabel_->setText(
+            QStringLiteral("证据保留：%1").arg(preview->evidenceRetention));
+        const auto configured = [](const QString &value) {
+            return value.isEmpty()
+                ? QStringLiteral("未配置（可由操作员补充）[unavailable]")
+                : value + QStringLiteral(" [suite-configured]");
+        };
+        reportConfiguredMetadataLabel_->setText(
+            QStringLiteral("测试对象：%1 [suite-configured]\n设备型号：%2\n"
+                           "测试台架：%3\n环境说明：%4")
+                .arg(preview->suiteName, configured(preview->configuredDeviceModel),
+                     configured(preview->configuredTestBench),
+                     configured(preview->configuredEnvironment)));
+        const qulonglong boundRun = reportFileNameEdit_->property("reportRunId").toULongLong();
+        if (boundRun != preview->runId) {
+            reportFileNameEdit_->setText(preview->suggestedFileName);
+            reportFileNameEdit_->setProperty("reportRunId",
+                                             QVariant::fromValue<qulonglong>(preview->runId));
+        }
+    }
+
+    QString gate;
+    bool enabled = true;
+    if (!preview) {
+        gate = QStringLiteral("NoCompletedResult：尚无可导出的完整测试结果");
+        enabled = false;
+    } else if (automation_ && automation_->busy()) {
+        gate = QStringLiteral("TestRunInProgress：测试工作流运行期间禁止导出");
+        enabled = false;
+    } else if (reportExport_->busy()) {
+        gate = QStringLiteral("ExportInProgress：报告正在后台生成，请勿重复提交");
+        enabled = false;
+    } else if (reportTesterEdit_->text().trimmed().isEmpty()) {
+        gate = QStringLiteral("MissingRequiredMetadata：测试人员为必填项");
+        enabled = false;
+    } else {
+        gate = QStringLiteral("READY：元数据有效，可一键生成 HTML 报告");
+    }
+    reportGateLabel_->setText(gate);
+    generateHtmlReportButton_->setEnabled(enabled && reportExport_->canExport());
+    reportTesterEdit_->setEnabled(!reportExport_->busy());
+    reportDeviceModelEdit_->setEnabled(!reportExport_->busy());
+    reportTestBenchEdit_->setEnabled(!reportExport_->busy());
+    reportEnvironmentEdit_->setEnabled(!reportExport_->busy());
+    reportOutputDirectoryEdit_->setEnabled(!reportExport_->busy());
+    reportFileNameEdit_->setEnabled(!reportExport_->busy());
+    reportBrowseDirectoryButton_->setEnabled(!reportExport_->busy());
+    reportExportStateLabel_->setText(
+        oms555tv::report::reportExportStateName(reportExport_->state()));
+
+    const auto &outcome = reportExport_->lastOutcome();
+    if (outcome.succeeded()) {
+        reportExportResultLabel_->setText(
+            QStringLiteral("成功：run=%1，%2 字节\n%3")
+                .arg(outcome.runId).arg(outcome.fileSizeBytes).arg(*outcome.filePath));
+    } else if (!outcome.errors.isEmpty()) {
+        QStringList errors;
+        for (const auto &error : outcome.errors) {
+            errors << QStringLiteral("%1 %2：%3")
+                .arg(oms555tv::report::reportErrorCodeName(error.code),
+                     error.path, error.diagnostic);
+        }
+        reportExportResultLabel_->setText(errors.join(QLatin1Char('\n')));
+    } else {
+        reportExportResultLabel_->clear();
+    }
+    openHtmlReportButton_->setEnabled(outcome.succeeded());
 }

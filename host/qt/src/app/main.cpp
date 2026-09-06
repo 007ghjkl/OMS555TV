@@ -6,6 +6,7 @@
 #include "logging/SessionLogService.h"
 #include "monitor/MonitorScheduler.h"
 #include "monitor/MonitorService.h"
+#include "report/ReportExportController.h"
 #include "testing/TestAutomationController.h"
 #include "testing/TestEngine.h"
 #include "testing/TestResultManager.h"
@@ -15,8 +16,10 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QTimeZone>
 #include <QTimer>
 
+#include <chrono>
 #include <utility>
 
 int main(int argc, char *argv[])
@@ -40,6 +43,28 @@ int main(int argc, char *argv[])
         controller, client, testResults, &sessionLog, scheduler);
     oms555tv::testing::TestAutomationController testAutomation(
         controller, testEngine, testResults);
+    oms555tv::report::ReportExportController reportExport(
+        testAutomation, sessionLog, [&viewModel] {
+            oms555tv::report::ReportRuntimeContext context;
+            const auto &state = viewModel.state();
+            if (!state.selectedPortName.trimmed().isEmpty()) {
+                oms555tv::communication::ModbusConnectionConfig config;
+                config.serial.portName = state.selectedPortName;
+                config.serial.baudRate = 115200;
+                config.serial.dataBits = 8;
+                config.serial.parity = oms555tv::communication::SerialParity::None;
+                config.serial.stopBits = oms555tv::communication::SerialStopBits::One;
+                config.serial.flowControl = oms555tv::communication::SerialFlowControl::None;
+                config.serverAddress = static_cast<quint8>(state.slaveAddress);
+                config.defaultResponseTimeout =
+                    std::chrono::milliseconds(state.responseTimeoutMs);
+                config.maxPendingRequests = 64;
+                context.connectionConfig = config;
+            }
+            context.applicationVersion = QCoreApplication::applicationVersion();
+            context.displayTimeZone = QTimeZone::systemTimeZone();
+            return context;
+        });
     QObject::connect(&controller, &oms555tv::app::AppStateController::stateChanged,
                      &sessionLog, [&sessionLog](oms555tv::app::AppState state) {
         oms555tv::logging::LogEntry entry{
@@ -70,7 +95,8 @@ int main(int argc, char *argv[])
             entry.metadata.insert(QStringLiteral("cancelled"), result.cancelled);
             sessionLog.append(std::move(entry));
         });
-    MainWindow window(viewModel, configuration, diagnostics, sessionLog, testAutomation);
+    MainWindow window(viewModel, configuration, diagnostics, sessionLog,
+                      testAutomation, reportExport);
     window.show();
 
     if (application.arguments().contains(QStringLiteral("--smoke-test"))) {

@@ -53,10 +53,10 @@
 - Host Phase 5 的 TASK-014 测试模型/JSON Schema/断言、TASK-015 TestEngine 和 TASK-016 自动化测试 UI/真实 RS485 基础套件均已完成。TASK-016 全新构建和 19/19 CTest 通过，COM6 上 8/8 基础用例 PASS，11 个测试 RequestId 与诊断/TEST 日志一致，阈值前后独立读取一致。
 - Host Phase 6 的 TASK-017 覆盖模型/Schema v2、TASK-018 复合/超时/稳定性执行核心、TASK-019 完整 20+ 套件/UI 集成和 TASK-020 真实 RS485 全量验收均已完成。TASK-020 最终 20/20 CTest 与 COM6 实机预检/中止专项通过；正式主套件 20/20 PASS，真实稳定性持续 600001 ms、599/599 请求成功、0 失败、0 超时，647 个 Testing RequestId 的跨层证据一致且阈值最终恢复。
 - Host Phase 7 的 TASK-021 引导式模型/Schema v3、TASK-022 半自动控制器/UI、TASK-023 RS485 A/B 物理断线恢复实机验收均已完成。TASK-023 全新构建和 23/23 CTest 通过；COM6 正式 `TC-R001` 观察到 3 次连续超时与 3 次连续合法响应，首次/稳定恢复为 51/716 ms，6 个 Testing RequestId 跨层一致，最终链路在线。
-- Host Phase 8 的 TASK-024 报告契约/元数据和 TASK-025 自包含 HTML 生成器已完成：纯数据测试覆盖四类来源、混合终态/空分母、v1/v2/v3、五类用例映射、Firmware 提取、时间、证据保留及日志工件；HTML 测试覆盖固定 golden、全层级内容、中文/恶意标签/控制字符转义、无外部资源、打印 CSS、安全文件名、原子写入、非法路径和重名。全新 Host 构建和 25/25 CTest 通过。TASK-026 报告 UI/一键导出与真实结果报告仍待实施。
+- Host Phase 8 的 TASK-024/025/026 已完成：报告契约、自包含 HTML、最近完整结果页面、必填元数据门禁和后台一键导出均有自动化覆盖。四类确定性 fixture 覆盖全 PASS、混合终态、stability 有界证据和 guided recovery；真实脱敏示例自动核对 8 个用例、11 个 RequestId/TX/RX/RTT、Firmware、通信参数、日志摘要、离线资源和 SHA-256。全新 Host 构建和 27/27 CTest 通过；COM6 Phase 5 短套件 8/8 PASS，桌面、窄窗口和打印预览通过。
 - 标准 Modbus Client 未必能发送 CRC 错误帧，可能需要后续 Raw Frame 接口。
 - 8/24 小时稳定性测试只能在具备持续硬件环境后执行。
 
 ## 8. 结果真实性
 
-未实际运行的测试不得标记通过。TASK-003、TASK-005、TASK-008、TASK-009、TASK-010、TASK-011、TASK-012、TASK-013、TASK-014、TASK-015、TASK-016、TASK-017、TASK-018、TASK-019、TASK-020、TASK-021、TASK-022、TASK-023、TASK-024 和 TASK-025 只能按各自记录标记通过。TASK-024 只验证纯数据报告契约；TASK-025 只验证确定性 fixture HTML 与文件行为，没有从真实运行结果执行 UI 导出。TASK-026 尚未实施。TASK-022 的 Fake/虚拟时间结果与 TASK-023 的真实人工断线—恢复结果保持独立口径，TASK-019 的 Fake/虚拟时间结果与 TASK-020 的真实 RS485 20 条/10 分钟结果也保持独立口径。正式一键导出的真实 HTML 报告仍未验证，PDF 为可选能力。当前短距离 RS485 结果不得外推为 USB 自动重连、8/24 小时稳定性、工业长线、隔离或 EMC 验证。
+未实际运行的测试不得标记通过。TASK-003、TASK-005、TASK-008～TASK-026 只能按各自记录标记通过。TASK-024 只验证纯数据报告契约，TASK-025 只验证确定性 fixture HTML 与文件行为；真实结果 UI 一键导出和视觉结论只引用 TASK-026。TASK-022 的 Fake/虚拟时间结果与 TASK-023 的真实人工断线—恢复结果保持独立口径，TASK-019 的 Fake/虚拟时间结果与 TASK-020 的真实 RS485 20 条/10 分钟结果也保持独立口径。原生 PDF 仍为可选未实现能力。当前短距离 RS485 结果不得外推为 USB 自动重连、8/24 小时稳定性、工业长线、隔离或 EMC 验证。

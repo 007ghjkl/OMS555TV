@@ -49,6 +49,11 @@ enum class ReportErrorCode {
     OutputOpenFailed,
     OutputWriteFailed,
     OutputCommitFailed,
+    NoCompletedResult,
+    TestRunInProgress,
+    MissingRequiredMetadata,
+    ExportInProgress,
+    InvalidSessionLogArtifact,
 };
 
 struct ReportError {

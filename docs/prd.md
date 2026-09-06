@@ -72,6 +72,6 @@ IEC 61850、真实高压测量、复杂保护算法、FreeRTOS、Linux 驱动、
 
 ## 10. 未决问题
 
-硬件型号、传感器引脚、115200 8N1、温度阈值、迟滞、寄存器字序和 RS485 物理接口已由 `docs/hardware_baseline.md` 确认。TASK-003 已通过实物采样确认 DHTC12 原始温度按有符号 16 位解释；TASK-005/006 已将 0x04、0x10 和公共 Raw Frame 明确排除在当前 MVP 之外；TASK-002/009/010 已完成真实 RS485 迁移和恢复验收。TASK-024 已关闭报告元数据来源：项目名使用应用常量；测试对象和套件信息来自不可变 TestSuite；设备/台架/环境优先 suite metadata、允许操作员补缺；Firmware 只来自本次通过断言的实际版本读取；Host 与通信参数来自显式系统快照；测试人员只由操作员输入；时间和 Session ID 来自不可变结果。TASK-025 已关闭 HTML 结构、安全转义、离线资源、打印规则、稳定文件名和拒绝覆盖的原子写入策略；详细契约见 `specs/host_phase8_report_contract.md` 与 `specs/host_phase8_html_report.md`。未来如需改变这些基线必须另立任务评审。仍待解决：
+硬件型号、传感器引脚、115200 8N1、温度阈值、迟滞、寄存器字序和 RS485 物理接口已由 `docs/hardware_baseline.md` 确认。TASK-003 已通过实物采样确认 DHTC12 原始温度按有符号 16 位解释；TASK-005/006 已将 0x04、0x10 和公共 Raw Frame 明确排除在当前 MVP 之外；TASK-002/009/010 已完成真实 RS485 迁移和恢复验收。TASK-024 已关闭报告元数据来源，TASK-025 已关闭 HTML 结构、安全转义、离线资源、打印规则、稳定文件名和拒绝覆盖的原子写入策略。TASK-026 已关闭最近完整结果生命周期、人工必填元数据、异步一键导出、文件冲突、真实结果证据和视觉验收：报告 UI 只消费不可变结果，测试运行中不能导出，原始报告留在忽略目录，仓库示例只移除本机绝对路径。完整契约见 `specs/host_phase8_report_contract.md`、`specs/host_phase8_html_report.md` 与 `specs/host_phase8_report_ui_export.md`。原生 PDF、报告历史数据库、签名和上传保持非目标；未来如需改变这些基线必须另立任务评审。仍待解决：
 
 1. Qt 6.8.3/MSVC 2022 是否作为唯一受支持的平台基线，或仅作为当前 Windows 验证基线。

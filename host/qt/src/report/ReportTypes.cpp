@@ -44,6 +44,13 @@ QString reportErrorCodeName(const ReportErrorCode code)
     case ReportErrorCode::OutputOpenFailed: return QStringLiteral("OutputOpenFailed");
     case ReportErrorCode::OutputWriteFailed: return QStringLiteral("OutputWriteFailed");
     case ReportErrorCode::OutputCommitFailed: return QStringLiteral("OutputCommitFailed");
+    case ReportErrorCode::NoCompletedResult: return QStringLiteral("NoCompletedResult");
+    case ReportErrorCode::TestRunInProgress: return QStringLiteral("TestRunInProgress");
+    case ReportErrorCode::MissingRequiredMetadata:
+        return QStringLiteral("MissingRequiredMetadata");
+    case ReportErrorCode::ExportInProgress: return QStringLiteral("ExportInProgress");
+    case ReportErrorCode::InvalidSessionLogArtifact:
+        return QStringLiteral("InvalidSessionLogArtifact");
     }
     return QStringLiteral("SummaryInvariantViolation");
 }

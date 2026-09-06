@@ -47,7 +47,7 @@ TASK-020 在当前安全低压 RS485 台架上从同一正式 JSON 原样执行�
 - TC-P003 非法功能码依赖 Raw Frame，未纳入本阶段。
 - 原候选 TC-P005 与 TC-B005 目标重复，不作为另一个正式 ID 计数。
 - TC-R001 物理 A/B 断线—恢复已由 TASK-023 正式验收；TC-R002 设备复位和传感器人工操作属于后续增强。
-- TASK-020 已关闭 Phase 6，TASK-023 已关闭 Phase 7；结论仍不得外推到 Phase 8 正式报告、USB 自动重连、8/24 小时、工业长线、隔离或 EMC。
+- TASK-020 已关闭 Phase 6，TASK-023 已关闭 Phase 7，TASK-026 已关闭 Phase 8 正式报告；结论仍不得外推到 USB 自动重连、8/24 小时、工业长线、隔离或 EMC。
 
 ## 4. Phase 7 正式目录
 
@@ -59,4 +59,4 @@ TASK-020 在当前安全低压 RS485 台架上从同一正式 JSON 原样执行�
 
 ## 5. Phase 8 报告边界
 
-TASK-024 已完成报告输入、元数据来源、汇总、五类用例映射、事务证据和结构化错误契约。TASK-025 已完成只消费该模型的自包含 HTML 生成器：固定 fixture 覆盖四终态、sequence/consistency/stability/guided recovery、通信与错误证据、安全转义、打印样式、文件名、原子写入和重名失败。报告生成不得新增、删除或重新判定用例，也不得用报告展示状态覆盖本目录中的真实执行状态；稳定性 HTML 只能展示内存保留证据和外部 SessionLog 摘要，不能声称内含已丢弃的全部 attempt。TASK-026 仍负责 UI、一键导出、真实短套件报告和人工视觉验收；原生 PDF 为可选能力，不属于 Phase 8 关闭条件。
+TASK-024 已完成报告输入、元数据来源、汇总、五类用例映射、事务证据和结构化错误契约。TASK-025 已完成只消费该模型的自包含 HTML 生成器。TASK-026 已完成最近完整结果 UI、人工必填元数据、后台一键导出、四类确定性 fixture、真实 COM6 Phase 5 短套件报告和人工视觉验收；真实结果为 8/8 PASS，报告保留 11 个 RequestId/TX/RX/RTT、Firmware 0.2、Session ID 及阈值恢复证据。报告生成不得新增、删除或重新判定用例，也不得用报告展示状态覆盖本目录中的真实执行状态；稳定性 HTML 只能展示内存保留证据和外部 SessionLog 摘要，不能声称内含已丢弃的全部 attempt。脱敏示例见 `docs/examples/task026-phase5-rs485-report.html`，原生 PDF 为可选未实现能力。

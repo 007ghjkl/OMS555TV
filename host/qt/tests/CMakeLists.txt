@@ -162,6 +162,22 @@ add_executable(tst_htmlreport
 target_link_libraries(tst_htmlreport PRIVATE oms555tv_core Qt6::Test)
 add_test(NAME host.report.html COMMAND tst_htmlreport)
 
+add_executable(tst_reportui
+    monitor/ManualMonitorScheduler.h
+    ui/tst_reportui.cpp
+)
+target_link_libraries(tst_reportui PRIVATE oms555tv_widgets Qt6::Test)
+add_test(NAME host.report.ui_export COMMAND tst_reportui)
+
+add_executable(tst_reportfixtures
+    report/tst_reportfixtures.cpp
+)
+target_compile_definitions(tst_reportfixtures PRIVATE
+    OMS555TV_TASK026_SAMPLE_REPORT="${CMAKE_SOURCE_DIR}/../../docs/examples/task026-phase5-rs485-report.html"
+)
+target_link_libraries(tst_reportfixtures PRIVATE oms555tv_core Qt6::Test)
+add_test(NAME host.report.acceptance_fixtures COMMAND tst_reportfixtures)
+
 add_executable(tst_automationui
     monitor/ManualMonitorScheduler.h
     ui/tst_automationui.cpp
@@ -198,6 +214,8 @@ set_tests_properties(
     host.testing.phase7_suite
     host.report.model
     host.report.html
+    host.report.ui_export
+    host.report.acceptance_fixtures
     host.testing.automation_ui
     host.application.smoke
     PROPERTIES
@@ -206,6 +224,7 @@ set_tests_properties(
 set_tests_properties(
     host.monitoring.ui
     host.configuration_diagnostics.ui
+    host.report.ui_export
     host.testing.automation_ui
     host.application.smoke
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"

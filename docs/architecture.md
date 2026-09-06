@@ -135,6 +135,8 @@ TASK-024 已建立无 QObject/WIdgets 依赖的报告数据边界。`ReportModel
 
 TASK-025 已实现同样无 QObject/QWidget 依赖的 `HtmlReportGenerator`。生成入口只消费 `ReportDocumentModel`，生成时间通过构造时 UTC 时钟注入，确保生产实时与 golden 测试确定性兼容。渲染器统一规范化控制字符并转义所有外部文本，输出带 CSP、内联 CSS、原生 `<details>` 和打印规则的 UTF-8 自包含 HTML；不会读取或嵌入 SessionLog。文件名由 suite ID、运行开始 UTC 和 run ID 稳定生成，写入使用禁用直接回退的 `QSaveFile`，非法路径、重名、打开、写入和提交失败均返回结构化 `ReportError`。完整契约见 `specs/host_phase8_html_report.md`；结果生命周期、异步 UI 和一键导出仍属于 TASK-026。
 
+TASK-026 已新增无 QWidget 依赖的 `ReportExportController` 和 MainWindow 报告页。控制器在工作流结束时冻结最近一次完整 `TestSuiteResult`、连接参数、构建信息与 SessionLog 身份；新运行期间保留旧预览但禁止导出，新完整终态原子替换旧结果。用户单击生成时再冻结人工元数据和目标路径，线程池负责读取已结束日志、计算 SHA-256、构建文档模型和调用 `HtmlReportGenerator`，完成通知通过 queued invocation 返回应用线程；每个控制器仅允许一个导出作业。UI 不重新计算状态或解析报文，并明确 `NoCompletedResult`、`TestRunInProgress`、`MissingRequiredMetadata`、`ExportInProgress` 及文件错误。真实 COM6 短套件一键报告和脱敏示例已核对，完整契约与证据见 `specs/host_phase8_report_ui_export.md` 和 `docs/test_results/task026_phase8_report_export.md`；Phase 8 已关闭。
+
 ## 9. 部署与构建
 
 - Host：Windows x64，Qt 6.8.3、MSVC 2022、CMake、Ninja。

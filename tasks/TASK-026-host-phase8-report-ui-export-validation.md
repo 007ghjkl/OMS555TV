@@ -93,4 +93,4 @@ TASK-024/025 分别提供报告数据契约和无 UI 的 HTML 生成能力，但
 
 ## 当前状态
 
-待实施。TASK-024/025 已于 2026-09-06 完成，报告模型、HTML 生成、安全转义和原子写入前置依赖均已满足；本任务尚未派发。
+已完成（2026-09-06）。已实现报告页、最近完整结果生命周期、必填元数据门禁、后台一键导出、重名/路径错误和四类 fixture；全新 Host 构建与 27/27 CTest 通过。COM6 真实 Phase 5 短套件 8/8 PASS，11 个 RequestId、TX/RX/RTT、Firmware 0.2、SessionLog 工件及阈值恢复证据一致；桌面、窄窗口和打印预览人工检查通过。脱敏示例与完整记录见 `docs/examples/task026-phase5-rs485-report.html` 和 `docs/test_results/task026_phase8_report_export.md`，Phase 8 已关闭。

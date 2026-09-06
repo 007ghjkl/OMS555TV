@@ -41,6 +41,8 @@ add_library(oms555tv_core STATIC
     report/HtmlReportGenerator.h
     report/ReportModelBuilder.cpp
     report/ReportModelBuilder.h
+    report/ReportExportController.cpp
+    report/ReportExportController.h
     report/ReportTypes.cpp
     report/ReportTypes.h
     testing/TestAssertions.cpp
